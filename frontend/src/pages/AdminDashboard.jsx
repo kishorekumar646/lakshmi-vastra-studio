@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
-  getAdminProducts, createProduct, updateProduct, deleteProduct, deleteProductImage,
+  getProducts, getAdminProducts, createProduct, updateProduct, deleteProduct, deleteProductImage,
   getCategories, createCategory, deleteCategory,
   getInquiries, markInquiryRead,
 } from "../api";
@@ -31,8 +31,8 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("products");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Products with pagination
-  const [products, setProducts] = useState([]);
+  // Products — all fetched, paginated client-side
+  const [allProducts, setAllProducts] = useState([]);
   const [productPage, setProductPage] = useState(1);
   const [productTotal, setProductTotal] = useState(0);
   const [productPages, setProductPages] = useState(1);
@@ -50,17 +50,36 @@ export default function AdminDashboard() {
   const fileInputRef = useRef();
   const navigate = useNavigate();
 
-  const loadProducts = (page = productPage) => {
+  const applyPage = (sorted, page) => {
+    const total = sorted.length;
+    const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+    const p = Math.min(page, pages);
+    setAllProducts(sorted);
+    setProductTotal(total);
+    setProductPages(pages);
+    setProductPage(p);
+  };
+
+  const loadProducts = (page = 1) => {
     setProductsLoading(true);
+    // Try the new admin endpoint first; if unavailable fall back to public endpoint
     getAdminProducts(page, PER_PAGE)
       .then((r) => {
-        setProducts(r.data.items);
+        setAllProducts(r.data.items);
         setProductTotal(r.data.total);
         setProductPages(r.data.pages);
         setProductPage(r.data.page);
       })
       .catch(() => {
-        toast.error("Failed to load products. Please refresh.");
+        // Backend not yet redeployed — use public endpoint + client-side pagination
+        getProducts({})
+          .then((r) => {
+            const sorted = [...r.data].sort(
+              (a, b) => new Date(b.created_at) - new Date(a.created_at)
+            );
+            applyPage(sorted, page);
+          })
+          .catch(() => toast.error("Failed to load products. Please refresh."));
       })
       .finally(() => setProductsLoading(false));
   };
@@ -75,7 +94,12 @@ export default function AdminDashboard() {
 
   const goToPage = (page) => {
     if (page < 1 || page > productPages) return;
-    loadProducts(page);
+    // If we have all products in memory (fallback mode), just update the page number
+    if (allProducts.length === productTotal) {
+      setProductPage(page);
+    } else {
+      loadProducts(page);
+    }
   };
 
   const logout = () => { localStorage.removeItem("admin_token"); navigate("/admin/login"); };
@@ -164,9 +188,10 @@ export default function AdminDashboard() {
     if (!confirm("Delete this product?")) return;
     await deleteProduct(id);
     toast.success("Deleted");
-    // If we deleted the last item on this page, go back one page
-    const remaining = products.length - 1;
-    const targetPage = remaining === 0 && productPage > 1 ? productPage - 1 : productPage;
+    const remaining = productTotal - 1;
+    const targetPage = remaining > 0 && (productPage - 1) * PER_PAGE >= remaining
+      ? productPage - 1
+      : productPage;
     loadProducts(targetPage);
   };
 
@@ -190,6 +215,11 @@ export default function AdminDashboard() {
   };
 
   const unread = inquiries.filter((i) => !i.is_read).length;
+
+  // Slice for current page (works in both server-paginated and client-paginated modes)
+  const products = allProducts.length === productTotal
+    ? allProducts.slice((productPage - 1) * PER_PAGE, productPage * PER_PAGE)
+    : allProducts;
 
   const NAV_ITEMS = [
     { key: "products", label: "Products", icon: <Package size={17} />, badge: productTotal || null },
