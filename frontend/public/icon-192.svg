@@ -1,7 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
-  <rect width="192" height="192" rx="32" fill="#7B1D45"/>
-  <rect x="0" y="152" width="192" height="40" rx="0" fill="#591430"/>
-  <rect x="0" y="148" width="192" height="6" fill="#B8892A"/>
-  <text x="96" y="112" font-family="Georgia, serif" font-size="72" font-weight="700" fill="#FFFFFF" text-anchor="middle" letter-spacing="-2">LV</text>
-  <text x="96" y="178" font-family="Georgia, serif" font-size="18" font-weight="400" fill="#D4A94A" text-anchor="middle" letter-spacing="4">STUDIO</text>
+  <!-- Outer background (darker maroon edge for depth) -->
+  <rect width="192" height="192" rx="36" fill="#3D0A22"/>
+  <!-- Main background -->
+  <rect x="4" y="4" width="184" height="184" rx="32" fill="#7B1D45"/>
+
+  <!-- Gold decorative inner border -->
+  <rect x="11" y="11" width="170" height="170" rx="26" fill="none" stroke="#B8892A" stroke-width="1.5" opacity="0.55"/>
+
+  <!-- Lotus: 8 outer petals (soft cream, semi-transparent layer) -->
+  <g transform="translate(96,83)">
+    <g transform="rotate(0)">  <ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(45)"> <ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(90)"> <ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(135)"><ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(180)"><ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(225)"><ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(270)"><ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+    <g transform="rotate(315)"><ellipse cx="0" cy="-44" rx="10" ry="23" fill="#F5E8C0" opacity="0.40"/></g>
+  </g>
+
+  <!-- Lotus: 6 inner petals (gold — main visible layer) -->
+  <g transform="translate(96,83)">
+    <g transform="rotate(0)">  <ellipse cx="0" cy="-30" rx="8" ry="17" fill="#C9902A"/></g>
+    <g transform="rotate(60)"> <ellipse cx="0" cy="-30" rx="8" ry="17" fill="#C9902A"/></g>
+    <g transform="rotate(120)"><ellipse cx="0" cy="-30" rx="8" ry="17" fill="#C9902A"/></g>
+    <g transform="rotate(180)"><ellipse cx="0" cy="-30" rx="8" ry="17" fill="#C9902A"/></g>
+    <g transform="rotate(240)"><ellipse cx="0" cy="-30" rx="8" ry="17" fill="#C9902A"/></g>
+    <g transform="rotate(300)"><ellipse cx="0" cy="-30" rx="8" ry="17" fill="#C9902A"/></g>
+  </g>
+
+  <!-- Lotus: 6 brighter inner petals (offset 30°, lighter gold highlight) -->
+  <g transform="translate(96,83)">
+    <g transform="rotate(30)"> <ellipse cx="0" cy="-22" rx="6" ry="12" fill="#D4A94A"/></g>
+    <g transform="rotate(90)"> <ellipse cx="0" cy="-22" rx="6" ry="12" fill="#D4A94A"/></g>
+    <g transform="rotate(150)"><ellipse cx="0" cy="-22" rx="6" ry="12" fill="#D4A94A"/></g>
+    <g transform="rotate(210)"><ellipse cx="0" cy="-22" rx="6" ry="12" fill="#D4A94A"/></g>
+    <g transform="rotate(270)"><ellipse cx="0" cy="-22" rx="6" ry="12" fill="#D4A94A"/></g>
+    <g transform="rotate(330)"><ellipse cx="0" cy="-22" rx="6" ry="12" fill="#D4A94A"/></g>
+  </g>
+
+  <!-- Lotus center -->
+  <circle cx="96" cy="83" r="13" fill="#8A5C10"/>
+  <circle cx="96" cy="83" r="9"  fill="#B8892A"/>
+  <circle cx="96" cy="83" r="5"  fill="#E8C860"/>
+
+  <!-- Decorative divider -->
+  <line x1="38" y1="146" x2="154" y2="146" stroke="#B8892A" stroke-width="1" opacity="0.65"/>
+  <circle cx="96" cy="146" r="2.5" fill="#B8892A" opacity="0.65"/>
+
+  <!-- Store name text -->
+  <text x="96" y="163" font-family="Georgia,'Times New Roman',serif" font-size="12" font-weight="700" fill="#D4A94A" text-anchor="middle" letter-spacing="3.5">LAKSHMI</text>
+  <text x="96" y="179" font-family="Georgia,'Times New Roman',serif" font-size="8.5" fill="#9A7030" text-anchor="middle" letter-spacing="3">VASTRA STUDIO</text>
 </svg>
