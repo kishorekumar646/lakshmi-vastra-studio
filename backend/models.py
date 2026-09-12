@@ -25,6 +25,9 @@ class Product(Base):
     category_id = Column(Integer, ForeignKey("categories.id"))
     is_featured = Column(Boolean, default=False)
     is_available = Column(Boolean, default=True)
+    is_handloom = Column(Boolean, default=False)
+    has_multiple_colours = Column(Boolean, default=False)
+    custom_orders = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     category = relationship("Category", back_populates="products")

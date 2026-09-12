@@ -6,10 +6,28 @@ from pathlib import Path
 
 load_dotenv(Path(__file__).parent / ".env")
 
+from sqlalchemy import text
 from database import engine, Base
 from routers import products, categories, inquiries, admin
 
 Base.metadata.create_all(bind=engine)
+
+# Add new columns to existing tables without Alembic
+def _run_migrations():
+    new_cols = [
+        ("products", "is_handloom", "BOOLEAN DEFAULT FALSE"),
+        ("products", "has_multiple_colours", "BOOLEAN DEFAULT FALSE"),
+        ("products", "custom_orders", "BOOLEAN DEFAULT FALSE"),
+    ]
+    with engine.connect() as conn:
+        for table, col, col_def in new_cols:
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
+
+_run_migrations()
 
 app = FastAPI(title="Lakshmi Vastra Studio API")
 

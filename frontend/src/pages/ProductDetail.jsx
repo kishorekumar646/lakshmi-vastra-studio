@@ -120,13 +120,25 @@ export default function ProductDetail() {
               </a>
             </div>
 
-            <div style={styles.note}>
-              {["Genuine handloom product", "Available in multiple colours", "Contact us for custom orders"].map((t) => (
-                <p key={t} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <span style={{ color: "var(--gold)", fontWeight: 700 }}>✓</span> {t}
-                </p>
-              ))}
-            </div>
+            {(product.is_handloom || product.has_multiple_colours || product.custom_orders) && (
+              <div style={styles.note}>
+                {product.is_handloom && (
+                  <p style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ color: "var(--gold)", fontWeight: 700 }}>✓</span> Genuine handloom product
+                  </p>
+                )}
+                {product.has_multiple_colours && (
+                  <p style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ color: "var(--gold)", fontWeight: 700 }}>✓</span> Available in multiple colours
+                  </p>
+                )}
+                {product.custom_orders && (
+                  <p style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span style={{ color: "var(--gold)", fontWeight: 700 }}>✓</span> Contact us for custom orders
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

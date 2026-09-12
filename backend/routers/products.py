@@ -31,6 +31,9 @@ def product_to_dict(p: Product):
         "category_name": p.category.name if p.category else None,
         "is_featured": p.is_featured,
         "is_available": p.is_available,
+        "is_handloom": p.is_handloom or False,
+        "has_multiple_colours": p.has_multiple_colours or False,
+        "custom_orders": p.custom_orders or False,
         "created_at": str(p.created_at),
     }
 
@@ -80,6 +83,9 @@ def create_product(
     price: float = Form(...),
     category_id: int = Form(...),
     is_featured: bool = Form(False),
+    is_handloom: bool = Form(False),
+    has_multiple_colours: bool = Form(False),
+    custom_orders: bool = Form(False),
     images: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
@@ -90,6 +96,9 @@ def create_product(
         price=price,
         category_id=category_id,
         is_featured=is_featured,
+        is_handloom=is_handloom,
+        has_multiple_colours=has_multiple_colours,
+        custom_orders=custom_orders,
     )
     db.add(product)
     db.flush()  # get product.id before committing
@@ -122,6 +131,9 @@ def update_product(
     category_id: int = Form(...),
     is_featured: bool = Form(False),
     is_available: bool = Form(True),
+    is_handloom: bool = Form(False),
+    has_multiple_colours: bool = Form(False),
+    custom_orders: bool = Form(False),
     images: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
@@ -136,6 +148,9 @@ def update_product(
     product.category_id = category_id
     product.is_featured = is_featured
     product.is_available = is_available
+    product.is_handloom = is_handloom
+    product.has_multiple_colours = has_multiple_colours
+    product.custom_orders = custom_orders
 
     if images:
         existing_count = len(product.images)

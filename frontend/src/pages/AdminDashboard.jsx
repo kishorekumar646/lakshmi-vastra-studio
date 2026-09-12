@@ -11,7 +11,7 @@ import {
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight,
 } from "lucide-react";
 
-const EMPTY_FORM = { name: "", description: "", price: "", category_id: "", is_featured: false };
+const EMPTY_FORM = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 const PER_PAGE = 10;
 
 function getPageNumbers(currentPage, totalPages) {
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
 
   const handleEdit = (p) => {
     setEditingProduct(p);
-    setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured });
+    setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured, is_handloom: p.is_handloom || false, has_multiple_colours: p.has_multiple_colours || false, custom_orders: p.custom_orders || false });
     setNewImages([]);
     setImagePreviews([]);
     setShowForm(true);
@@ -160,6 +160,9 @@ export default function AdminDashboard() {
     fd.append("price", form.price);
     fd.append("category_id", form.category_id);
     fd.append("is_featured", form.is_featured);
+    fd.append("is_handloom", form.is_handloom);
+    fd.append("has_multiple_colours", form.has_multiple_colours);
+    fd.append("custom_orders", form.custom_orders);
     newImages.forEach((img) => fd.append("images", img));
     if (newImages.length > 0) fd.append("image", newImages[0]); // compat: old backend expects "image" (singular)
 
@@ -326,6 +329,34 @@ export default function AdminDashboard() {
                         Mark as Featured
                       </label>
                     </div>
+                  </div>
+
+                  {/* Product attributes */}
+                  <div>
+                    <label style={{ marginBottom: "0.65rem", display: "block" }}>Product Attributes</label>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                      {[
+                        { id: "is_handloom", label: "Genuine Handloom Product" },
+                        { id: "has_multiple_colours", label: "Available in Multiple Colours" },
+                        { id: "custom_orders", label: "Contact Us for Custom Orders" },
+                      ].map(({ id, label }) => (
+                        <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                          <input
+                            type="checkbox"
+                            id={id}
+                            checked={form[id]}
+                            onChange={(e) => setForm({ ...form, [id]: e.target.checked })}
+                            style={{ width: "auto", minHeight: "auto", height: 17, width: 17, accentColor: "var(--primary)", flexShrink: 0 }}
+                          />
+                          <label htmlFor={id} style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 500, color: "var(--text)" }}>
+                            {label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
+                      Checked attributes appear as trust badges on the product page.
+                    </p>
                   </div>
 
                   <div>

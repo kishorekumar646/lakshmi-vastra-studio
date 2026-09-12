@@ -60,7 +60,7 @@ export default function Contact() {
                 <div style={styles.infoIcon}><MapPin size={20} /></div>
                 <div>
                   <p style={styles.infoLabel}>Store Address</p>
-                  <p style={styles.infoValue}>Your Store Address, City, State</p>
+                  <p style={styles.infoValue}>H No 15/653, Lakshmi Tailoring,<br />Tholu Shopu Street, Near Water Tank,<br />Gooty RS, Anantapur – 515402</p>
                 </div>
               </div>
               <div style={styles.infoItem}>
