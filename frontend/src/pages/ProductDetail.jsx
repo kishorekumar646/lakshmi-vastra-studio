@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { getProduct, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
 import { ArrowLeft, Phone, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductDetailSkeleton } from "../components/Skeleton";
+import Lightbox from "../components/Lightbox";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -16,6 +17,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   useEffect(() => {
     getProduct(id)
@@ -50,6 +52,7 @@ export default function ProductDetail() {
   const canNext = activeImg < images.length - 1;
 
   return (
+    <>
     <div style={{ padding: "2.5rem 0 5.5rem", background: "var(--cream)" }}>
       <div className="container">
         <Link to="/catalog" style={styles.back}>
@@ -67,6 +70,7 @@ export default function ProductDetail() {
                   src={images[activeImg]}
                   alt={product.name}
                   className="detail-main-img"
+                  onClick={() => setLightboxOpen(true)}
                 />
               ) : (
                 <div style={styles.placeholder}>No Image Available</div>
@@ -157,6 +161,15 @@ export default function ProductDetail() {
         </div>
       </div>
     </div>
+
+    {lightboxOpen && (
+      <Lightbox
+        images={images}
+        startIndex={activeImg}
+        onClose={() => setLightboxOpen(false)}
+      />
+    )}
+    </>
   );
 }
 
