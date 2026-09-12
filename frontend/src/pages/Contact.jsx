@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { submitInquiry, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
 import toast from "react-hot-toast";
 import { Phone, MessageCircle, MapPin, Clock } from "lucide-react";
