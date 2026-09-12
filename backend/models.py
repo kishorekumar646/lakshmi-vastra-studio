@@ -31,6 +31,7 @@ class Product(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     category = relationship("Category", back_populates="products")
+    reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
     images = relationship(
         "ProductImage",
         back_populates="product",
@@ -49,6 +50,20 @@ class ProductImage(Base):
     sort_order = Column(Integer, default=0)
 
     product = relationship("Product", back_populates="images")
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    reviewer_name = Column(String(100), nullable=False)
+    rating = Column(Integer, nullable=False)  # 1–5
+    comment = Column(Text)
+    is_visible = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    product = relationship("Product", back_populates="reviews")
 
 
 class Inquiry(Base):

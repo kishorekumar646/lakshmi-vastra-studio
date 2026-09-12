@@ -5,11 +5,13 @@ import {
   getProducts, getAdminProducts, createProduct, updateProduct, deleteProduct, deleteProductImage,
   getCategories, createCategory, deleteCategory,
   getInquiries, markInquiryRead,
+  getAdminReviews, deleteReview, toggleReviewVisibility,
 } from "../api";
 import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
-  Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight,
+  Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
 } from "lucide-react";
+import StarRating from "../components/StarRating";
 
 const EMPTY_FORM = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 const PER_PAGE = 10;
@@ -39,6 +41,7 @@ export default function AdminDashboard() {
 
   const [categories, setCategories] = useState([]);
   const [inquiries, setInquiries] = useState([]);
+  const [adminReviews, setAdminReviews] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -88,6 +91,7 @@ export default function AdminDashboard() {
     loadProducts(1);
     getCategories().then((r) => setCategories(r.data));
     getInquiries().then((r) => setInquiries(r.data));
+    getAdminReviews().then((r) => setAdminReviews(r.data)).catch(() => {});
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -249,6 +253,7 @@ export default function AdminDashboard() {
     { key: "products", label: "Products", icon: <Package size={17} />, badge: productTotal || null },
     { key: "categories", label: "Categories", icon: <Tag size={17} />, badge: categories.length },
     { key: "inquiries", label: "Inquiries", icon: <MessageSquare size={17} />, badge: unread || null, badgeRed: true },
+    { key: "reviews", label: "Reviews", icon: <Star size={17} />, badge: adminReviews.length || null },
   ];
 
   return (
@@ -722,6 +727,60 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* ── Reviews Tab ───────────────── */}
+        {tab === "reviews" && (
+          <div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem", flexWrap: "wrap", gap: "1rem" }}>
+              <h2 className="admin-section-title">Customer Reviews ({adminReviews.length})</h2>
+            </div>
+
+            {adminReviews.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 6, border: "1px solid var(--border-light)" }}>
+                No reviews yet.
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {adminReviews.map((r) => (
+                  <div key={r.id} style={{
+                    background: "#fff", borderRadius: 8, padding: "1.1rem 1.25rem",
+                    border: "1px solid var(--border-light)",
+                    opacity: r.is_visible ? 1 : 0.55,
+                    display: "flex", gap: "1rem", alignItems: "flex-start", flexWrap: "wrap",
+                  }}>
+                    <div style={{ flex: 1, minWidth: 220 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.25rem", flexWrap: "wrap" }}>
+                        <span style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.95rem" }}>{r.reviewer_name}</span>
+                        <StarRating value={r.rating} size={15} />
+                        {!r.is_visible && (
+                          <span style={{ background: "#f5f5f5", border: "1px solid #ddd", borderRadius: 100, padding: "1px 8px", fontSize: "0.7rem", color: "#999", fontWeight: 600 }}>Hidden</span>
+                        )}
+                      </div>
+                      <p style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginBottom: "0.4rem" }}>
+                        on <strong style={{ color: "var(--primary)" }}>{r.product_name}</strong> · {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                      {r.comment && <p style={{ color: "var(--text)", fontSize: "0.88rem", lineHeight: 1.6, margin: 0 }}>{r.comment}</p>}
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                      <button
+                        onClick={() => toggleReviewVisibility(r.id).then(loadAll).catch(() => toast.error("Failed"))}
+                        style={{ padding: "0.35rem 0.75rem", border: "1px solid var(--border-light)", borderRadius: 4, background: "var(--cream)", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "var(--text-muted)" }}
+                      >
+                        {r.is_visible ? "Hide" : "Show"}
+                      </button>
+                      <button
+                        onClick={() => { if (!confirm("Delete this review?")) return; deleteReview(r.id).then(loadAll).catch(() => toast.error("Failed")); }}
+                        style={{ padding: "0.35rem 0.75rem", border: "none", borderRadius: 4, background: "#fee2e2", cursor: "pointer", color: "#c0392b", fontWeight: 600, fontSize: "0.78rem" }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>

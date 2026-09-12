@@ -47,6 +47,9 @@ def upload_image(file: UploadFile) -> tuple[str, str]:
 def list_products(
     category_id: Optional[int] = None,
     featured: Optional[bool] = None,
+    search: Optional[str] = None,
+    sort: Optional[str] = None,          # newest | price_asc | price_desc
+    handloom: Optional[bool] = None,
     db: Session = Depends(get_db),
 ):
     query = db.query(Product).filter(Product.is_available == True)
@@ -54,10 +57,24 @@ def list_products(
         query = query.filter(Product.category_id == category_id)
     if featured is not None:
         query = query.filter(Product.is_featured == featured)
+    if handloom:
+        query = query.filter(Product.is_handloom == True)
+    if search:
+        term = f"%{search}%"
+        query = query.filter(
+            Product.name.ilike(term) | Product.description.ilike(term)
+        )
+
+    if sort == "price_asc":
+        query = query.order_by(Product.price.asc())
+    elif sort == "price_desc":
+        query = query.order_by(Product.price.desc())
+    else:
+        query = query.order_by(Product.created_at.desc())
+
     items = (
         query
         .options(joinedload(Product.category), joinedload(Product.images))
-        .order_by(Product.created_at.desc())
         .all()
     )
     return [product_to_dict(p) for p in items]

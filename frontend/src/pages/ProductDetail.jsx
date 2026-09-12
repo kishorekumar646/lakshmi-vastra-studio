@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getProduct, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
-import { ArrowLeft, Phone, ChevronLeft, ChevronRight } from "lucide-react";
+import { getProduct, getReviews, submitReview, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
+import { ArrowLeft, Phone, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
 import { ProductDetailSkeleton } from "../components/Skeleton";
 import Lightbox from "../components/Lightbox";
 import MagnifierImage from "../components/MagnifierImage";
+import StarRating from "../components/StarRating";
+import RelatedProducts from "../components/RelatedProducts";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -13,12 +15,21 @@ const WA_ICON = (
   </svg>
 );
 
+const EMPTY_REVIEW = { reviewer_name: "", rating: 0, comment: "" };
+
 export default function ProductDetail() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // Reviews
+  const [reviews, setReviews] = useState([]);
+  const [reviewForm, setReviewForm] = useState(EMPTY_REVIEW);
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState(false);
 
   useEffect(() => {
     getProduct(id)
@@ -28,8 +39,38 @@ export default function ProductDetail() {
         document.title = `${r.data.name} | Lakshmi Vastra Studio`;
       })
       .finally(() => setLoading(false));
+    getReviews(id).then((r) => setReviews(r.data)).catch(() => {});
     return () => { document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear"; };
   }, [id]);
+
+  async function handleShareProduct() {
+    const url = window.location.href;
+    const text = product ? `Check out "${product.name}" ₹${product.price.toLocaleString("en-IN")} at Lakshmi Vastra Studio` : "Check out this saree at Lakshmi Vastra Studio";
+    if (navigator.share) {
+      try { await navigator.share({ title: product?.name, text, url }); } catch (_) {}
+    } else {
+      try { await navigator.clipboard.writeText(url); alert("Link copied to clipboard!"); } catch (_) {}
+    }
+  }
+
+  async function handleReviewSubmit(e) {
+    e.preventDefault();
+    setReviewError("");
+    if (!reviewForm.reviewer_name.trim()) { setReviewError("Please enter your name."); return; }
+    if (reviewForm.rating === 0) { setReviewError("Please select a star rating."); return; }
+    setSubmittingReview(true);
+    try {
+      const r = await submitReview(id, reviewForm);
+      setReviews((prev) => [r.data, ...prev]);
+      setReviewForm(EMPTY_REVIEW);
+      setReviewSuccess(true);
+      setTimeout(() => setReviewSuccess(false), 4000);
+    } catch {
+      setReviewError("Failed to submit. Please try again.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  }
 
   if (loading) return <ProductDetailSkeleton />;
   if (!product) return (
@@ -136,6 +177,9 @@ export default function ProductDetail() {
               <a href={`tel:${PHONE_NUMBER}`} style={styles.callBtn}>
                 <Phone size={16} /> Call Us
               </a>
+              <button onClick={handleShareProduct} style={styles.shareBtn}>
+                <Share2 size={16} /> Share
+              </button>
             </div>
 
             {(product.is_handloom || product.has_multiple_colours || product.custom_orders) && (
@@ -169,6 +213,96 @@ export default function ProductDetail() {
         onClose={() => setLightboxOpen(false)}
       />
     )}
+
+    {/* Reviews Section */}
+    <section style={{ background: "var(--cream)", padding: "3rem 0 4rem", borderTop: "1px solid var(--border-light)" }}>
+      <div className="container" style={{ maxWidth: 780 }}>
+        {/* Header with avg rating */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: "1rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.3rem,4vw,1.8rem)", color: "var(--text)", fontWeight: 700 }}>
+            Customer Reviews
+          </h2>
+          {reviews.length > 0 && (
+            <span style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "0.2rem" }}>
+              {(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)} / 5 · {reviews.length} review{reviews.length !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+        {reviews.length > 0 && (
+          <StarRating value={Math.round(reviews.reduce((s, r) => s + r.rating, 0) / reviews.length)} size={22} />
+        )}
+        <div className="section-divider" style={{ margin: "1rem 0 2rem" }} />
+
+        {/* Review list */}
+        {reviews.length === 0 ? (
+          <p style={{ color: "var(--text-muted)", fontStyle: "italic", marginBottom: "2rem" }}>
+            No reviews yet — be the first to share your experience!
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", marginBottom: "2.5rem" }}>
+            {reviews.map((r) => (
+              <div key={r.id} style={{ background: "#fff", borderRadius: 8, padding: "1.25rem 1.5rem", border: "1px solid var(--border-light)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
+                  <span style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.95rem" }}>{r.reviewer_name}</span>
+                  <StarRating value={r.rating} size={16} />
+                  <span style={{ color: "var(--text-muted)", fontSize: "0.78rem", marginLeft: "auto" }}>
+                    {new Date(r.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </span>
+                </div>
+                {r.comment && <p style={{ color: "var(--text-muted)", lineHeight: 1.7, fontSize: "0.92rem", margin: 0 }}>{r.comment}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Write a review form */}
+        <div style={{ background: "#fff", borderRadius: 8, padding: "1.75rem", border: "1px solid var(--border-light)" }}>
+          <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.2rem", color: "var(--text)", marginBottom: "1.25rem", fontWeight: 700 }}>
+            Write a Review
+          </h3>
+          {reviewSuccess && (
+            <div style={{ background: "#e8f5e9", border: "1px solid #a5d6a7", borderRadius: 6, padding: "0.75rem 1rem", marginBottom: "1rem", color: "#2e7d32", fontSize: "0.9rem" }}>
+              ✓ Thank you for your review!
+            </div>
+          )}
+          <form onSubmit={handleReviewSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div>
+              <label style={labelStyle}>Your Name *</label>
+              <input
+                type="text"
+                placeholder="e.g. Priya S."
+                value={reviewForm.reviewer_name}
+                onChange={(e) => setReviewForm((f) => ({ ...f, reviewer_name: e.target.value }))}
+                style={{ maxWidth: 320 }}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Rating *</label>
+              <StarRating value={reviewForm.rating} onChange={(v) => setReviewForm((f) => ({ ...f, rating: v }))} size={28} interactive />
+            </div>
+            <div>
+              <label style={labelStyle}>Comment (optional)</label>
+              <textarea
+                placeholder="Share your experience with this product..."
+                value={reviewForm.comment}
+                onChange={(e) => setReviewForm((f) => ({ ...f, comment: e.target.value }))}
+                rows={3}
+                style={{ resize: "vertical", minHeight: 80 }}
+              />
+            </div>
+            {reviewError && <p style={{ color: "#c0392b", fontSize: "0.85rem", margin: 0 }}>{reviewError}</p>}
+            <div>
+              <button type="submit" className="btn-primary" disabled={submittingReview} style={{ opacity: submittingReview ? 0.6 : 1 }}>
+                {submittingReview ? "Submitting…" : "Submit Review"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    {/* Related Products */}
+    <RelatedProducts categoryId={product.category_id} excludeId={product.id} />
     </>
   );
 }
@@ -193,4 +327,7 @@ const styles = {
   waBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "#25D366", color: "#fff", padding: "0.875rem 1.5rem", borderRadius: 2, textDecoration: "none", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase" },
   callBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "var(--primary)", color: "#fff", padding: "0.875rem 1.5rem", borderRadius: 2, textDecoration: "none", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase" },
   note: { background: "#fff", borderRadius: 4, padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "0.65rem", color: "var(--text-muted)", fontSize: "0.875rem", border: "1px solid var(--border-light)" },
+  shareBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "transparent", color: "var(--primary)", padding: "0.875rem 1.2rem", borderRadius: 2, border: "1.5px solid var(--primary)", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" },
 };
+
+const labelStyle = { display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.06em" };

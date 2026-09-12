@@ -10,6 +10,8 @@ export default function Catalog() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("newest");
+  const [handloomOnly, setHandloomOnly] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const selectedCategory = searchParams.get("category") ? parseInt(searchParams.get("category")) : null;
@@ -31,10 +33,17 @@ export default function Catalog() {
       .finally(() => setLoading(false));
   }, [selectedCategory]);
 
-  const filtered = products.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    (p.description && p.description.toLowerCase().includes(search.toLowerCase()))
-  );
+  const filtered = products
+    .filter((p) =>
+      (p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(search.toLowerCase()))) &&
+      (!handloomOnly || p.is_handloom)
+    )
+    .sort((a, b) => {
+      if (sort === "price_asc") return a.price - b.price;
+      if (sort === "price_desc") return b.price - a.price;
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
   const setCategory = (id) => {
     if (id) setSearchParams({ category: id });
@@ -55,15 +64,40 @@ export default function Catalog() {
 
         {/* Filters */}
         <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <div style={{ position: "relative" }}>
-            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#6B5744" }} />
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{ paddingLeft: "2.75rem", maxWidth: 420 }}
-            />
+          {/* Search + Sort row */}
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ position: "relative", flex: "1 1 260px", maxWidth: 420 }}>
+              <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#6B5744" }} />
+              <input
+                type="text"
+                placeholder="Search sarees..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{ paddingLeft: "2.75rem", width: "100%", boxSizing: "border-box" }}
+              />
+            </div>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              style={{
+                padding: "0.6rem 1rem", border: "1.5px solid #ddd", borderRadius: 8,
+                fontSize: "0.875rem", color: "#6B5744", background: "#fff", cursor: "pointer",
+              }}
+            >
+              <option value="newest">Newest First</option>
+              <option value="price_asc">Price: Low → High</option>
+              <option value="price_desc">Price: High → Low</option>
+            </select>
+            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer",
+                            fontSize: "0.875rem", color: "#6B5744", fontWeight: 500, whiteSpace: "nowrap" }}>
+              <input
+                type="checkbox"
+                checked={handloomOnly}
+                onChange={(e) => setHandloomOnly(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: "#8B1A1A", cursor: "pointer" }}
+              />
+              Handloom Only
+            </label>
           </div>
           <div className="cat-filter-scroll">
             <button

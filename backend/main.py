@@ -9,6 +9,7 @@ load_dotenv(Path(__file__).parent / ".env")
 from sqlalchemy import text
 from database import engine, Base
 from routers import products, categories, inquiries, admin
+from routers import reviews
 
 Base.metadata.create_all(bind=engine)
 
@@ -43,6 +44,7 @@ app.include_router(products.router)
 app.include_router(categories.router)
 app.include_router(inquiries.router)
 app.include_router(admin.router)
+app.include_router(reviews.router)
 
 
 @app.get("/")
