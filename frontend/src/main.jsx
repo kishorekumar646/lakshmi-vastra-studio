@@ -4,6 +4,13 @@ import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import App from "./App.jsx";
 import "./index.css";
+import { setInstallPrompt } from "./pwaInstall.js";
+
+// Capture the install prompt as early as possible
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  setInstallPrompt(e);
+});
 
 // Register service worker for PWA install support
 if ("serviceWorker" in navigator) {

@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import { Routes, Route } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar";
@@ -10,14 +11,26 @@ import Contact from "./pages/Contact";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
+import Install from "./pages/Install";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
+import SplashScreen from "./components/SplashScreen";
+
+const splashKey = "lvs_splashed";
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(() => sessionStorage.getItem(splashKey) !== "1");
+  const onSplashDone = useCallback(() => {
+    sessionStorage.setItem(splashKey, "1");
+    setShowSplash(false);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
+      {showSplash && <SplashScreen onDone={onSplashDone} />}
       <ScrollToTop />
       <Routes>
+        <Route path="/install" element={<Install />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route
           path="/admin/*"
