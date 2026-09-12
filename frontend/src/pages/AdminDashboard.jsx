@@ -46,16 +46,23 @@ export default function AdminDashboard() {
   const [imagePreviews, setImagePreviews] = useState([]);
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [productsLoading, setProductsLoading] = useState(true);
   const fileInputRef = useRef();
   const navigate = useNavigate();
 
   const loadProducts = (page = productPage) => {
-    getAdminProducts(page, PER_PAGE).then((r) => {
-      setProducts(r.data.items);
-      setProductTotal(r.data.total);
-      setProductPages(r.data.pages);
-      setProductPage(r.data.page);
-    });
+    setProductsLoading(true);
+    getAdminProducts(page, PER_PAGE)
+      .then((r) => {
+        setProducts(r.data.items);
+        setProductTotal(r.data.total);
+        setProductPages(r.data.pages);
+        setProductPage(r.data.page);
+      })
+      .catch(() => {
+        toast.error("Failed to load products. Please refresh.");
+      })
+      .finally(() => setProductsLoading(false));
   };
 
   const loadAll = () => {
@@ -391,7 +398,7 @@ export default function AdminDashboard() {
             )}
 
             {/* Products table */}
-            <div className="admin-table-wrap">
+            <div className="admin-table-wrap" style={{ opacity: productsLoading ? 0.5 : 1, transition: "opacity 0.2s" }}>
               <table className="admin-table">
                 <thead>
                   <tr>
@@ -441,7 +448,12 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
-              {products.length === 0 && (
+              {productsLoading && products.length === 0 && (
+                <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
+                  Loading products…
+                </div>
+              )}
+              {!productsLoading && products.length === 0 && (
                 <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
                   No products yet. Add your first product above.
                 </div>

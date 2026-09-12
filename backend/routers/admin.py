@@ -5,7 +5,7 @@ import os
 import math
 from pathlib import Path
 from dotenv import load_dotenv
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import Product
 from auth import create_access_token, verify_token
@@ -35,10 +35,17 @@ def admin_list_products(
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
-    query = db.query(Product).order_by(Product.created_at.desc())
-    total = query.count()
+    base = db.query(Product)
+    total = base.count()
     offset = (page - 1) * per_page
-    items = query.offset(offset).limit(per_page).all()
+    items = (
+        base
+        .options(joinedload(Product.category), joinedload(Product.images))
+        .order_by(Product.created_at.desc())
+        .offset(offset)
+        .limit(per_page)
+        .all()
+    )
     return {
         "items": [product_to_dict(p) for p in items],
         "total": total,

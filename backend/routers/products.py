@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import Optional, List
 import cloudinary
 import cloudinary.uploader
@@ -51,12 +51,23 @@ def list_products(
         query = query.filter(Product.category_id == category_id)
     if featured is not None:
         query = query.filter(Product.is_featured == featured)
-    return [product_to_dict(p) for p in query.order_by(Product.created_at.desc()).all()]
+    items = (
+        query
+        .options(joinedload(Product.category), joinedload(Product.images))
+        .order_by(Product.created_at.desc())
+        .all()
+    )
+    return [product_to_dict(p) for p in items]
 
 
 @router.get("/{product_id}")
 def get_product(product_id: int, db: Session = Depends(get_db)):
-    p = db.query(Product).filter(Product.id == product_id).first()
+    p = (
+        db.query(Product)
+        .options(joinedload(Product.category), joinedload(Product.images))
+        .filter(Product.id == product_id)
+        .first()
+    )
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
     return product_to_dict(p)
