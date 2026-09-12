@@ -357,10 +357,23 @@
   height: 260px;
   object-fit: cover;
   display: block;
-  transition: transform 0.5s ease;
+  transition: transform 0.55s ease;
+  cursor: zoom-in;
 }
 
-.product-card:hover .product-card-img { transform: scale(1.05); }
+.product-card:hover .product-card-img { transform: scale(1.10); }
+
+/* Product detail main image zoom */
+.detail-main-img {
+  width: 100%;
+  display: block;
+  object-fit: cover;
+  max-height: 520px;
+  transition: transform 0.55s ease;
+  cursor: zoom-in;
+}
+
+.detail-main-img:hover { transform: scale(1.08); }
 
 .product-card-placeholder {
   width: 100%;

@@ -66,7 +66,7 @@ export default function ProductDetail() {
                   key={activeImg}
                   src={images[activeImg]}
                   alt={product.name}
-                  style={styles.mainImg}
+                  className="detail-main-img"
                 />
               ) : (
                 <div style={styles.placeholder}>No Image Available</div>
