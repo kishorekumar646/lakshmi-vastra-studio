@@ -11,10 +11,13 @@ api.interceptors.request.use((config) => {
 });
 
 export const getProducts = (params) => api.get("/api/products", { params });
+export const getAdminProducts = (page = 1, perPage = 10) =>
+  api.get("/api/admin/products", { params: { page, per_page: perPage } });
 export const getProduct = (id) => api.get(`/api/products/${id}`);
 export const createProduct = (data) => api.post("/api/products", data);
 export const updateProduct = (id, data) => api.put(`/api/products/${id}`, data);
 export const deleteProduct = (id) => api.delete(`/api/products/${id}`);
+export const deleteProductImage = (productId, imageId) => api.delete(`/api/products/${productId}/images/${imageId}`);
 
 export const getCategories = () => api.get("/api/categories");
 export const createCategory = (data) => api.post("/api/categories", data);

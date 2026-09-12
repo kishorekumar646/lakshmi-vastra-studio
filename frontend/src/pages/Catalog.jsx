@@ -36,29 +36,45 @@ export default function Catalog() {
   };
 
   return (
-    <div style={{ padding: "2rem 0 5rem" }}>
+    <div style={{ padding: "0 0 5rem" }}>
       <div className="container">
-        <div style={styles.header}>
-          <h1 style={styles.title}>Our Collection</h1>
-          <p style={styles.subtitle}>Discover beautiful sarees and ethnic wear for every occasion</p>
+        <div className="catalog-header">
+          <span className="section-tag">Explore our range</span>
+          <h1 className="section-title" style={{ marginBottom: "0.75rem" }}>Our Collection</h1>
+          <div className="section-divider" style={{ marginBottom: "1.5rem" }} />
+          <p style={{ color: "var(--text-muted)", fontSize: "1rem" }}>
+            Discover beautiful sarees and ethnic wear for every occasion
+          </p>
         </div>
 
         {/* Filters */}
-        <div style={styles.filters}>
-          <div style={styles.searchWrap}>
-            <Search size={18} style={styles.searchIcon} />
+        <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div style={{ position: "relative" }}>
+            <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#6B5744" }} />
             <input
               type="text"
               placeholder="Search products..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={styles.searchInput}
+              style={{ paddingLeft: "2.75rem", maxWidth: 420 }}
             />
           </div>
-          <div style={styles.catFilters}>
+          <div className="cat-filter-scroll">
             <button
               onClick={() => setCategory(null)}
-              style={{ ...styles.catBtn, ...(selectedCategory === null ? styles.catBtnActive : {}) }}
+              style={{
+                padding: "0.5rem 1.25rem",
+                border: "1.5px solid",
+                borderColor: selectedCategory === null ? "#8B1A1A" : "#ddd",
+                borderRadius: 20,
+                background: selectedCategory === null ? "#8B1A1A" : "#fff",
+                cursor: "pointer",
+                fontSize: "0.875rem",
+                color: selectedCategory === null ? "#fff" : "#6B5744",
+                fontWeight: selectedCategory === null ? 600 : 400,
+                transition: "all 0.2s",
+                whiteSpace: "nowrap",
+              }}
             >
               All
             </button>
@@ -66,7 +82,19 @@ export default function Catalog() {
               <button
                 key={cat.id}
                 onClick={() => setCategory(cat.id)}
-                style={{ ...styles.catBtn, ...(selectedCategory === cat.id ? styles.catBtnActive : {}) }}
+                style={{
+                  padding: "0.5rem 1.25rem",
+                  border: "1.5px solid",
+                  borderColor: selectedCategory === cat.id ? "#8B1A1A" : "#ddd",
+                  borderRadius: 20,
+                  background: selectedCategory === cat.id ? "#8B1A1A" : "#fff",
+                  cursor: "pointer",
+                  fontSize: "0.875rem",
+                  color: selectedCategory === cat.id ? "#fff" : "#6B5744",
+                  fontWeight: selectedCategory === cat.id ? 600 : 400,
+                  transition: "all 0.2s",
+                  whiteSpace: "nowrap",
+                }}
               >
                 {cat.name}
               </button>
@@ -75,16 +103,20 @@ export default function Catalog() {
         </div>
 
         {loading ? (
-          <div style={styles.loading}>Loading products...</div>
+          <div style={{ textAlign: "center", padding: "5rem 0", color: "#6B5744", fontSize: "1.1rem" }}>
+            Loading products...
+          </div>
         ) : filtered.length > 0 ? (
           <>
-            <p style={styles.count}>{filtered.length} product{filtered.length !== 1 ? "s" : ""} found</p>
-            <div style={styles.grid}>
+            <p style={{ color: "#6B5744", marginBottom: "1rem", fontSize: "0.9rem" }}>
+              {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
+            </p>
+            <div className="catalog-grid">
               {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           </>
         ) : (
-          <div style={styles.empty}>
+          <div style={{ textAlign: "center", padding: "5rem 0", color: "#6B5744", fontSize: "1.1rem" }}>
             <p>No products found. Try a different category or search term.</p>
           </div>
         )}
@@ -92,20 +124,3 @@ export default function Catalog() {
     </div>
   );
 }
-
-const styles = {
-  header: { textAlign: "center", padding: "2rem 0 3rem" },
-  title: { fontFamily: "'Playfair Display', serif", fontSize: "2.5rem", color: "#8B1A1A", marginBottom: "0.75rem" },
-  subtitle: { color: "#6B5744", fontSize: "1.1rem" },
-  filters: { marginBottom: "2.5rem", display: "flex", flexDirection: "column", gap: "1rem" },
-  searchWrap: { position: "relative" },
-  searchIcon: { position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#6B5744" },
-  searchInput: { paddingLeft: "2.75rem", width: "100%", maxWidth: 400 },
-  catFilters: { display: "flex", gap: "0.5rem", flexWrap: "wrap" },
-  catBtn: { padding: "0.5rem 1.25rem", border: "1px solid #ddd", borderRadius: 20, background: "#fff", cursor: "pointer", fontSize: "0.875rem", color: "#6B5744", transition: "all 0.2s" },
-  catBtnActive: { background: "#8B1A1A", color: "#fff", borderColor: "#8B1A1A" },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1.5rem" },
-  loading: { textAlign: "center", padding: "5rem 0", color: "#6B5744", fontSize: "1.1rem" },
-  empty: { textAlign: "center", padding: "5rem 0", color: "#6B5744", fontSize: "1.1rem" },
-  count: { color: "#6B5744", marginBottom: "1rem", fontSize: "0.9rem" },
-};

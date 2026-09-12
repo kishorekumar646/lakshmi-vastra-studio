@@ -28,15 +28,16 @@ export default function Contact() {
   };
 
   return (
-    <div style={{ padding: "3rem 0 5rem" }}>
+    <div style={{ padding: "3.5rem 0 5.5rem" }}>
       <div className="container">
         <div style={styles.header}>
+          <span className="section-tag">We're here to help</span>
           <h1 className="section-title">Get in Touch</h1>
           <div className="section-divider" />
           <p style={styles.subtitle}>We'd love to hear from you. Reach out for inquiries, custom orders, or just to say hello.</p>
         </div>
 
-        <div style={styles.grid}>
+        <div className="contact-grid">
           {/* Contact Info */}
           <div style={styles.infoBox}>
             <h2 style={styles.infoTitle}>Contact Information</h2>
@@ -119,18 +120,18 @@ export default function Contact() {
 
 const styles = {
   header: { textAlign: "center", marginBottom: "3rem" },
-  subtitle: { color: "#6B5744", maxWidth: 560, margin: "0 auto", lineHeight: 1.7 },
-  grid: { display: "grid", gridTemplateColumns: "1fr 1.5fr", gap: "3rem", alignItems: "start" },
-  infoBox: { background: "linear-gradient(135deg, #8B1A1A, #2C1810)", borderRadius: 12, padding: "2.5rem", color: "#fff" },
-  infoTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.5rem", color: "#C9A84C", marginBottom: "2rem" },
+  subtitle: { color: "var(--text-muted)", maxWidth: 560, margin: "0 auto", lineHeight: 1.75, fontSize: "1rem" },
+
+  infoBox: { background: "linear-gradient(150deg, #0D0611 0%, #28092A 45%, #7B1D45 100%)", borderRadius: 4, padding: "2.5rem", color: "#fff" },
+  infoTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.4rem", color: "var(--gold-light)", marginBottom: "2rem", fontWeight: 600 },
   infoItems: { display: "flex", flexDirection: "column", gap: "1.75rem", marginBottom: "2.5rem" },
   infoItem: { display: "flex", gap: "1rem", alignItems: "flex-start" },
-  infoIcon: { background: "rgba(201,168,76,0.2)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", color: "#C9A84C", flexShrink: 0 },
-  infoLabel: { fontSize: "0.75rem", color: "#C9A84C", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "0.25rem" },
-  infoValue: { color: "#E8D5C4", fontSize: "0.95rem", textDecoration: "none" },
-  waBtn: { display: "flex", alignItems: "center", gap: "0.75rem", background: "#25D366", color: "#fff", padding: "0.875rem 1.5rem", borderRadius: 8, textDecoration: "none", fontWeight: 600, fontSize: "0.95rem" },
-  formBox: { background: "#fff", borderRadius: 12, padding: "2.5rem", boxShadow: "0 4px 24px rgba(0,0,0,0.08)" },
-  formTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.5rem", color: "#8B1A1A", marginBottom: "2rem" },
+  infoIcon: { background: "rgba(184,137,42,0.18)", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold-light)", flexShrink: 0 },
+  infoLabel: { fontSize: "0.68rem", color: "var(--gold)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "0.25rem", fontWeight: 700 },
+  infoValue: { color: "rgba(255,255,255,0.8)", fontSize: "0.95rem", textDecoration: "none" },
+  waBtn: { display: "flex", alignItems: "center", gap: "0.75rem", background: "#25D366", color: "#fff", padding: "0.85rem 1.5rem", borderRadius: 2, textDecoration: "none", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.05em", textTransform: "uppercase" },
+  formBox: { background: "#fff", borderRadius: 4, padding: "2.5rem", boxShadow: "0 4px 24px rgba(0,0,0,0.07)", border: "1px solid var(--border-light)" },
+  formTitle: { fontFamily: "'Playfair Display', serif", fontSize: "1.4rem", color: "var(--primary)", marginBottom: "2rem", fontWeight: 600 },
   form: { display: "flex", flexDirection: "column", gap: "1.25rem" },
   field: { display: "flex", flexDirection: "column", gap: "0.4rem" },
 };

@@ -5,7 +5,7 @@ import cloudinary
 import cloudinary.uploader
 import os
 from database import get_db
-from models import Product, Category
+from models import Product, ProductImage, Category
 from auth import verify_token
 
 router = APIRouter(prefix="/api/products", tags=["products"])
@@ -18,18 +18,26 @@ cloudinary.config(
 
 
 def product_to_dict(p: Product):
+    db_images = [{"id": img.id, "url": img.image_url, "public_id": img.image_public_id} for img in p.images]
+    primary_url = db_images[0]["url"] if db_images else p.image_url
     return {
         "id": p.id,
         "name": p.name,
         "description": p.description,
         "price": p.price,
-        "image_url": p.image_url,
+        "image_url": primary_url,
+        "images": db_images,
         "category_id": p.category_id,
         "category_name": p.category.name if p.category else None,
         "is_featured": p.is_featured,
         "is_available": p.is_available,
         "created_at": str(p.created_at),
     }
+
+
+def upload_image(file: UploadFile) -> tuple[str, str]:
+    result = cloudinary.uploader.upload(file.file, folder="lakshmi-vastra")
+    return result["secure_url"], result["public_id"]
 
 
 @router.get("")
@@ -61,28 +69,34 @@ def create_product(
     price: float = Form(...),
     category_id: int = Form(...),
     is_featured: bool = Form(False),
-    image: Optional[UploadFile] = File(None),
+    images: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
-    image_url = None
-    image_public_id = None
-
-    if image:
-        result = cloudinary.uploader.upload(image.file, folder="lakshmi-vastra")
-        image_url = result["secure_url"]
-        image_public_id = result["public_id"]
-
     product = Product(
         name=name,
         description=description,
         price=price,
         category_id=category_id,
         is_featured=is_featured,
-        image_url=image_url,
-        image_public_id=image_public_id,
     )
     db.add(product)
+    db.flush()  # get product.id before committing
+
+    if images:
+        for i, img in enumerate(images):
+            if img.filename:
+                url, public_id = upload_image(img)
+                db.add(ProductImage(
+                    product_id=product.id,
+                    image_url=url,
+                    image_public_id=public_id,
+                    sort_order=i,
+                ))
+                if i == 0:
+                    product.image_url = url
+                    product.image_public_id = public_id
+
     db.commit()
     db.refresh(product)
     return product_to_dict(product)
@@ -97,7 +111,7 @@ def update_product(
     category_id: int = Form(...),
     is_featured: bool = Form(False),
     is_available: bool = Form(True),
-    image: Optional[UploadFile] = File(None),
+    images: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
@@ -105,22 +119,71 @@ def update_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    if image:
-        if product.image_public_id:
-            cloudinary.uploader.destroy(product.image_public_id)
-        result = cloudinary.uploader.upload(image.file, folder="lakshmi-vastra")
-        product.image_url = result["secure_url"]
-        product.image_public_id = result["public_id"]
-
     product.name = name
     product.description = description
     product.price = price
     product.category_id = category_id
     product.is_featured = is_featured
     product.is_available = is_available
+
+    if images:
+        existing_count = len(product.images)
+        for i, img in enumerate(images):
+            if img.filename:
+                url, public_id = upload_image(img)
+                db.add(ProductImage(
+                    product_id=product.id,
+                    image_url=url,
+                    image_public_id=public_id,
+                    sort_order=existing_count + i,
+                ))
+        # Update primary image if we now have images in ProductImage table
+        db.flush()
+        db.refresh(product)
+        if product.images:
+            product.image_url = product.images[0].image_url
+            product.image_public_id = product.images[0].image_public_id
+
     db.commit()
     db.refresh(product)
     return product_to_dict(product)
+
+
+@router.delete("/{product_id}/images/{image_id}")
+def delete_product_image(
+    product_id: int,
+    image_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_token),
+):
+    img = db.query(ProductImage).filter(
+        ProductImage.id == image_id,
+        ProductImage.product_id == product_id,
+    ).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    if img.image_public_id:
+        try:
+            cloudinary.uploader.destroy(img.image_public_id)
+        except Exception:
+            pass
+
+    db.delete(img)
+
+    # Update product.image_url to the next remaining image
+    product = db.query(Product).filter(Product.id == product_id).first()
+    db.flush()
+    db.refresh(product)
+    if product.images:
+        product.image_url = product.images[0].image_url
+        product.image_public_id = product.images[0].image_public_id
+    else:
+        product.image_url = None
+        product.image_public_id = None
+
+    db.commit()
+    return {"message": "Image deleted"}
 
 
 @router.delete("/{product_id}")
@@ -128,8 +191,20 @@ def delete_product(product_id: int, db: Session = Depends(get_db), _: str = Depe
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
-    if product.image_public_id:
-        cloudinary.uploader.destroy(product.image_public_id)
+
+    # Delete all cloudinary images
+    for img in product.images:
+        if img.image_public_id:
+            try:
+                cloudinary.uploader.destroy(img.image_public_id)
+            except Exception:
+                pass
+    if product.image_public_id and not product.images:
+        try:
+            cloudinary.uploader.destroy(product.image_public_id)
+        except Exception:
+            pass
+
     db.delete(product)
     db.commit()
     return {"message": "Deleted"}

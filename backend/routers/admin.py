@@ -1,10 +1,15 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import Depends
+from fastapi import Depends, Query
 import os
+import math
 from pathlib import Path
 from dotenv import load_dotenv
-from auth import create_access_token
+from sqlalchemy.orm import Session
+from database import get_db
+from models import Product
+from auth import create_access_token, verify_token
+from routers.products import product_to_dict
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
@@ -21,3 +26,23 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
     token = create_access_token({"sub": form_data.username})
     return {"access_token": token, "token_type": "bearer"}
+
+
+@router.get("/products")
+def admin_list_products(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(10, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_token),
+):
+    query = db.query(Product).order_by(Product.created_at.desc())
+    total = query.count()
+    offset = (page - 1) * per_page
+    items = query.offset(offset).limit(per_page).all()
+    return {
+        "items": [product_to_dict(p) for p in items],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": math.ceil(total / per_page) if total > 0 else 1,
+    }
