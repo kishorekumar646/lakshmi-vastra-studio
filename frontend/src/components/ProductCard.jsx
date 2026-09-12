@@ -13,6 +13,8 @@ export default function ProductCard({ product }) {
             alt={product.name}
             className="product-card-img"
             loading="lazy"
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
           />
         ) : (
           <div className="product-card-placeholder">

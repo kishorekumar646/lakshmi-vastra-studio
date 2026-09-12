@@ -1,4 +1,14 @@
 /* ============================
+   IMAGE PROTECTION
+   ============================ */
+img {
+  -webkit-user-drag: none;          /* blocks drag-to-desktop in Chrome/Safari */
+  user-drag: none;
+  -webkit-touch-callout: none;      /* blocks iOS long-press "Save Image" */
+  pointer-events: auto;
+}
+
+/* ============================
    NAVBAR
    ============================ */
 .navbar {

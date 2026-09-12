@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar";
@@ -23,6 +23,13 @@ export default function App() {
   const onSplashDone = useCallback(() => {
     sessionStorage.setItem(splashKey, "1");
     setShowSplash(false);
+  }, []);
+
+  // Block right-click "Save Image As" on all product images
+  useEffect(() => {
+    const block = (e) => { if (e.target.tagName === "IMG") e.preventDefault(); };
+    document.addEventListener("contextmenu", block);
+    return () => document.removeEventListener("contextmenu", block);
   }, []);
 
   return (
