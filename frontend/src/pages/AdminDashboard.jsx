@@ -188,6 +188,26 @@ export default function AdminDashboard() {
     }
   };
 
+  const toggleAvailability = async (p) => {
+    const fd = new FormData();
+    fd.append("name", p.name);
+    fd.append("description", p.description || "");
+    fd.append("price", p.price);
+    fd.append("category_id", p.category_id);
+    fd.append("is_featured", p.is_featured);
+    fd.append("is_available", !p.is_available);
+    fd.append("is_handloom", p.is_handloom || false);
+    fd.append("has_multiple_colours", p.has_multiple_colours || false);
+    fd.append("custom_orders", p.custom_orders || false);
+    try {
+      await updateProduct(p.id, fd);
+      toast.success(p.is_available ? "Product hidden from store" : "Product now visible");
+      loadProducts(productPage);
+    } catch {
+      toast.error("Failed to update status");
+    }
+  };
+
   const handleDelete = async (id) => {
     if (!confirm("Delete this product?")) return;
     await deleteProduct(id);
@@ -469,6 +489,7 @@ export default function AdminDashboard() {
                     <th>Category</th>
                     <th>Price</th>
                     <th>Photos</th>
+                    <th>Status</th>
                     <th>Featured</th>
                     <th>Created</th>
                     <th>Actions</th>
@@ -490,6 +511,28 @@ export default function AdminDashboard() {
                       </td>
                       <td style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
                         {p.images?.length || (p.image_url ? 1 : 0)}
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => toggleAvailability(p)}
+                          title={p.is_available ? "Click to hide from store" : "Click to show in store"}
+                          style={{
+                            background: p.is_available ? "#DCFCE7" : "#F1F5F9",
+                            color: p.is_available ? "#166534" : "#64748B",
+                            border: "none",
+                            borderRadius: 100,
+                            padding: "3px 10px",
+                            fontSize: "0.72rem",
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            letterSpacing: "0.03em",
+                            transition: "opacity 0.15s",
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.opacity = "0.75"}
+                          onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
+                        >
+                          {p.is_available ? "Visible" : "Hidden"}
+                        </button>
                       </td>
                       <td>
                         {p.is_featured

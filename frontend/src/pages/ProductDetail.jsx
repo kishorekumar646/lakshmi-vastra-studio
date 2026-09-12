@@ -19,12 +19,25 @@ export default function ProductDetail() {
 
   useEffect(() => {
     getProduct(id)
-      .then((r) => { setProduct(r.data); setActiveImg(0); })
+      .then((r) => {
+        setProduct(r.data);
+        setActiveImg(0);
+        document.title = `${r.data.name} | Lakshmi Vastra Studio`;
+      })
       .finally(() => setLoading(false));
+    return () => { document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear"; };
   }, [id]);
 
   if (loading) return <ProductDetailSkeleton />;
-  if (!product) return <div style={styles.loading}>Product not found.</div>;
+  if (!product) return (
+    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "4rem 1.5rem", background: "var(--cream)" }}>
+      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", color: "var(--gold)", fontSize: "1.1rem", letterSpacing: "0.1em", marginBottom: "0.75rem", display: "block" }}>Oops</span>
+      <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "var(--text)", fontWeight: 700, marginBottom: "0.75rem" }}>Product Not Found</h2>
+      <div style={{ width: 60, height: 1, background: "var(--gold)", margin: "0 auto 1.5rem", opacity: 0.6 }} />
+      <p style={{ color: "var(--text-muted)", marginBottom: "2rem", lineHeight: 1.75 }}>This product may have been removed or is no longer available.</p>
+      <Link to="/catalog" className="btn-primary">Browse Collection</Link>
+    </div>
+  );
 
   const waMsg = `Hello%2C%20I%20am%20interested%20in%20%22${encodeURIComponent(product.name)}%22%20(%E2%82%B9${product.price}).%20Please%20share%20more%20details.`;
 

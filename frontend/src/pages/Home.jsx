@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getProducts, getCategories, WHATSAPP_NUMBER } from "../api";
 import ProductCard from "../components/ProductCard";
+import { ProductCardSkeleton } from "../components/Skeleton";
 
 const WHY_US = [
   { icon: "🪡", title: "Authentic Handlooms", desc: "Sourced directly from master weavers across India — every piece tells a story." },
@@ -13,9 +14,13 @@ const WHY_US = [
 export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
 
   useEffect(() => {
-    getProducts({ featured: true }).then((r) => setFeatured(r.data.slice(0, 6)));
+    document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear";
+    getProducts({ featured: true })
+      .then((r) => setFeatured(r.data.slice(0, 6)))
+      .finally(() => setFeaturedLoading(false));
     getCategories().then((r) => setCategories(r.data));
   }, []);
 
@@ -75,7 +80,11 @@ export default function Home() {
           <span className="section-tag">Handpicked for you</span>
           <h2 className="section-title">Featured Collection</h2>
           <div className="section-divider" />
-          {featured.length > 0 ? (
+          {featuredLoading ? (
+            <div className="product-grid">
+              {Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} />)}
+            </div>
+          ) : featured.length > 0 ? (
             <>
               <div className="product-grid">
                 {featured.map((p) => <ProductCard key={p.id} product={p} />)}

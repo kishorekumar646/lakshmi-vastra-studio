@@ -15,6 +15,11 @@ export default function Catalog() {
   const selectedCategory = searchParams.get("category") ? parseInt(searchParams.get("category")) : null;
 
   useEffect(() => {
+    document.title = "Collection | Lakshmi Vastra Studio";
+    return () => { document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear"; };
+  }, []);
+
+  useEffect(() => {
     getCategories().then((r) => setCategories(r.data));
   }, []);
 

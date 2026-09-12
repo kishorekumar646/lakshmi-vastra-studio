@@ -7,6 +7,11 @@ export default function Contact() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    document.title = "Contact Us | Lakshmi Vastra Studio";
+    return () => { document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear"; };
+  }, []);
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
