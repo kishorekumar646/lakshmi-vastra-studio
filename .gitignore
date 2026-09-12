@@ -1,0 +1,35 @@
+# ========================
+# Frontend
+# ========================
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# ========================
+# Backend
+# ========================
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/.env
+
+# ========================
+# Logs
+# ========================
+*.log
+backend.log
+frontend.log
+
+# ========================
+# OS / IDE
+# ========================
+.DS_Store
+.idea/
+.vscode/
+*.swp
