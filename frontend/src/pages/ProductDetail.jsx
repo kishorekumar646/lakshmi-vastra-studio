@@ -4,6 +4,7 @@ import { getProduct, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
 import { ArrowLeft, Phone, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductDetailSkeleton } from "../components/Skeleton";
 import Lightbox from "../components/Lightbox";
+import MagnifierImage from "../components/MagnifierImage";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -65,11 +66,10 @@ export default function ProductDetail() {
             {/* Main image */}
             <div style={styles.mainImgWrap}>
               {images.length > 0 ? (
-                <img
+                <MagnifierImage
                   key={activeImg}
                   src={images[activeImg]}
                   alt={product.name}
-                  className="detail-main-img"
                   onClick={() => setLightboxOpen(true)}
                 />
               ) : (
