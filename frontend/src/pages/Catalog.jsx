@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getProducts, getCategories } from "../api";
 import ProductCard from "../components/ProductCard";
+import { ProductCardSkeleton } from "../components/Skeleton";
 import { Search } from "lucide-react";
 
 export default function Catalog() {
@@ -103,8 +104,8 @@ export default function Catalog() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign: "center", padding: "5rem 0", color: "#6B5744", fontSize: "1.1rem" }}>
-            Loading products...
+          <div className="catalog-grid">
+            {Array.from({ length: 8 }, (_, i) => <ProductCardSkeleton key={i} />)}
           </div>
         ) : filtered.length > 0 ? (
           <>

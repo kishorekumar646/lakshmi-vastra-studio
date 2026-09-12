@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getProduct, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
 import { ArrowLeft, Phone, ChevronLeft, ChevronRight } from "lucide-react";
+import { ProductDetailSkeleton } from "../components/Skeleton";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -22,7 +23,7 @@ export default function ProductDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div style={styles.loading}>Loading...</div>;
+  if (loading) return <ProductDetailSkeleton />;
   if (!product) return <div style={styles.loading}>Product not found.</div>;
 
   const waMsg = `Hello%2C%20I%20am%20interested%20in%20%22${encodeURIComponent(product.name)}%22%20(%E2%82%B9${product.price}).%20Please%20share%20more%20details.`;
