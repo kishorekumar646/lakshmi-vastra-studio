@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getProducts, getCategories, WHATSAPP_NUMBER } from "../api";
+import { getProducts, getCategories, getRecentReviews, WHATSAPP_NUMBER } from "../api";
 import ProductCard from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
+import StarRating from "../components/StarRating";
 
 const WHY_US = [
   { icon: "🪡", title: "Authentic Handlooms", desc: "Sourced directly from master weavers across India — every piece tells a story." },
@@ -15,6 +16,7 @@ export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [categories, setCategories] = useState([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [testimonials, setTestimonials] = useState([]);
 
   useEffect(() => {
     document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear";
@@ -22,6 +24,7 @@ export default function Home() {
       .then((r) => setFeatured(r.data.slice(0, 6)))
       .finally(() => setFeaturedLoading(false));
     getCategories().then((r) => setCategories(r.data));
+    getRecentReviews(6).then((r) => setTestimonials(r.data)).catch(() => {});
   }, []);
 
   return (
@@ -119,6 +122,62 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── Testimonials ────────────── */}
+      {testimonials.length > 0 && (
+        <section className="page-section page-section-cream">
+          <div className="container">
+            <span className="section-tag">What our customers say</span>
+            <h2 className="section-title">Customer Reviews</h2>
+            <div className="section-divider" />
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+              gap: "1.25rem",
+            }}>
+              {testimonials.map((r) => (
+                <div key={r.id} style={{
+                  background: "#fff",
+                  borderRadius: 8,
+                  padding: "1.5rem",
+                  border: "1px solid var(--border-light)",
+                  boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
+                }}>
+                  <StarRating value={r.rating} size={18} />
+                  <p style={{
+                    fontFamily: "'Cormorant Garamond', serif",
+                    fontSize: "1.05rem",
+                    fontStyle: "italic",
+                    color: "var(--text)",
+                    lineHeight: 1.7,
+                    margin: "0.75rem 0",
+                  }}>
+                    "{r.comment}"
+                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: "50%",
+                      background: "var(--primary)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#fff", fontSize: "0.85rem", fontWeight: 700, flexShrink: 0,
+                    }}>
+                      {r.reviewer_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.88rem" }}>{r.reviewer_name}</p>
+                      {r.product_name && (
+                        <p style={{ color: "var(--gold)", fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                          on {r.product_name}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── CTA ─────────────────────── */}
       <section style={{ background: "linear-gradient(150deg, #0D0611 0%, #28092A 45%, #7B1D45 100%)", padding: "5.5rem 0" }}>

@@ -66,6 +66,14 @@ export default function Contact() {
                 <div>
                   <p style={styles.infoLabel}>Store Address</p>
                   <p style={styles.infoValue}>H No 15/653, Lakshmi Tailoring,<br />Tholu Shopu Street, Near Water Tank,<br />Gooty RS, Anantapur – 515402</p>
+                  <a
+                    href="https://www.google.com/maps/search/?api=1&query=Gooty+RS+Anantapur+515402"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", marginTop: "0.6rem", background: "rgba(184,137,42,0.18)", color: "var(--gold-light)", border: "1px solid rgba(184,137,42,0.3)", borderRadius: 4, padding: "0.35rem 0.85rem", fontSize: "0.78rem", fontWeight: 700, textDecoration: "none", letterSpacing: "0.05em" }}
+                  >
+                    <MapPin size={13} /> Get Directions
+                  </a>
                 </div>
               </div>
               <div style={styles.infoItem}>

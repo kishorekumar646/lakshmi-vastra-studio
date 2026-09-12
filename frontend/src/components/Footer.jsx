@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Phone, MapPin } from "lucide-react";
+import { Phone, MapPin, Clock, Download } from "lucide-react";
 import { PHONE_NUMBER, WHATSAPP_NUMBER } from "../api";
 
 export default function Footer() {
@@ -27,7 +27,7 @@ export default function Footer() {
             Quick Links
           </h4>
           <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "0.7rem" }}>
-            {[{ to: "/", label: "Home" }, { to: "/catalog", label: "Collection" }, { to: "/contact", label: "Contact Us" }].map((l) => (
+            {[{ to: "/", label: "Home" }, { to: "/catalog", label: "Collection" }, { to: "/contact", label: "Contact Us" }, { to: "/install", label: "Install App" }].map((l) => (
               <li key={l.to}>
                 <Link
                   to={l.to}
@@ -55,6 +55,10 @@ export default function Footer() {
             <li style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", fontSize: "0.875rem" }}>
               <MapPin size={14} style={{ color: "var(--gold)", flexShrink: 0, marginTop: "3px" }} />
               <span style={{ color: "#897D78", lineHeight: 1.6 }}>Tholu Shopu Street, Near Water Tank,<br />Gooty RS, Anantapur – 515402</span>
+            </li>
+            <li style={{ display: "flex", alignItems: "flex-start", gap: "0.6rem", fontSize: "0.875rem" }}>
+              <Clock size={14} style={{ color: "var(--gold)", flexShrink: 0, marginTop: "3px" }} />
+              <span style={{ color: "#897D78", lineHeight: 1.6 }}>Mon–Sat: 10am – 8pm<br />Sunday: 11am – 6pm</span>
             </li>
           </ul>
 

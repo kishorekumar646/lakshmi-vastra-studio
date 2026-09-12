@@ -27,6 +27,7 @@ export const submitInquiry = (data) => api.post("/api/inquiries", data);
 export const getInquiries = () => api.get("/api/inquiries");
 export const markInquiryRead = (id) => api.put(`/api/inquiries/${id}/read`);
 
+export const getRecentReviews = (limit = 6) => api.get("/api/reviews/recent", { params: { limit } });
 export const getReviews = (productId) => api.get(`/api/products/${productId}/reviews`);
 export const submitReview = (productId, data) => api.post(`/api/products/${productId}/reviews`, data);
 export const getAdminReviews = () => api.get("/api/admin/reviews");

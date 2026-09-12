@@ -15,6 +15,7 @@ import Install from "./pages/Install";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
+import BackToTop from "./components/BackToTop";
 
 const splashKey = "lvs_splashed";
 
@@ -63,6 +64,7 @@ export default function App() {
               </main>
               <Footer />
               <WhatsAppButton />
+              <BackToTop />
             </>
           }
         />

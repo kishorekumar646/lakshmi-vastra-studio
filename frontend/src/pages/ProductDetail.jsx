@@ -97,6 +97,21 @@ export default function ProductDetail() {
     <>
     <div style={{ padding: "2.5rem 0 5.5rem", background: "var(--cream)" }}>
       <div className="container">
+        {/* Breadcrumb */}
+        <nav style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1.5rem", display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
+          <Link to="/" style={{ color: "var(--text-muted)", textDecoration: "none" }} onMouseOver={(e) => e.target.style.color = "var(--primary)"} onMouseOut={(e) => e.target.style.color = "var(--text-muted)"}>Home</Link>
+          <span>›</span>
+          <Link to="/catalog" style={{ color: "var(--text-muted)", textDecoration: "none" }} onMouseOver={(e) => e.target.style.color = "var(--primary)"} onMouseOut={(e) => e.target.style.color = "var(--text-muted)"}>Collection</Link>
+          {product.category_name && (
+            <>
+              <span>›</span>
+              <Link to={`/catalog?category=${product.category_id}`} style={{ color: "var(--text-muted)", textDecoration: "none" }} onMouseOver={(e) => e.target.style.color = "var(--primary)"} onMouseOut={(e) => e.target.style.color = "var(--text-muted)"}>{product.category_name}</Link>
+            </>
+          )}
+          <span>›</span>
+          <span style={{ color: "var(--text)", fontWeight: 500 }}>{product.name}</span>
+        </nav>
+
         <Link to="/catalog" style={styles.back}>
           <ArrowLeft size={16} /> Back to Collection
         </Link>

@@ -41,6 +41,18 @@ def review_to_dict(r: Review):
     }
 
 
+@router.get("/api/reviews/recent")
+def get_recent_reviews(limit: int = 6, db: Session = Depends(get_db)):
+    reviews = (
+        db.query(Review)
+        .filter(Review.is_visible == True, Review.comment != None, Review.comment != "")
+        .order_by(Review.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return [review_to_dict(r) for r in reviews]
+
+
 @router.get("/api/products/{product_id}/reviews")
 def get_product_reviews(product_id: int, db: Session = Depends(get_db)):
     reviews = (

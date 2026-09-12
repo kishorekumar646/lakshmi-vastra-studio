@@ -1,8 +1,11 @@
 import { Link } from "react-router-dom";
 import { WHATSAPP_NUMBER } from "../api";
 
+const DAY_MS = 86400000;
+
 export default function ProductCard({ product }) {
   const waMsg = `Hello%2C%20I%20am%20interested%20in%20%22${encodeURIComponent(product.name)}%22.%20Please%20share%20more%20details.`;
+  const isNew = product.created_at && (Date.now() - new Date(product.created_at).getTime()) < 14 * DAY_MS;
 
   return (
     <div className="product-card">
@@ -22,6 +25,9 @@ export default function ProductCard({ product }) {
           </div>
         )}
         {product.is_featured && <span className="product-card-badge">Featured</span>}
+        {isNew && !product.is_featured && (
+          <span className="product-card-badge" style={{ background: "#1a7a4a" }}>New</span>
+        )}
       </Link>
 
       <div className="product-card-info">
