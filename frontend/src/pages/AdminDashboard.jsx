@@ -161,6 +161,7 @@ export default function AdminDashboard() {
     fd.append("category_id", form.category_id);
     fd.append("is_featured", form.is_featured);
     newImages.forEach((img) => fd.append("images", img));
+    if (newImages.length > 0) fd.append("image", newImages[0]); // compat: old backend expects "image" (singular)
 
     try {
       if (editingProduct) {
