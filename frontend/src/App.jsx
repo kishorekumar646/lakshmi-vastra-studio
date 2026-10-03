@@ -20,6 +20,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
 import BackToTop from "./components/BackToTop";
+import BottomNav from "./components/BottomNav";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
@@ -79,6 +80,7 @@ export default function App() {
                     <Footer />
                     <WhatsAppButton />
                     <BackToTop />
+                    <BottomNav />
                   </>
                 }
               />

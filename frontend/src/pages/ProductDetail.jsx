@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { getProduct, getReviews, submitReview, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
-import { ArrowLeft, Phone, ChevronLeft, ChevronRight, Share2 } from "lucide-react";
+import { ArrowLeft, Phone, ChevronLeft, ChevronRight, Share2, ShoppingCart, Zap, Minus, Plus, Check, Heart } from "lucide-react";
+import toast from "react-hot-toast";
 import { ProductDetailSkeleton } from "../components/Skeleton";
 import Lightbox from "../components/Lightbox";
 import MagnifierImage from "../components/MagnifierImage";
 import StarRating from "../components/StarRating";
 import RelatedProducts from "../components/RelatedProducts";
+import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
+import { useAuth } from "../context/AuthContext";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -19,10 +23,18 @@ const EMPTY_REVIEW = { reviewer_name: "", rating: 0, comment: "" };
 
 export default function ProductDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { addItem } = useCart();
+  const { isWishlisted, toggle } = useWishlist();
+  const { customer } = useAuth();
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [qty, setQty] = useState(1);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
 
   // Reviews
   const [reviews, setReviews] = useState([]);
@@ -42,6 +54,33 @@ export default function ProductDetail() {
     getReviews(id).then((r) => setReviews(r.data)).catch(() => {});
     return () => { document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear"; };
   }, [id]);
+
+  const wishlisted = product ? isWishlisted(product.id) : false;
+
+  const handleWishlist = () => {
+    if (!customer) { navigate("/account"); return; }
+    toggle(product.id);
+  };
+
+  const handleAddToCart = async () => {
+    if (adding || added) return;
+    setAdding(true);
+    try {
+      await addItem(product, qty);
+      setAdded(true);
+      toast.success(`"${product.name}" added to cart`);
+      setTimeout(() => setAdded(false), 2500);
+    } catch {
+      toast.error("Failed to add to cart");
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    await handleAddToCart();
+    navigate("/cart");
+  };
 
   async function handleShareProduct() {
     const url = window.location.href;
@@ -180,17 +219,82 @@ export default function ProductDetail() {
             <p style={styles.price}>₹{product.price.toLocaleString("en-IN")}</p>
             {product.description && <p style={styles.desc}>{product.description}</p>}
 
-            <div style={styles.actions}>
-              <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}`}
-                target="_blank"
-                rel="noreferrer"
-                style={styles.waBtn}
+            {/* Quantity selector */}
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.25rem" }}>
+              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Qty</span>
+              <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 6, overflow: "hidden" }}>
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 36, height: 36, border: "none", background: "var(--cream)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
+                  <Minus size={14} />
+                </button>
+                <span style={{ minWidth: 36, textAlign: "center", fontWeight: 700, fontSize: "1rem", color: "var(--text)" }}>{qty}</span>
+                <button onClick={() => setQty((q) => q + 1)} style={{ width: 36, height: 36, border: "none", background: "var(--cream)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+
+            {/* Primary purchase CTAs */}
+            <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
+              <button
+                onClick={handleAddToCart}
+                disabled={adding}
+                style={{
+                  flex: "1 1 160px",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+                  padding: "0.95rem 1.5rem",
+                  background: added ? "#1a7a4a" : "#fff",
+                  color: added ? "#fff" : "var(--primary)",
+                  border: `2px solid ${added ? "#1a7a4a" : "var(--primary)"}`,
+                  borderRadius: 4, cursor: adding ? "not-allowed" : "pointer",
+                  fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.05em", textTransform: "uppercase",
+                  transition: "all 0.25s",
+                }}
               >
-                {WA_ICON} Enquire on WhatsApp
+                {added ? <><Check size={16} /> Added to Cart</> : <><ShoppingCart size={16} /> Add to Cart</>}
+              </button>
+
+              <button
+                onClick={handleBuyNow}
+                disabled={adding}
+                style={{
+                  flex: "1 1 160px",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+                  padding: "0.95rem 1.5rem",
+                  background: "var(--primary)", color: "#fff",
+                  border: "2px solid var(--primary)",
+                  borderRadius: 4, cursor: adding ? "not-allowed" : "pointer",
+                  fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.05em", textTransform: "uppercase",
+                  transition: "opacity 0.2s",
+                  opacity: adding ? 0.7 : 1,
+                }}
+              >
+                <Zap size={16} /> Buy Now
+              </button>
+
+              <button
+                onClick={handleWishlist}
+                style={{
+                  width: 50, height: 50, flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: wishlisted ? "var(--primary)" : "#fff",
+                  border: `2px solid ${wishlisted ? "var(--primary)" : "var(--border-light)"}`,
+                  borderRadius: 4, cursor: "pointer",
+                  transition: "all 0.2s",
+                }}
+                aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                title={wishlisted ? "Remove from wishlist" : "Save to wishlist"}
+              >
+                <Heart size={18} fill={wishlisted ? "#fff" : "none"} color={wishlisted ? "#fff" : "var(--primary)"} />
+              </button>
+            </div>
+
+            {/* Secondary actions */}
+            <div style={styles.actions}>
+              <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}`} target="_blank" rel="noreferrer" style={styles.waBtn}>
+                {WA_ICON} WhatsApp
               </a>
               <a href={`tel:${PHONE_NUMBER}`} style={styles.callBtn}>
-                <Phone size={16} /> Call Us
+                <Phone size={16} /> Call
               </a>
               <button onClick={handleShareProduct} style={styles.shareBtn}>
                 <Share2 size={16} /> Share
