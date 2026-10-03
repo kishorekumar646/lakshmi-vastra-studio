@@ -1,5 +1,33 @@
 // Shimmer skeleton components — shapes match the real ProductCard and ProductDetail layouts
 
+export function CategoryCardSkeleton() {
+  return (
+    <span className="skeleton cat-card" style={{ minHeight: 72, borderRadius: 6, pointerEvents: "none" }} />
+  );
+}
+
+export function ReviewCardSkeleton() {
+  return (
+    <div style={{
+      background: "#fff",
+      borderRadius: 8,
+      padding: "1.5rem",
+      border: "1px solid var(--border-light)",
+    }}>
+      <span className="skeleton" style={{ height: 18, width: 96 }} />
+      <span className="skeleton" style={{ height: 14, width: "90%", marginTop: "0.75rem" }} />
+      <span className="skeleton" style={{ height: 14, width: "70%", marginTop: "0.4rem" }} />
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "1rem" }}>
+        <span className="skeleton" style={{ width: 32, height: 32, borderRadius: "50%", flexShrink: 0 }} />
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+          <span className="skeleton" style={{ height: 12, width: "45%" }} />
+          <span className="skeleton" style={{ height: 10, width: "35%" }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ProductCardSkeleton() {
   return (
     <div className="product-card" style={{ overflow: "hidden", pointerEvents: "none" }}>

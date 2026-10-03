@@ -5,7 +5,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const api = axios.create({ baseURL: API_URL });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("admin_token");
+  const token = localStorage.getItem("admin_token") || localStorage.getItem("customer_token");
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -43,3 +43,26 @@ export const adminLogin = (username, password) => {
 
 export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210";
 export const PHONE_NUMBER = import.meta.env.VITE_PHONE_NUMBER || "+91 98765 43210";
+
+// Customer auth
+export const customerRegister = (data) => api.post("/api/auth/register", data);
+export const customerLogin = (data) => api.post("/api/auth/login", data);
+export const customerGoogleAuth = (credential) => api.post("/api/auth/google", { credential });
+export const getMe = () => api.get("/api/auth/me");
+
+// Cart
+export const getCart = () => api.get("/api/cart");
+export const addToCart = (product_id, quantity = 1) => api.post("/api/cart", { product_id, quantity });
+export const updateCartItem = (item_id, quantity) => api.put(`/api/cart/${item_id}`, { quantity });
+export const removeCartItem = (item_id) => api.delete(`/api/cart/${item_id}`);
+export const clearCart = () => api.delete("/api/cart");
+
+// Wishlist
+export const getWishlist = () => api.get("/api/wishlist");
+export const addToWishlist = (product_id) => api.post("/api/wishlist", { product_id });
+export const removeFromWishlist = (product_id) => api.delete(`/api/wishlist/${product_id}`);
+
+// Orders
+export const getOrders = () => api.get("/api/orders");
+export const createOrder = (delivery_address) => api.post("/api/orders/create", { delivery_address });
+export const verifyPayment = (data) => api.post("/api/orders/verify", data);

@@ -8,8 +8,11 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from sqlalchemy import text
 from database import engine, Base
-from routers import products, categories, inquiries, admin
-from routers import reviews
+from routers import products, categories, inquiries, admin, reviews
+from routers import customer_auth as customer_auth_router
+from routers import cart as cart_router
+from routers import wishlist as wishlist_router
+from routers import orders as orders_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -45,6 +48,10 @@ app.include_router(categories.router)
 app.include_router(inquiries.router)
 app.include_router(admin.router)
 app.include_router(reviews.router)
+app.include_router(customer_auth_router.router)
+app.include_router(cart_router.router)
+app.include_router(wishlist_router.router)
+app.include_router(orders_router.router)
 
 
 @app.get("/")

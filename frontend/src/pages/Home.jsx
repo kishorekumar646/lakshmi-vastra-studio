@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getProducts, getCategories, getRecentReviews, WHATSAPP_NUMBER } from "../api";
 import ProductCard from "../components/ProductCard";
-import { ProductCardSkeleton } from "../components/Skeleton";
+import { ProductCardSkeleton, CategoryCardSkeleton, ReviewCardSkeleton } from "../components/Skeleton";
 import StarRating from "../components/StarRating";
 
 const WHY_US = [
@@ -15,16 +15,23 @@ const WHY_US = [
 export default function Home() {
   const [featured, setFeatured] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [featuredLoading, setFeaturedLoading] = useState(true);
   const [testimonials, setTestimonials] = useState([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
 
   useEffect(() => {
     document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear";
     getProducts({ featured: true })
       .then((r) => setFeatured(r.data.slice(0, 6)))
       .finally(() => setFeaturedLoading(false));
-    getCategories().then((r) => setCategories(r.data));
-    getRecentReviews(6).then((r) => setTestimonials(r.data)).catch(() => {});
+    getCategories()
+      .then((r) => setCategories(r.data))
+      .finally(() => setCategoriesLoading(false));
+    getRecentReviews(6)
+      .then((r) => setTestimonials(r.data))
+      .catch(() => {})
+      .finally(() => setTestimonialsLoading(false));
   }, []);
 
   return (
@@ -60,18 +67,21 @@ export default function Home() {
       </section>
 
       {/* ── Categories ──────────────── */}
-      {categories.length > 0 && (
+      {(categoriesLoading || categories.length > 0) && (
         <section className="page-section page-section-cream">
           <div className="container">
             <span className="section-tag">Browse by type</span>
             <h2 className="section-title">Shop by Category</h2>
             <div className="section-divider" />
             <div className="cat-grid">
-              {categories.map((cat) => (
-                <Link key={cat.id} to={`/catalog?category=${cat.id}`} className="cat-card">
-                  <span className="cat-name">{cat.name}</span>
-                </Link>
-              ))}
+              {categoriesLoading
+                ? Array.from({ length: 4 }, (_, i) => <CategoryCardSkeleton key={i} />)
+                : categories.map((cat) => (
+                    <Link key={cat.id} to={`/catalog?category=${cat.id}`} className="cat-card">
+                      <span className="cat-name">{cat.name}</span>
+                    </Link>
+                  ))
+              }
             </div>
           </div>
         </section>
@@ -124,7 +134,7 @@ export default function Home() {
       </section>
 
       {/* ── Testimonials ────────────── */}
-      {testimonials.length > 0 && (
+      {(testimonialsLoading || testimonials.length > 0) && (
         <section className="page-section page-section-cream">
           <div className="container">
             <span className="section-tag">What our customers say</span>
@@ -135,7 +145,9 @@ export default function Home() {
               gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
               gap: "1.25rem",
             }}>
-              {testimonials.map((r) => (
+              {testimonialsLoading
+                ? Array.from({ length: 3 }, (_, i) => <ReviewCardSkeleton key={i} />)
+                : testimonials.map((r) => (
                 <div key={r.id} style={{
                   background: "#fff",
                   borderRadius: 8,

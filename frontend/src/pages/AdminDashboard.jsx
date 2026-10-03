@@ -106,7 +106,7 @@ export default function AdminDashboard() {
     }
   };
 
-  const logout = () => { localStorage.removeItem("admin_token"); navigate("/admin/login"); };
+  const logout = () => { localStorage.removeItem("admin_token"); navigate("/admin"); };
 
   const openAddForm = () => {
     setEditingProduct(null);

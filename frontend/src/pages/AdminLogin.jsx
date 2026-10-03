@@ -15,7 +15,7 @@ export default function AdminLogin() {
     try {
       const res = await adminLogin(form.username, form.password);
       localStorage.setItem("admin_token", res.data.access_token);
-      navigate("/admin");
+      navigate("/admin/dashboard");
     } catch {
       toast.error("Invalid credentials");
     } finally {

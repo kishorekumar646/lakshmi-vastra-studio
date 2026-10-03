@@ -12,10 +12,17 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
+import Shop from "./pages/Shop";
+import Wishlist from "./pages/Wishlist";
+import Cart from "./pages/Cart";
+import Account from "./pages/Account";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
 import BackToTop from "./components/BackToTop";
+import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/CartContext";
+import { WishlistProvider } from "./context/WishlistContext";
 
 const splashKey = "lvs_splashed";
 
@@ -34,41 +41,51 @@ export default function App() {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      {showSplash && <SplashScreen onDone={onSplashDone} />}
-      <ScrollToTop />
-      <Routes>
-        <Route path="/install" element={<Install />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="*"
-          element={
-            <>
-              <Navbar />
-              <main className="flex-1">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/catalog" element={<Catalog />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </main>
-              <Footer />
-              <WhatsAppButton />
-              <BackToTop />
-            </>
-          }
-        />
-      </Routes>
-    </div>
+    <AuthProvider>
+      <CartProvider>
+        <WishlistProvider>
+          <div className="min-h-screen flex flex-col">
+            {showSplash && <SplashScreen onDone={onSplashDone} />}
+            <ScrollToTop />
+            <Routes>
+              <Route path="/install" element={<Install />} />
+              <Route path="/admin" element={<AdminLogin />} />
+              <Route
+                path="/admin/dashboard/*"
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="*"
+                element={
+                  <>
+                    <Navbar />
+                    <main className="flex-1">
+                      <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/shop" element={<Shop />} />
+                        <Route path="/catalog" element={<Catalog />} />
+                        <Route path="/product/:id" element={<ProductDetail />} />
+                        <Route path="/contact" element={<Contact />} />
+                        <Route path="/wishlist" element={<Wishlist />} />
+                        <Route path="/cart" element={<Cart />} />
+                        <Route path="/account" element={<Account />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </main>
+                    <Footer />
+                    <WhatsAppButton />
+                    <BackToTop />
+                  </>
+                }
+              />
+            </Routes>
+          </div>
+        </WishlistProvider>
+      </CartProvider>
+    </AuthProvider>
   );
 }
