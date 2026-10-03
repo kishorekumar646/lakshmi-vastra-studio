@@ -15,7 +15,6 @@ export default function GoogleSignInButton({ onCredential }) {
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: (res) => onCredential(res.credential),
-        ux_mode: "popup",
       });
       setReady(true);
     };
