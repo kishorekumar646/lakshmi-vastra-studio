@@ -24,6 +24,8 @@ import {
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import AdminDashboardTab from "../components/AdminDashboardTab";
+import { usePwaInstall } from "../hooks/usePwaInstall";
+import InstallGuideSheet from "../components/InstallGuideSheet";
 
 const EMPTY_FORM = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 const PER_PAGE = 10;
@@ -103,6 +105,7 @@ export default function AdminDashboard() {
 
   // Push notifications for admin
   usePushNotifications("admin", null, localStorage.getItem("admin_token"));
+  const { canInstall, install, nativeInstall, hasNativePrompt, installing, installed: appInstalled, guideOpen, closeGuide } = usePwaInstall();
 
   const applyPage = (sorted, page) => {
     const total = sorted.length;
@@ -401,6 +404,20 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
+        {canInstall && (
+          <button
+            onClick={install}
+            style={{
+              display: "flex", alignItems: "center", gap: "0.5rem",
+              margin: "0 1rem 0.6rem", padding: "0.65rem 1rem",
+              background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)",
+              color: "#F59E0B", borderRadius: 6, cursor: "pointer",
+              fontSize: "0.8rem", fontWeight: 600, width: "calc(100% - 2rem)",
+            }}
+          >
+            <span style={{ fontSize: "1rem" }}>📲</span> Install App
+          </button>
+        )}
         <button onClick={logout} className="admin-logout-btn">
           <LogOut size={14} /> Logout
         </button>
@@ -1768,6 +1785,26 @@ export default function AdminDashboard() {
         )}
 
       </main>
+
+      <InstallGuideSheet
+        open={guideOpen}
+        onClose={closeGuide}
+        appName="Admin Panel"
+        iconEmoji="🛡️"
+        iconSrc="/icon-admin.png"
+        themeColor="#1E293B"
+        tagline="LV Studio — Admin Dashboard"
+        features={[
+          { icon: "📦", text: "Manage products, orders & categories" },
+          { icon: "🏪", text: "Approve shop owners & manage delivery" },
+          { icon: "📊", text: "View payments & customer insights" },
+          { icon: "⚡", text: "Works offline, opens like a native app" },
+        ]}
+        hasNativePrompt={hasNativePrompt}
+        onNativeInstall={nativeInstall}
+        installing={installing}
+        installed={appInstalled}
+      />
     </div>
   );
 }
