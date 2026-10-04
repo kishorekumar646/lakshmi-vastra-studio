@@ -1636,7 +1636,7 @@ export default function AdminDashboard() {
                   <input
                     value={pincodeForm.pincode}
                     onChange={(e) => setPincodeForm({ ...pincodeForm, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
-                    placeholder="600001"
+                    placeholder="515402"
                     maxLength={6}
                     required
                     style={{ width: 110 }}
@@ -1647,7 +1647,7 @@ export default function AdminDashboard() {
                   <input
                     value={pincodeForm.city}
                     onChange={(e) => setPincodeForm({ ...pincodeForm, city: e.target.value })}
-                    placeholder="Chennai"
+                    placeholder="Gooty RS"
                   />
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", flex: 1, minWidth: 140 }}>
@@ -1655,7 +1655,7 @@ export default function AdminDashboard() {
                   <input
                     value={pincodeForm.state}
                     onChange={(e) => setPincodeForm({ ...pincodeForm, state: e.target.value })}
-                    placeholder="Tamil Nadu"
+                    placeholder="Andhra Pradesh"
                   />
                 </div>
                 <button type="submit" className="btn-primary" disabled={pincodeSubmitting} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: pincodeSubmitting ? 0.7 : 1 }}>
