@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package } from "lucide-react";
+import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { getOrders } from "../api";
+import { getOrders, updateProfile } from "../api";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 
 /* ── Shared styles ─────────────────────────────────────── */
@@ -295,6 +295,131 @@ function OrderHistory() {
   );
 }
 
+/* ── Profile section (editable) ─────────────────────────── */
+function ProfileSection({ customer }) {
+  const { setCustomer } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    phone: customer.phone || "",
+    secondary_phone: customer.secondary_phone || "",
+    address: customer.address || "",
+  });
+
+  const set = (k) => (e) => setForm((prev) => ({ ...prev, [k]: e.target.value }));
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const { data } = await updateProfile(form);
+      setCustomer(data);
+      setEditing(false);
+      toast.success("Profile updated!");
+    } catch {
+      toast.error("Failed to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setForm({ phone: customer.phone || "", secondary_phone: customer.secondary_phone || "", address: customer.address || "" });
+    setEditing(false);
+  };
+
+  const ReadonlyField = ({ label, value, Icon }) => (
+    <div style={{ background: "var(--cream)", borderRadius: 10, padding: "1.1rem 1.25rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+      <div style={{ width: 34, height: 34, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <Icon size={15} color="var(--primary)" />
+      </div>
+      <div>
+        <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.3rem" }}>{label}</p>
+        <p style={{ color: "var(--text)", fontSize: "0.92rem", fontWeight: 500 }}>{value || "—"}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ background: "#fff", borderRadius: 12, padding: "2rem 2.25rem", border: "1px solid var(--border-light)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border-light)" }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", color: "var(--text)", margin: 0 }}>Profile Details</h2>
+        {!editing && (
+          <button
+            onClick={() => setEditing(true)}
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.9rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-muted)" }}
+          >
+            <Edit2 size={13} /> Edit
+          </button>
+        )}
+      </div>
+
+      {/* Always read-only: name and email */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
+        <ReadonlyField label="Full Name" value={customer.name} Icon={User} />
+        <ReadonlyField label="Email Address" value={customer.email} Icon={Mail} />
+      </div>
+
+      {editing ? (
+        <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+            <div style={inputWrap}>
+              <label style={labelSt}>Phone Number</label>
+              <div style={{ position: "relative" }}>
+                <Phone size={15} style={{ position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "#9B7B6A", pointerEvents: "none" }} />
+                <input value={form.phone} onChange={set("phone")} placeholder="+91 XXXXX XXXXX" autoComplete="tel" style={{ paddingLeft: "2.5rem" }} />
+              </div>
+            </div>
+            <div style={inputWrap}>
+              <label style={labelSt}>Secondary Phone <span style={{ fontWeight: 400, textTransform: "none", fontSize: "0.7rem" }}>(optional)</span></label>
+              <div style={{ position: "relative" }}>
+                <Phone size={15} style={{ position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "#9B7B6A", pointerEvents: "none" }} />
+                <input value={form.secondary_phone} onChange={set("secondary_phone")} placeholder="Alternate number" style={{ paddingLeft: "2.5rem" }} />
+              </div>
+            </div>
+          </div>
+          <div style={inputWrap}>
+            <label style={labelSt}>Delivery Address</label>
+            <div style={{ position: "relative" }}>
+              <MapPin size={15} style={{ position: "absolute", left: "0.9rem", top: "0.85rem", color: "#9B7B6A", pointerEvents: "none" }} />
+              <textarea
+                value={form.address}
+                onChange={set("address")}
+                placeholder="House / Flat no., Street, City, State, PIN"
+                rows={3}
+                style={{ paddingLeft: "2.5rem", resize: "vertical" }}
+              />
+            </div>
+            <p style={{ fontSize: "0.73rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Saved here for quick checkout — you can change it per order.</p>
+          </div>
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+            <button type="submit" className="btn-primary" disabled={saving} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: saving ? 0.7 : 1 }}>
+              <Check size={14} /> {saving ? "Saving…" : "Save Changes"}
+            </button>
+            <button type="button" onClick={handleCancel} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.55rem 1.1rem", border: "1px solid var(--border)", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, color: "var(--text-muted)" }}>
+              <X size={14} /> Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+          <ReadonlyField label="Phone Number" value={customer.phone || "Not provided"} Icon={Phone} />
+          <ReadonlyField label="Secondary Phone" value={customer.secondary_phone || "Not provided"} Icon={Phone} />
+          <div style={{ gridColumn: "1 / -1", background: "var(--cream)", borderRadius: 10, padding: "1.1rem 1.25rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <MapPin size={15} color="var(--primary)" />
+            </div>
+            <div>
+              <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.3rem" }}>Delivery Address</p>
+              <p style={{ color: customer.address ? "var(--text)" : "var(--text-muted)", fontSize: "0.92rem", fontWeight: 500, lineHeight: 1.55 }}>{customer.address || "Not provided — click Edit to add"}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── Main component ──────────────────────────────────────── */
 export default function Account() {
   const { customer, logout, googleAuth, loading: authLoading } = useAuth();
@@ -490,35 +615,7 @@ export default function Account() {
           {/* Content */}
           <div style={{ flex: 1, minWidth: 0, animation: "fadeIn 0.4s ease" }}>
             {activeSection === "profile" && (
-              <div style={{ background: "#fff", borderRadius: 12, padding: "2rem 2.25rem", border: "1px solid var(--border-light)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}>
-                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", color: "var(--text)", marginBottom: "1.75rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border-light)" }}>
-                  Profile Details
-                </h2>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
-                  {[
-                    { label: "Full Name", value: customer.name, Icon: User },
-                    { label: "Email Address", value: customer.email, Icon: Mail },
-                    { label: "Phone Number", value: customer.phone || "Not provided", Icon: Phone },
-                  ].map(({ label, value, Icon }) => (
-                    <div key={label} style={{
-                      background: "var(--cream)",
-                      borderRadius: 10,
-                      padding: "1.1rem 1.25rem",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: "0.75rem",
-                    }}>
-                      <div style={{ width: 34, height: 34, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                        <Icon size={15} color="var(--primary)" />
-                      </div>
-                      <div>
-                        <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.3rem" }}>{label}</p>
-                        <p style={{ color: "var(--text)", fontSize: "0.92rem", fontWeight: 500 }}>{value}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <ProfileSection customer={customer} />
             )}
 
             {activeSection === "orders" && (

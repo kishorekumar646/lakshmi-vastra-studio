@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import Optional
 from database import get_db
 from models import Inquiry
-from auth import verify_token
+from admins.auth import verify_token
 
 router = APIRouter(prefix="/api/inquiries", tags=["inquiries"])
 

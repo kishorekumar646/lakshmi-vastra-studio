@@ -4,7 +4,7 @@ from pydantic import BaseModel, validator
 from typing import Optional
 from database import get_db
 from models import Review, Product
-from auth import verify_token
+from admins.auth import verify_token
 
 router = APIRouter(tags=["reviews"])
 

@@ -6,12 +6,18 @@ import {
   getCategories, createCategory, deleteCategory,
   getInquiries, markInquiryRead,
   getAdminReviews, deleteReview, toggleReviewVisibility,
+  getAdminOrders, confirmOrder, assignDelivery,
+  getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson,
+  getShopOwners, approveShopOwner, toggleShopOwner,
 } from "../api";
 import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
+  ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
+import { usePushNotifications } from "../hooks/usePushNotifications";
+import AdminDashboardTab from "../components/AdminDashboardTab";
 
 const EMPTY_FORM = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 const PER_PAGE = 10;
@@ -30,7 +36,7 @@ function getPageNumbers(currentPage, totalPages) {
 }
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState("products");
+  const [tab, setTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Products — all fetched, paginated client-side
@@ -52,6 +58,27 @@ export default function AdminDashboard() {
   const [productsLoading, setProductsLoading] = useState(true);
   const fileInputRef = useRef();
   const navigate = useNavigate();
+
+  // Orders tab
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [assignModal, setAssignModal] = useState(null); // { orderId }
+  const [assignDpId, setAssignDpId] = useState("");
+
+  // Delivery Persons tab
+  const [deliveryPersons, setDeliveryPersons] = useState([]);
+  const [dpLoading, setDpLoading] = useState(false);
+  const [showDpForm, setShowDpForm] = useState(false);
+  const [dpForm, setDpForm] = useState({ name: "", email: "", phone: "", password: "" });
+  const [dpSubmitting, setDpSubmitting] = useState(false);
+
+  // Shop Owners tab
+  const [shopOwners, setShopOwners] = useState([]);
+  const [shopOwnersLoading, setShopOwnersLoading] = useState(false);
+
+  // Push notifications for admin
+  usePushNotifications("admin", null, localStorage.getItem("admin_token"));
 
   const applyPage = (sorted, page) => {
     const total = sorted.length;
@@ -87,11 +114,32 @@ export default function AdminDashboard() {
       .finally(() => setProductsLoading(false));
   };
 
+  const loadOrders = (status = "all") => {
+    setOrdersLoading(true);
+    getAdminOrders(1, 100, status === "all" ? "" : status)
+      .then((r) => setOrders(r.data.items ?? r.data))
+      .catch(() => {})
+      .finally(() => setOrdersLoading(false));
+  };
+
+  const loadDeliveryPersons = () => {
+    setDpLoading(true);
+    getDeliveryPersons().then((r) => setDeliveryPersons(r.data)).catch(() => {}).finally(() => setDpLoading(false));
+  };
+
+  const loadShopOwners = () => {
+    setShopOwnersLoading(true);
+    getShopOwners().then((r) => setShopOwners(r.data)).catch(() => {}).finally(() => setShopOwnersLoading(false));
+  };
+
   const loadAll = () => {
     loadProducts(1);
     getCategories().then((r) => setCategories(r.data));
     getInquiries().then((r) => setInquiries(r.data));
     getAdminReviews().then((r) => setAdminReviews(r.data)).catch(() => {});
+    loadOrders();
+    loadDeliveryPersons();
+    loadShopOwners();
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -249,11 +297,18 @@ export default function AdminDashboard() {
     ? allProducts.slice((productPage - 1) * PER_PAGE, productPage * PER_PAGE)
     : allProducts;
 
+  const pendingOrders = orders.filter((o) => o.status === "pending").length;
+  const pendingApprovals = shopOwners.filter((s) => !s.is_approved).length;
+
   const NAV_ITEMS = [
+    { key: "dashboard", label: "Dashboard", icon: <TrendingUp size={17} /> },
     { key: "products", label: "Products", icon: <Package size={17} />, badge: productTotal || null },
     { key: "categories", label: "Categories", icon: <Tag size={17} />, badge: categories.length },
     { key: "inquiries", label: "Inquiries", icon: <MessageSquare size={17} />, badge: unread || null, badgeRed: true },
     { key: "reviews", label: "Reviews", icon: <Star size={17} />, badge: adminReviews.length || null },
+    { key: "orders", label: "Orders", icon: <ShoppingBag size={17} />, badge: pendingOrders || null, badgeRed: true },
+    { key: "shopowners", label: "Shop Owners", icon: <Store size={17} />, badge: pendingApprovals || null, badgeRed: true },
+    { key: "delivery", label: "Delivery", icon: <Truck size={17} />, badge: deliveryPersons.length || null },
   ];
 
   return (
@@ -308,6 +363,16 @@ export default function AdminDashboard() {
 
       {/* Main content */}
       <main className="admin-main">
+
+        {/* ── Dashboard Tab ──────────────── */}
+        {tab === "dashboard" && (
+          <div>
+            <div className="admin-section-header">
+              <h2 className="admin-section-title">Dashboard</h2>
+            </div>
+            <AdminDashboardTab />
+          </div>
+        )}
 
         {/* ── Products Tab ───────────────── */}
         {tab === "products" && (
@@ -783,6 +848,306 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+        {/* ── Orders Tab ─────────────────── */}
+        {tab === "orders" && (
+          <div>
+            <div className="admin-section-header">
+              <h2 className="admin-section-title">Orders ({orders.length})</h2>
+              <select
+                value={orderStatusFilter}
+                onChange={(e) => { setOrderStatusFilter(e.target.value); loadOrders(e.target.value); }}
+                style={{ padding: "0.45rem 0.75rem", borderRadius: 6, border: "1px solid var(--border)", fontSize: "0.85rem", background: "#fff", cursor: "pointer" }}
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="ready_for_delivery">Ready for Delivery</option>
+                <option value="picked_up">Picked Up</option>
+                <option value="delivered">Delivered</option>
+              </select>
+            </div>
+
+            {ordersLoading ? (
+              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading orders…</p>
+            ) : orders.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
+                <ShoppingBag size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
+                <p>No orders found.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {orders.map((o) => {
+                  const statusColors = {
+                    pending: { bg: "#FEF3C7", color: "#92400E" },
+                    confirmed: { bg: "#DBEAFE", color: "#1E40AF" },
+                    ready_for_delivery: { bg: "#D1FAE5", color: "#065F46" },
+                    picked_up: { bg: "#EDE9FE", color: "#5B21B6" },
+                    delivered: { bg: "#DCFCE7", color: "#166534" },
+                  };
+                  const sc = statusColors[o.status] || { bg: "#F1F5F9", color: "#64748B" };
+                  return (
+                    <div key={o.id} style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", border: "1px solid var(--border-light)", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>Order #{o.id}</p>
+                          <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                            {o.customer?.name} · {o.payment_method === "cod" ? "💵 COD" : "💳 Paid"} · ₹{o.total?.toLocaleString("en-IN")}
+                          </p>
+                          <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--text-muted)" }}>{o.delivery_address}</p>
+                        </div>
+                        <span style={{ padding: "0.25rem 0.75rem", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
+                          {o.status?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </span>
+                      </div>
+
+                      <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
+                        {o.items?.map((item, i) => (
+                          <span key={i}>{item.name} ×{item.quantity}{i < o.items.length - 1 ? ", " : ""}</span>
+                        ))}
+                      </div>
+
+                      {o.delivery_person && (
+                        <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", color: "#1a4080", fontWeight: 600 }}>
+                          Delivery: {o.delivery_person.name} ({o.delivery_person.phone})
+                        </p>
+                      )}
+
+                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                        {o.status === "pending" && o.payment_method === "cod" && (
+                          <button
+                            onClick={async () => {
+                              try { await confirmOrder(o.id); toast.success("Order confirmed!"); loadOrders(orderStatusFilter); }
+                              catch { toast.error("Failed to confirm"); }
+                            }}
+                            style={{ padding: "0.4rem 0.9rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                          >
+                            <CheckCircle size={14} /> Confirm COD
+                          </button>
+                        )}
+                        {(o.status === "confirmed" || o.status === "ready_for_delivery") && !o.delivery_person_id && (
+                          <button
+                            onClick={() => { setAssignModal({ orderId: o.id }); setAssignDpId(""); }}
+                            style={{ padding: "0.4rem 0.9rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                          >
+                            <Truck size={14} /> Assign Delivery
+                          </button>
+                        )}
+                        <a
+                          href={`/track/${o.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ padding: "0.4rem 0.9rem", background: "var(--cream)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, textDecoration: "none" }}
+                        >
+                          Track
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Assign Delivery Modal */}
+            {assignModal && (
+              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+                <div style={{ background: "#fff", borderRadius: 12, padding: "1.75rem", maxWidth: 400, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+                  <h3 style={{ marginTop: 0, marginBottom: "1.25rem", fontSize: "1rem", color: "var(--text)" }}>Assign Delivery Person</h3>
+                  <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "0.5rem" }}>Select Delivery Person</label>
+                  <select
+                    value={assignDpId}
+                    onChange={(e) => setAssignDpId(e.target.value)}
+                    style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 6, border: "1px solid var(--border)", fontSize: "0.9rem", marginBottom: "1.25rem" }}
+                  >
+                    <option value="">-- Select --</option>
+                    {deliveryPersons.filter((dp) => dp.is_active).map((dp) => (
+                      <option key={dp.id} value={dp.id}>{dp.name} ({dp.phone})</option>
+                    ))}
+                  </select>
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <button
+                      disabled={!assignDpId}
+                      onClick={async () => {
+                        try {
+                          await assignDelivery(assignModal.orderId, parseInt(assignDpId));
+                          toast.success("Delivery person assigned!");
+                          setAssignModal(null);
+                          loadOrders(orderStatusFilter);
+                        } catch { toast.error("Failed to assign"); }
+                      }}
+                      style={{ flex: 1, padding: "0.6rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: assignDpId ? "pointer" : "not-allowed", fontWeight: 700, opacity: assignDpId ? 1 : 0.5 }}
+                    >
+                      Assign
+                    </button>
+                    <button onClick={() => setAssignModal(null)} style={{ flex: 1, padding: "0.6rem", background: "var(--cream)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Shop Owners Tab ────────────── */}
+        {tab === "shopowners" && (
+          <div>
+            <div className="admin-section-header">
+              <h2 className="admin-section-title">Shop Owners ({shopOwners.length})</h2>
+              {pendingApprovals > 0 && (
+                <span style={{ background: "var(--primary)", color: "#fff", borderRadius: 100, padding: "0.25rem 0.9rem", fontSize: "0.78rem", fontWeight: 700 }}>
+                  {pendingApprovals} pending
+                </span>
+              )}
+            </div>
+
+            {shopOwnersLoading ? (
+              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading…</p>
+            ) : shopOwners.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
+                <Store size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
+                <p>No shop owners registered yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {shopOwners.map((s) => (
+                  <div key={s.id} style={{ background: "#fff", borderRadius: 10, padding: "1.1rem 1.25rem", border: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "0.95rem" }}>{s.name}</p>
+                      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{s.shop_name} · {s.email} · {s.phone}</p>
+                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        Joined {new Date(s.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                      <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: s.is_approved ? "#D1FAE5" : "#FEF3C7", color: s.is_approved ? "#065F46" : "#92400E" }}>
+                        {s.is_approved ? "Approved" : "Pending"}
+                      </span>
+                      {!s.is_approved && (
+                        <button
+                          onClick={async () => {
+                            try { await approveShopOwner(s.id); toast.success(`${s.name} approved!`); loadShopOwners(); }
+                            catch { toast.error("Failed"); }
+                          }}
+                          style={{ padding: "0.35rem 0.8rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.3rem" }}
+                        >
+                          <Check size={13} /> Approve
+                        </button>
+                      )}
+                      <button
+                        onClick={async () => {
+                          try { await toggleShopOwner(s.id); toast.success("Status updated"); loadShopOwners(); }
+                          catch { toast.error("Failed"); }
+                        }}
+                        style={{ padding: "0.35rem 0.8rem", background: s.is_active ? "#fee2e2" : "#D1FAE5", color: s.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700 }}
+                      >
+                        {s.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Delivery Persons Tab ────────── */}
+        {tab === "delivery" && (
+          <div>
+            <div className="admin-section-header">
+              <h2 className="admin-section-title">Delivery Persons ({deliveryPersons.length})</h2>
+              <button onClick={() => setShowDpForm((v) => !v)} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <Plus size={16} /> Add Person
+              </button>
+            </div>
+
+            {showDpForm && (
+              <div className="admin-card">
+                <h3 className="admin-card-title">Add Delivery Person</h3>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    setDpSubmitting(true);
+                    try {
+                      await createDeliveryPerson(dpForm);
+                      toast.success("Delivery person created!");
+                      setDpForm({ name: "", email: "", phone: "", password: "" });
+                      setShowDpForm(false);
+                      loadDeliveryPersons();
+                    } catch (err) {
+                      toast.error(err.response?.data?.detail || "Failed to create");
+                    } finally {
+                      setDpSubmitting(false);
+                    }
+                  }}
+                  style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
+                >
+                  <div className="admin-form-grid">
+                    <div>
+                      <label>Name *</label>
+                      <input value={dpForm.name} onChange={(e) => setDpForm({ ...dpForm, name: e.target.value })} placeholder="Full name" required />
+                    </div>
+                    <div>
+                      <label>Email *</label>
+                      <input type="email" value={dpForm.email} onChange={(e) => setDpForm({ ...dpForm, email: e.target.value })} placeholder="email@example.com" required />
+                    </div>
+                    <div>
+                      <label>Phone *</label>
+                      <input value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} placeholder="Phone number" required />
+                    </div>
+                    <div>
+                      <label>Password *</label>
+                      <input type="password" value={dpForm.password} onChange={(e) => setDpForm({ ...dpForm, password: e.target.value })} placeholder="Temporary password" required minLength={6} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <button type="submit" className="btn-primary" disabled={dpSubmitting} style={{ opacity: dpSubmitting ? 0.7 : 1 }}>
+                      {dpSubmitting ? "Creating…" : "Create"}
+                    </button>
+                    <button type="button" className="admin-cancel-btn" onClick={() => setShowDpForm(false)}>Cancel</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {dpLoading ? (
+              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading…</p>
+            ) : deliveryPersons.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
+                <Truck size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
+                <p>No delivery persons yet. Add one above.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {deliveryPersons.map((dp) => (
+                  <div key={dp.id} style={{ background: "#fff", borderRadius: 10, padding: "1.1rem 1.25rem", border: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "0.95rem" }}>{dp.name}</p>
+                      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{dp.email} · {dp.phone}</p>
+                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                        Added {new Date(dp.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                      </p>
+                    </div>
+                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                      <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: dp.is_active ? "#D1FAE5" : "#F1F5F9", color: dp.is_active ? "#065F46" : "#64748B" }}>
+                        {dp.is_active ? "Active" : "Inactive"}
+                      </span>
+                      <button
+                        onClick={async () => {
+                          try { await toggleDeliveryPerson(dp.id); toast.success("Status updated"); loadDeliveryPersons(); }
+                          catch { toast.error("Failed"); }
+                        }}
+                        style={{ padding: "0.35rem 0.8rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700 }}
+                      >
+                        {dp.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
       </main>
     </div>
   );

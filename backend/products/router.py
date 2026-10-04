@@ -6,7 +6,7 @@ import cloudinary.uploader
 import os
 from database import get_db
 from models import Product, ProductImage, Category
-from auth import verify_token
+from admins.auth import verify_token
 
 router = APIRouter(prefix="/api/products", tags=["products"])
 
@@ -118,7 +118,7 @@ def create_product(
         custom_orders=custom_orders,
     )
     db.add(product)
-    db.flush()  # get product.id before committing
+    db.flush()
 
     if images:
         for i, img in enumerate(images):
@@ -180,7 +180,6 @@ def update_product(
                     image_public_id=public_id,
                     sort_order=existing_count + i,
                 ))
-        # Update primary image if we now have images in ProductImage table
         db.flush()
         db.refresh(product)
         if product.images:
@@ -214,7 +213,6 @@ def delete_product_image(
 
     db.delete(img)
 
-    # Update product.image_url to the next remaining image
     product = db.query(Product).filter(Product.id == product_id).first()
     db.flush()
     db.refresh(product)
@@ -235,7 +233,6 @@ def delete_product(product_id: int, db: Session = Depends(get_db), _: str = Depe
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    # Delete all cloudinary images
     for img in product.images:
         if img.image_public_id:
             try:

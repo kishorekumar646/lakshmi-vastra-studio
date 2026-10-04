@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import WishlistItem, Customer, Product
-from customer_auth import get_current_customer
+from customers.auth import get_current_customer
 
 router = APIRouter(prefix="/api/wishlist", tags=["wishlist"])
 

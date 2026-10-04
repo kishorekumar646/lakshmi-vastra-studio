@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Customer
-from customer_auth import hash_password, verify_password, create_customer_token, get_current_customer
+from customers.auth import hash_password, verify_password, create_customer_token, get_current_customer
 import urllib.request
 import urllib.parse
 import json
@@ -41,11 +41,7 @@ def register(body: RegisterBody, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(customer)
     token = create_customer_token(customer.id, customer.email)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "customer": {"id": customer.id, "name": customer.name, "email": customer.email, "phone": customer.phone},
-    }
+    return {"access_token": token, "token_type": "bearer", "customer": _customer_dict(customer)}
 
 
 @router.post("/login")
@@ -54,11 +50,7 @@ def login(body: LoginBody, db: Session = Depends(get_db)):
     if not customer or not verify_password(body.password, customer.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
     token = create_customer_token(customer.id, customer.email)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "customer": {"id": customer.id, "name": customer.name, "email": customer.email, "phone": customer.phone},
-    }
+    return {"access_token": token, "token_type": "bearer", "customer": _customer_dict(customer)}
 
 
 class GoogleAuthBody(BaseModel):
@@ -70,7 +62,6 @@ def google_auth(body: GoogleAuthBody, db: Session = Depends(get_db)):
     if not GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=503, detail="Google login is not configured")
 
-    # Verify the ID token with Google's tokeninfo endpoint
     try:
         url = f"https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(body.credential)}"
         with urllib.request.urlopen(url, timeout=10) as resp:
@@ -99,19 +90,37 @@ def google_auth(body: GoogleAuthBody, db: Session = Depends(get_db)):
         db.refresh(customer)
 
     token = create_customer_token(customer.id, customer.email)
+    return {"access_token": token, "token_type": "bearer", "customer": _customer_dict(customer)}
+
+
+def _customer_dict(c: Customer):
     return {
-        "access_token": token,
-        "token_type": "bearer",
-        "customer": {"id": customer.id, "name": customer.name, "email": customer.email, "phone": customer.phone},
+        "id": c.id,
+        "name": c.name,
+        "email": c.email,
+        "phone": c.phone or "",
+        "secondary_phone": c.secondary_phone or "",
+        "address": c.address or "",
+        "created_at": c.created_at,
     }
 
 
 @router.get("/me")
 def me(customer: Customer = Depends(get_current_customer)):
-    return {
-        "id": customer.id,
-        "name": customer.name,
-        "email": customer.email,
-        "phone": customer.phone,
-        "created_at": customer.created_at,
-    }
+    return _customer_dict(customer)
+
+
+class UpdateProfileBody(BaseModel):
+    phone: str = ""
+    secondary_phone: str = ""
+    address: str = ""
+
+
+@router.put("/me")
+def update_me(body: UpdateProfileBody, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+    customer.phone = body.phone
+    customer.secondary_phone = body.secondary_phone or None
+    customer.address = body.address or None
+    db.commit()
+    db.refresh(customer)
+    return _customer_dict(customer)

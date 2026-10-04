@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from database import get_db
 from models import Category
-from auth import verify_token
+from admins.auth import verify_token
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
 

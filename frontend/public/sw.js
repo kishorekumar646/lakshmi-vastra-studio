@@ -1,3 +1,30 @@
+// ── Push Notifications ────────────────────────────────────────────────────────
+self.addEventListener("push", (e) => {
+  const data = e.data ? e.data.json() : { title: "Lakshmi Vastra Studio", body: "You have a new notification", url: "/" };
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.svg",
+      badge: "/icon-192.svg",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((cs) => {
+      const url = e.notification.data?.url || "/";
+      for (const c of cs) {
+        if (c.url.includes(url) && "focus" in c) return c.focus();
+      }
+      return clients.openWindow(url);
+    })
+  );
+});
+
+// ── PWA Cache ─────────────────────────────────────────────────────────────────
 const CACHE = "lv-studio-v1";
 const SHELL = ["/", "/catalog", "/contact", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
 

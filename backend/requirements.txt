@@ -8,3 +8,5 @@ python-jose[cryptography]==3.5.0
 passlib[bcrypt]==1.7.4
 python-dotenv==1.2.3
 pydantic==2.13.5
+qrcode[pil]>=7.4
+pywebpush>=2.0.0
