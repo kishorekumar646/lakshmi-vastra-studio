@@ -1,7 +1,18 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Permissions-Policy", "value": "camera=*, microphone=()" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }
+      ]
+    }
+  ],
   "rewrites": [
+    { "source": "/shop/:path*", "destination": "/shop.html" },
+    { "source": "/delivery/:path*", "destination": "/delivery.html" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
