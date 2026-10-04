@@ -226,7 +226,7 @@ export default function DeliveryDashboard() {
   const [delivering, setDelivering] = useState({});
   const [person] = useState(() => JSON.parse(localStorage.getItem("delivery_person") || "{}"));
   const navigate = useNavigate();
-  const { canInstall, install, guideOpen, closeGuide } = usePwaInstall();
+  const { canInstall, install, nativeInstall, hasNativePrompt, installing, installed: appInstalled, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("delivery_person", person.id, localStorage.getItem("delivery_token"));
 
   useEffect(() => { loadCore(); }, []);
@@ -537,7 +537,19 @@ export default function DeliveryDashboard() {
         onClose={closeGuide}
         appName="Delivery Portal"
         iconEmoji="🚚"
+        iconSrc="/icon-delivery.png"
         themeColor="#1a4080"
+        tagline="LV Studio — Delivery Partner App"
+        features={[
+          { icon: "📦", text: "View and pick up assigned orders" },
+          { icon: "📍", text: "Navigate deliveries with ease" },
+          { icon: "💰", text: "Track your daily earnings" },
+          { icon: "⚡", text: "Works offline, opens like a native app" },
+        ]}
+        hasNativePrompt={hasNativePrompt}
+        onNativeInstall={nativeInstall}
+        installing={installing}
+        installed={appInstalled}
       />
 
       <style>{`

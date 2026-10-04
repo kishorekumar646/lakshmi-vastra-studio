@@ -10,38 +10,46 @@ export function usePwaInstall() {
   const [prompt, setPrompt] = useState(() => getInstallPrompt());
   const [installed, setInstalled] = useState(isStandalone);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     if (installed) return;
-    // Poll until beforeinstallprompt fires (Chrome fires it asynchronously, can take seconds)
     const check = setInterval(() => {
       const p = getInstallPrompt();
       if (p) { setPrompt(p); clearInterval(check); }
     }, 500);
-    const onInstalled = () => { setInstalled(true); clearInstallPrompt(); setPrompt(null); };
+    const onInstalled = () => { setInstalled(true); clearInstallPrompt(); setPrompt(null); setGuideOpen(false); };
     window.addEventListener("appinstalled", onInstalled);
     return () => { clearInterval(check); window.removeEventListener("appinstalled", onInstalled); };
   }, [installed]);
 
-  const install = async () => {
+  // Always open the popup sheet first
+  const install = () => {
     if (installed) return;
+    setGuideOpen(true);
+  };
+
+  // Called from inside the popup when user taps the install button
+  const nativeInstall = async () => {
     const p = prompt || getInstallPrompt();
-    if (p) {
-      // Native install dialog available — use it
-      p.prompt();
-      const { outcome } = await p.userChoice;
-      if (outcome === "accepted") { setInstalled(true); clearInstallPrompt(); }
+    if (!p) return false;
+    setInstalling(true);
+    p.prompt();
+    const { outcome } = await p.userChoice;
+    setInstalling(false);
+    if (outcome === "accepted") {
+      setInstalled(true);
+      clearInstallPrompt();
       setPrompt(null);
-    } else {
-      // Browser not ready yet — show platform-specific guide sheet
-      setGuideOpen(true);
+      setGuideOpen(false);
     }
+    return outcome === "accepted";
   };
 
   const closeGuide = () => setGuideOpen(false);
 
-  // Show on mobile always (prompt fires once Chrome is satisfied), or desktop when prompt ready
-  const canInstall = !installed && (isMobile() || !!prompt);
+  const hasNativePrompt = !!(prompt || getInstallPrompt());
+  const canInstall = !installed && (isMobile() || hasNativePrompt);
 
-  return { canInstall, install, guideOpen, closeGuide };
+  return { canInstall, install, nativeInstall, hasNativePrompt, installing, guideOpen, closeGuide, installed };
 }

@@ -27,7 +27,7 @@ export default function ShopDashboard() {
   const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
   const [owner] = useState(() => JSON.parse(localStorage.getItem("shop_owner") || "{}"));
   const navigate = useNavigate();
-  const { canInstall, install, guideOpen, closeGuide } = usePwaInstall();
+  const { canInstall, install, nativeInstall, hasNativePrompt, installing, installed: appInstalled, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("shop_owner", owner.id, localStorage.getItem("shop_token"));
 
   // Products
@@ -345,7 +345,19 @@ export default function ShopDashboard() {
         onClose={closeGuide}
         appName="Shop Owner Portal"
         iconEmoji="🏪"
+        iconSrc="/icon-shop.png"
         themeColor="#7B1D45"
+        tagline="Manage products, orders & deliveries"
+        features={[
+          { icon: "📦", text: "Manage products and inventory" },
+          { icon: "🛒", text: "Track orders in real time" },
+          { icon: "🚚", text: "Coordinate deliveries easily" },
+          { icon: "⚡", text: "Works offline, no browser bar" },
+        ]}
+        hasNativePrompt={hasNativePrompt}
+        onNativeInstall={nativeInstall}
+        installing={installing}
+        installed={appInstalled}
       />
     </div>
   );
