@@ -84,6 +84,7 @@ export const toggleShopOwner = (id) => api.put(`/api/admin/shop-owners/${id}/tog
 
 // ── Admin Customers ───────────────────────────────────────────────────────────
 export const getAdminCustomers = () => api.get("/api/admin/customers");
+export const getAdminPayments = () => api.get("/api/admin/payments");
 export const updateAdminCustomer = (id, data) => api.put(`/api/admin/customers/${id}`, data);
 
 // ── Customer Auth ─────────────────────────────────────────────────────────────

@@ -314,6 +314,87 @@ def update_customer(customer_id: int, body: UpdateCustomerBody, db: Session = De
     return {"id": customer.id, "name": customer.name, "email": customer.email}
 
 
+# ── Payments ──────────────────────────────────────────────────────────────────
+
+@router.get("/payments")
+def payments_report(db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    paid_statuses = ["confirmed", "ready_for_delivery", "picked_up", "delivered"]
+
+    # ── Summary ────────────────────────────────────────────────────────────────
+    total_collected   = db.query(func.sum(Order.total)).filter(Order.status.in_(paid_statuses)).scalar() or 0
+    total_orders      = db.query(func.count(Order.id)).scalar() or 0
+    paid_count        = db.query(func.count(Order.id)).filter(Order.status.in_(paid_statuses)).scalar() or 0
+    cancelled_count   = db.query(func.count(Order.id)).filter(Order.status == "cancelled").scalar() or 0
+    cancelled_value   = db.query(func.sum(Order.total)).filter(Order.status == "cancelled").scalar() or 0
+    pending_count     = db.query(func.count(Order.id)).filter(Order.status == "pending").scalar() or 0
+    pending_value     = db.query(func.sum(Order.total)).filter(Order.status == "pending").scalar() or 0
+
+    # ── By payment method ──────────────────────────────────────────────────────
+    online_collected  = db.query(func.sum(Order.total)).filter(Order.payment_method == "razorpay", Order.status.in_(paid_statuses)).scalar() or 0
+    cod_collected     = db.query(func.sum(Order.total)).filter(Order.payment_method == "cod", Order.status.in_(paid_statuses)).scalar() or 0
+    online_count      = db.query(func.count(Order.id)).filter(Order.payment_method == "razorpay").scalar() or 0
+    cod_count         = db.query(func.count(Order.id)).filter(Order.payment_method == "cod").scalar() or 0
+
+    # ── Monthly collections — last 6 months ───────────────────────────────────
+    six_months_ago = datetime.utcnow() - timedelta(days=180)
+    yr_expr = extract("year", Order.created_at)
+    mo_expr = extract("month", Order.created_at)
+    monthly_rows = (
+        db.query(yr_expr.label("yr"), mo_expr.label("mo"),
+                 func.sum(Order.total).label("collected"),
+                 func.count(Order.id).label("orders"))
+        .filter(Order.created_at >= six_months_ago, Order.status.in_(paid_statuses))
+        .group_by(yr_expr, mo_expr)
+        .order_by(yr_expr, mo_expr)
+        .all()
+    )
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    monthly = [
+        {"month": month_names[int(mo) - 1], "collected": round(float(collected or 0), 2), "orders": int(orders or 0)}
+        for yr, mo, collected, orders in monthly_rows
+    ]
+
+    # ── Recent orders with payment detail ─────────────────────────────────────
+    recent = (
+        db.query(Order)
+        .options(joinedload(Order.customer))
+        .order_by(Order.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    orders_list = [
+        {
+            "id": o.id,
+            "customer": o.customer.name if o.customer else "Guest",
+            "email": o.customer.email if o.customer else "",
+            "total": float(o.total),
+            "payment_method": o.payment_method or "razorpay",
+            "status": o.status,
+            "razorpay_payment_id": o.razorpay_payment_id or "",
+            "created_at": o.created_at,
+        }
+        for o in recent
+    ]
+
+    return {
+        "summary": {
+            "total_collected": round(float(total_collected), 2),
+            "total_orders": total_orders,
+            "paid_count": paid_count,
+            "cancelled_count": cancelled_count,
+            "cancelled_value": round(float(cancelled_value), 2),
+            "pending_count": pending_count,
+            "pending_value": round(float(pending_value), 2),
+            "online_collected": round(float(online_collected), 2),
+            "cod_collected": round(float(cod_collected), 2),
+            "online_count": online_count,
+            "cod_count": cod_count,
+        },
+        "monthly": monthly,
+        "orders": orders_list,
+    }
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 @router.get("/dashboard")

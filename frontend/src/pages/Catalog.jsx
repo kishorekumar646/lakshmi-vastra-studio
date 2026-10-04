@@ -27,16 +27,16 @@ export default function Catalog() {
 
   useEffect(() => {
     setLoading(true);
-    const params = selectedCategory ? { category_id: selectedCategory } : {};
-    getProducts(params)
+    getProducts()
       .then((r) => setProducts(r.data))
       .finally(() => setLoading(false));
-  }, [selectedCategory]);
+  }, []);
 
   const filtered = products
     .filter((p) =>
       (p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.description && p.description.toLowerCase().includes(search.toLowerCase()))) &&
+      (!selectedCategory || p.category_id === selectedCategory) &&
       (!handloomOnly || p.is_handloom)
     )
     .sort((a, b) => {

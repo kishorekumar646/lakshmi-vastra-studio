@@ -30,11 +30,10 @@ export default function Shop() {
 
   useEffect(() => {
     setLoading(true);
-    const params = selectedCategory ? { category_id: selectedCategory } : {};
-    getProducts(params)
+    getProducts()
       .then((r) => setProducts(r.data))
       .finally(() => setLoading(false));
-  }, [selectedCategory]);
+  }, []);
 
   const setCategory = (id) => {
     if (id) setSearchParams({ category: id });
@@ -46,10 +45,11 @@ export default function Shop() {
       const matchSearch =
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         (p.description && p.description.toLowerCase().includes(search.toLowerCase()));
+      const matchCategory = !selectedCategory || p.category_id === selectedCategory;
       const matchHandloom = !handloomOnly || p.is_handloom;
       const matchMin = priceMin === "" || p.price >= parseFloat(priceMin);
       const matchMax = priceMax === "" || p.price <= parseFloat(priceMax);
-      return matchSearch && matchHandloom && matchMin && matchMax;
+      return matchSearch && matchCategory && matchHandloom && matchMin && matchMax;
     })
     .sort((a, b) => {
       if (sort === "price_asc") return a.price - b.price;
