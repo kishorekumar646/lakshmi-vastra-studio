@@ -248,14 +248,23 @@ export default function Cart() {
             </div>
 
             <form onSubmit={handleCheckout} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <div>
-                <label style={labelSt}>Full Name</label>
-                <input value={address.name} onChange={set("name")} placeholder="As per delivery address" required autoComplete="name" style={{ width: "100%", boxSizing: "border-box" }} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                <div>
+                  <label style={{ ...labelSt, color: "var(--text-muted)" }}>Full Name</label>
+                  <div style={{ background: "var(--cream)", border: "1px solid var(--border-light)", borderRadius: 8, padding: "0.6rem 0.85rem", fontSize: "0.9rem", color: "var(--text)", fontWeight: 600 }}>
+                    {address.name || "—"}
+                  </div>
+                </div>
+                <div>
+                  <label style={{ ...labelSt, color: "var(--text-muted)" }}>Phone Number</label>
+                  <div style={{ background: "var(--cream)", border: "1px solid var(--border-light)", borderRadius: 8, padding: "0.6rem 0.85rem", fontSize: "0.9rem", color: "var(--text)", fontWeight: 600 }}>
+                    {address.phone || "—"}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label style={labelSt}>Phone Number</label>
-                <input value={address.phone} onChange={set("phone")} placeholder="+91 XXXXX XXXXX" required autoComplete="tel" style={{ width: "100%", boxSizing: "border-box" }} />
-              </div>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: "-0.4rem 0 0" }}>
+                To update name or phone, go to <a href="/account" style={{ color: "var(--primary)", fontWeight: 600 }}>Account Settings</a>.
+              </p>
               <div>
                 <label style={labelSt}>Street Address</label>
                 <input value={address.address} onChange={set("address")} placeholder="House no., Street, Area" required autoComplete="street-address" style={{ width: "100%", boxSizing: "border-box" }} />
