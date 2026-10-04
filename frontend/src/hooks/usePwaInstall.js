@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import toast from "react-hot-toast";
+import { getInstallPrompt, clearInstallPrompt } from "../pwaInstall";
 
 const isMobile = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -8,38 +8,41 @@ const isStandalone = () =>
   window.navigator.standalone === true;
 
 export function usePwaInstall() {
-  const [prompt, setPrompt] = useState(() => window.__pwaPrompt || null);
+  const [prompt, setPrompt] = useState(() => getInstallPrompt());
   const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
     if (installed) return;
-    if (window.__pwaPrompt && !prompt) setPrompt(window.__pwaPrompt);
 
-    const onReady = () => { if (window.__pwaPrompt) setPrompt(window.__pwaPrompt); };
-    const onInstalled = () => { setInstalled(true); setPrompt(null); window.__pwaPrompt = null; };
+    // Poll in case beforeinstallprompt fires after mount
+    const check = setInterval(() => {
+      const p = getInstallPrompt();
+      if (p) { setPrompt(p); clearInterval(check); }
+    }, 500);
 
-    window.addEventListener("pwaPromptReady", onReady);
+    const onInstalled = () => { setInstalled(true); clearInstallPrompt(); setPrompt(null); };
     window.addEventListener("appinstalled", onInstalled);
+
     return () => {
-      window.removeEventListener("pwaPromptReady", onReady);
+      clearInterval(check);
       window.removeEventListener("appinstalled", onInstalled);
     };
-  }, [installed, prompt]);
+  }, [installed]);
 
   const install = async () => {
-    if (prompt) {
-      prompt.prompt();
-      const { outcome } = await prompt.userChoice;
-      if (outcome === "accepted") setInstalled(true);
+    const p = prompt || getInstallPrompt();
+    if (p) {
+      p.prompt();
+      const { outcome } = await p.userChoice;
+      if (outcome === "accepted") { setInstalled(true); clearInstallPrompt(); }
       setPrompt(null);
-      window.__pwaPrompt = null;
       return;
     }
-    // Prompt not ready — guide with a toast
+    // No prompt available — direct user to install page
     if (isIos()) {
-      toast("Tap Share ⎋ → Add to Home Screen", { icon: "📲", duration: 4000 });
+      window.location.href = "/install";
     } else {
-      toast("Tap Chrome menu ⋮ → Install app", { icon: "📲", duration: 4000 });
+      window.location.href = "/install";
     }
   };
 
