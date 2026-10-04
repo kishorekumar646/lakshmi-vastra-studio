@@ -159,11 +159,15 @@ const fmt = (n) => `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigi
 export default function AdminDashboardTab() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     getAdminDashboard()
       .then((r) => setData(r.data))
-      .catch(() => {})
+      .catch((err) => {
+        const detail = err.response?.data?.detail || err.message || "Unknown error";
+        setError(detail);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -181,7 +185,12 @@ export default function AdminDashboardTab() {
   if (!data) return (
     <div style={{ textAlign: "center", padding: "3rem", color: "#aaa" }}>
       <TrendingUp size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
-      <p>Could not load dashboard data. Make sure the backend is running.</p>
+      <p style={{ marginBottom: "0.5rem" }}>Could not load dashboard data.</p>
+      {error && (
+        <p style={{ fontSize: "0.8rem", color: "#e55", background: "#fff5f5", border: "1px solid #fcc", borderRadius: 6, padding: "0.5rem 1rem", display: "inline-block", marginTop: "0.5rem", fontFamily: "monospace" }}>
+          {error}
+        </p>
+      )}
     </div>
   );
 
