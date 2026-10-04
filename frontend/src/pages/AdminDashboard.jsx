@@ -951,7 +951,12 @@ export default function AdminDashboard() {
                             <CheckCircle size={14} /> Confirm COD
                           </button>
                         )}
-                        {(o.status === "confirmed" || o.status === "ready_for_delivery") && !o.delivery_person_id && (
+                        {o.status === "confirmed" && !o.delivery_person_id && (
+                          <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.9rem", background: "#FEF9C3", color: "#854D0E", borderRadius: 6, fontSize: "0.82rem", fontWeight: 600, border: "1px solid #FDE047" }}>
+                            <span style={{ fontSize: "0.9rem" }}>⏳</span> Waiting for shop to pack
+                          </span>
+                        )}
+                        {o.status === "ready_for_delivery" && !o.delivery_person_id && (
                           <button
                             onClick={() => { setAssignModal({ orderId: o.id }); setAssignDpId(""); }}
                             style={{ padding: "0.4rem 0.9rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
