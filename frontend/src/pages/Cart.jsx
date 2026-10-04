@@ -4,7 +4,7 @@ import { Minus, Plus, Trash2, ShoppingCart, X, ArrowRight, CheckCircle } from "l
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
-import { createOrder, verifyPayment } from "../api";
+import { createOrder, verifyPayment, updateProfile } from "../api";
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
@@ -24,7 +24,7 @@ function openRazorpay(options) {
 const labelSt = { fontSize: "0.82rem", fontWeight: 600, color: "var(--text)", display: "block", marginBottom: "0.3rem" };
 
 export default function Cart() {
-  const { customer, loading: authLoading } = useAuth();
+  const { customer, setCustomer, loading: authLoading } = useAuth();
   const { items, updateItem, removeItem, clearCartLocal, cartTotal } = useCart();
   const navigate = useNavigate();
   const [showCheckout, setShowCheckout] = useState(false);
@@ -100,6 +100,20 @@ export default function Cart() {
 
       clearCartLocal();
       setShowCheckout(false);
+
+      // Sync address fields back to profile (excluding name and phone)
+      try {
+        const { data: updated } = await updateProfile({
+          phone: customer.phone || "",
+          secondary_phone: customer.secondary_phone || "",
+          address: address.address,
+          city: address.city,
+          state: address.state,
+          pincode: address.pincode,
+        });
+        setCustomer(updated);
+      } catch { /* profile sync failure is non-critical */ }
+
       toast.success("Payment successful! Your order is confirmed.");
       navigate("/account");
 

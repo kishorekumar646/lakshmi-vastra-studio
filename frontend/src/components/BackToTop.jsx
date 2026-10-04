@@ -18,7 +18,7 @@ export default function BackToTop() {
       aria-label="Back to top"
       style={{
         position: "fixed",
-        bottom: "5.5rem",   /* sits above the floating WhatsApp button */
+        bottom: "1.5rem",
         right: "1.25rem",
         width: 42,
         height: 42,

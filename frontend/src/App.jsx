@@ -3,7 +3,6 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import WhatsAppButton from "./components/WhatsAppButton";
 import Home from "./pages/Home";
 import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
@@ -91,7 +90,6 @@ export default function App() {
                     </Routes>
                   </main>
                   <Footer />
-                  <WhatsAppButton />
                   <BackToTop />
                   <BottomNav />
                 </>
