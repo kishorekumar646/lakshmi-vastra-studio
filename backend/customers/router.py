@@ -101,6 +101,9 @@ def _customer_dict(c: Customer):
         "phone": c.phone or "",
         "secondary_phone": c.secondary_phone or "",
         "address": c.address or "",
+        "city": c.city or "",
+        "state": c.state or "",
+        "pincode": c.pincode or "",
         "created_at": c.created_at,
     }
 
@@ -114,6 +117,9 @@ class UpdateProfileBody(BaseModel):
     phone: str = ""
     secondary_phone: str = ""
     address: str = ""
+    city: str = ""
+    state: str = ""
+    pincode: str = ""
 
 
 @router.put("/me")
@@ -121,6 +127,9 @@ def update_me(body: UpdateProfileBody, customer: Customer = Depends(get_current_
     customer.phone = body.phone
     customer.secondary_phone = body.secondary_phone or None
     customer.address = body.address or None
+    customer.city = body.city or None
+    customer.state = body.state or None
+    customer.pincode = body.pincode or None
     db.commit()
     db.refresh(customer)
     return _customer_dict(customer)

@@ -37,6 +37,9 @@ def _run_migrations():
         ("orders", "qr_token", "TEXT"),
         ("customers", "secondary_phone", "TEXT"),
         ("customers", "address", "TEXT"),
+        ("customers", "city", "TEXT"),
+        ("customers", "state", "TEXT"),
+        ("customers", "pincode", "TEXT"),
     ]
     with engine.connect() as conn:
         for table, col, col_def in new_cols:

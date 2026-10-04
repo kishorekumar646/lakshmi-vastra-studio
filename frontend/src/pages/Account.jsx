@@ -304,6 +304,9 @@ function ProfileSection({ customer }) {
     phone: customer.phone || "",
     secondary_phone: customer.secondary_phone || "",
     address: customer.address || "",
+    city: customer.city || "",
+    state: customer.state || "",
+    pincode: customer.pincode || "",
   });
 
   const set = (k) => (e) => setForm((prev) => ({ ...prev, [k]: e.target.value }));
@@ -324,7 +327,7 @@ function ProfileSection({ customer }) {
   };
 
   const handleCancel = () => {
-    setForm({ phone: customer.phone || "", secondary_phone: customer.secondary_phone || "", address: customer.address || "" });
+    setForm({ phone: customer.phone || "", secondary_phone: customer.secondary_phone || "", address: customer.address || "", city: customer.city || "", state: customer.state || "", pincode: customer.pincode || "" });
     setEditing(false);
   };
 
@@ -385,12 +388,25 @@ function ProfileSection({ customer }) {
               <textarea
                 value={form.address}
                 onChange={set("address")}
-                placeholder="House / Flat no., Street, City, State, PIN"
-                rows={3}
+                placeholder="House / Flat no., Street / Area"
+                rows={2}
                 style={{ paddingLeft: "2.5rem", resize: "vertical" }}
               />
             </div>
-            <p style={{ fontSize: "0.73rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Saved here for quick checkout — you can change it per order.</p>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem" }}>
+            <div style={inputWrap}>
+              <label style={labelSt}>City</label>
+              <input value={form.city} onChange={set("city")} placeholder="Chennai" />
+            </div>
+            <div style={inputWrap}>
+              <label style={labelSt}>State</label>
+              <input value={form.state} onChange={set("state")} placeholder="Tamil Nadu" />
+            </div>
+            <div style={{ ...inputWrap, minWidth: 120 }}>
+              <label style={labelSt}>PIN Code</label>
+              <input value={form.pincode} onChange={set("pincode")} placeholder="600001" maxLength={6} />
+            </div>
           </div>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
             <button type="submit" className="btn-primary" disabled={saving} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: saving ? 0.7 : 1 }}>
@@ -411,7 +427,18 @@ function ProfileSection({ customer }) {
             </div>
             <div>
               <p style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em", marginBottom: "0.3rem" }}>Delivery Address</p>
-              <p style={{ color: customer.address ? "var(--text)" : "var(--text-muted)", fontSize: "0.92rem", fontWeight: 500, lineHeight: 1.55 }}>{customer.address || "Not provided — click Edit to add"}</p>
+              {customer.address || customer.city ? (
+                <div style={{ fontSize: "0.92rem", fontWeight: 500, lineHeight: 1.65, color: "var(--text)" }}>
+                  {customer.address && <p style={{ margin: 0 }}>{customer.address}</p>}
+                  {(customer.city || customer.state || customer.pincode) && (
+                    <p style={{ margin: 0 }}>
+                      {[customer.city, customer.state, customer.pincode].filter(Boolean).join(", ")}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p style={{ color: "var(--text-muted)", fontSize: "0.92rem", fontWeight: 500 }}>Not provided — click Edit to add</p>
+              )}
             </div>
           </div>
         </div>

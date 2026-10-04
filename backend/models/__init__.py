@@ -119,6 +119,9 @@ class Customer(Base):
     phone = Column(String(20))
     secondary_phone = Column(String(20), nullable=True)
     address = Column(Text, nullable=True)
+    city = Column(String(100), nullable=True)
+    state = Column(String(100), nullable=True)
+    pincode = Column(String(10), nullable=True)
     hashed_password = Column(String(200), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
