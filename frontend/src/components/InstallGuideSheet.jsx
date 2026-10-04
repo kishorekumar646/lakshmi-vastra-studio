@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 function detectPlatform() {
   const ua = navigator.userAgent;
@@ -30,12 +30,18 @@ export default function InstallGuideSheet({
   installed = false,
 }) {
   const featureList = features && features.length ? features : DEFAULT_FEATURES;
+  const [showManualSteps, setShowManualSteps] = useState(false);
 
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
+    if (open) { document.body.style.overflow = "hidden"; setShowManualSteps(false); }
     else document.body.style.overflow = "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
+
+  async function handleInstall() {
+    const ok = await onNativeInstall?.();
+    if (ok === false) setShowManualSteps(true); // no prompt yet — show manual steps
+  }
 
   if (!open) return null;
 
@@ -135,6 +141,7 @@ export default function InstallGuideSheet({
         <div style={{ background: "#fff", padding: "1.5rem 1.5rem 2rem", overflowY: "auto" }}>
 
           {installed ? (
+            /* ── Success ── */
             <div style={{ textAlign: "center", padding: "0.5rem 0" }}>
               <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>✅</div>
               <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 700, color: "#111" }}>
@@ -146,34 +153,8 @@ export default function InstallGuideSheet({
               <button onClick={onClose} style={primaryBtn(themeColor)}>Done ✓</button>
             </div>
 
-          ) : hasNativePrompt && platform !== "ios" ? (
-            /* Chrome Android / Desktop — native prompt ready */
-            <>
-              <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", fontWeight: 700, color: "#111" }}>
-                Install the App
-              </h3>
-              <p style={{ margin: "0 0 1rem", color: "#555", fontSize: "0.88rem", lineHeight: 1.65 }}>
-                Get instant access — no App Store needed. Works offline and loads instantly.
-              </p>
-              <ul style={{ margin: "0 0 1.25rem", padding: 0, listStyle: "none" }}>
-                {featureList.map((f, i) => (
-                  <li key={i} style={{
-                    display: "flex", alignItems: "center", gap: "0.65rem",
-                    marginBottom: "0.6rem", fontSize: "0.9rem", color: "#333",
-                  }}>
-                    <span style={{ fontSize: "1.1rem" }}>{f.icon}</span>
-                    {f.text}
-                  </li>
-                ))}
-              </ul>
-              <button onClick={onNativeInstall} disabled={installing} style={primaryBtn(themeColor)}>
-                {installing ? "Installing…" : "📲 Install App Now"}
-              </button>
-              <button onClick={onClose} style={ghostBtn}>Not now</button>
-            </>
-
           ) : platform === "ios" ? (
-            /* iOS Safari */
+            /* ── iOS Safari — manual steps only ── */
             <>
               <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700, color: "#111" }}>
                 Install on iPhone / iPad
@@ -194,21 +175,49 @@ export default function InstallGuideSheet({
             </>
 
           ) : (
-            /* Android — prompt not fired yet */
+            /* ── Android / Desktop — always show Install button ── */
             <>
-              <h3 style={{ margin: "0 0 0.75rem", fontSize: "1rem", fontWeight: 700, color: "#111" }}>
-                Add to Home Screen
+              <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", fontWeight: 700, color: "#111" }}>
+                Install the App
               </h3>
               <p style={{ margin: "0 0 1rem", color: "#555", fontSize: "0.88rem", lineHeight: 1.65 }}>
-                Chrome will offer an install dialog shortly. If it doesn't appear:
+                Get instant access — no App Store needed. Works offline and loads instantly.
               </p>
-              <StepRow num={1} themeColor={themeColor}
-                text="Tap the <strong>⋮ menu</strong> in Chrome's top-right corner" />
-              <StepRow num={2} themeColor={themeColor}
-                text='Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>' />
-              <StepRow num={3} themeColor={themeColor}
-                text="Tap <strong>Install</strong> to confirm" />
-              <button onClick={onClose} style={primaryBtn(themeColor)}>Got it</button>
+              <ul style={{ margin: "0 0 1.25rem", padding: 0, listStyle: "none" }}>
+                {featureList.map((f, i) => (
+                  <li key={i} style={{
+                    display: "flex", alignItems: "center", gap: "0.65rem",
+                    marginBottom: "0.6rem", fontSize: "0.9rem", color: "#333",
+                  }}>
+                    <span style={{ fontSize: "1.1rem" }}>{f.icon}</span>
+                    {f.text}
+                  </li>
+                ))}
+              </ul>
+
+              <button onClick={handleInstall} disabled={installing} style={primaryBtn(themeColor)}>
+                {installing ? "Installing…" : "📲 Install App Now"}
+              </button>
+              <button onClick={onClose} style={ghostBtn}>Not now</button>
+
+              {/* Manual fallback — shown only if native prompt wasn't available */}
+              {showManualSteps && (
+                <div style={{
+                  marginTop: "1.25rem", padding: "1rem",
+                  background: "#f8f8f8", borderRadius: 12,
+                  border: "1px solid #eee",
+                }}>
+                  <p style={{ margin: "0 0 0.75rem", fontSize: "0.85rem", color: "#555", fontWeight: 600 }}>
+                    Or use Chrome menu:
+                  </p>
+                  <StepRow num={1} themeColor={themeColor}
+                    text="Tap the <strong>⋮ menu</strong> in Chrome's top-right corner" />
+                  <StepRow num={2} themeColor={themeColor}
+                    text='Tap <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>' />
+                  <StepRow num={3} themeColor={themeColor}
+                    text="Tap <strong>Install</strong> to confirm" />
+                </div>
+              )}
             </>
           )}
         </div>
