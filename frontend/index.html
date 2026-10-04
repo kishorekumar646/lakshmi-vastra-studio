@@ -29,6 +29,16 @@
     <meta name="robots" content="index, follow" />
     <meta name="keywords" content="sarees, ethnic wear, handloom sarees, Kanjivaram, Banarasi, Anantapur, Gooty, custom orders, silk sarees" />
 
+    <!-- Capture PWA install prompt before React mounts -->
+    <script>
+      window.__pwaPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.__pwaPrompt = e;
+        window.dispatchEvent(new Event('pwaPromptReady'));
+      });
+    </script>
+
     <!-- Google Identity Services -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 

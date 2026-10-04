@@ -1,24 +1,36 @@
 import { useState, useEffect } from "react";
 
 export function usePwaInstall() {
-  const [prompt, setPrompt] = useState(null);
-  const [installed, setInstalled] = useState(false);
+  const [prompt, setPrompt] = useState(() => window.__pwaPrompt || null);
+  const [installed, setInstalled] = useState(
+    () => window.matchMedia("(display-mode: standalone)").matches
+  );
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setInstalled(true);
-      return;
+    if (installed) return;
+
+    // Already captured before React mounted
+    if (window.__pwaPrompt && !prompt) {
+      setPrompt(window.__pwaPrompt);
     }
 
-    const handler = (e) => {
-      e.preventDefault();
-      setPrompt(e);
+    // Fires if the event arrives after React mounts
+    const onReady = () => {
+      if (window.__pwaPrompt) setPrompt(window.__pwaPrompt);
     };
-    window.addEventListener("beforeinstallprompt", handler);
-    window.addEventListener("appinstalled", () => { setInstalled(true); setPrompt(null); });
+    const onInstalled = () => {
+      setInstalled(true);
+      setPrompt(null);
+      window.__pwaPrompt = null;
+    };
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+    window.addEventListener("pwaPromptReady", onReady);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("pwaPromptReady", onReady);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, [installed, prompt]);
 
   const install = async () => {
     if (!prompt) return;
@@ -26,6 +38,7 @@ export function usePwaInstall() {
     const { outcome } = await prompt.userChoice;
     if (outcome === "accepted") setInstalled(true);
     setPrompt(null);
+    window.__pwaPrompt = null;
   };
 
   return { canInstall: !!prompt && !installed, installed, install };

@@ -82,6 +82,7 @@ def get_stats(person: DeliveryPerson = Depends(get_current_delivery_person), db:
     all_delivered = (
         db.query(Order)
         .filter(Order.delivery_person_id == person.id, Order.status == "delivered")
+        .options(joinedload(Order.status_history))
         .all()
     )
 
