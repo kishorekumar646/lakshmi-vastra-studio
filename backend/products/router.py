@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List
 import cloudinary
 import cloudinary.uploader
@@ -74,7 +74,7 @@ def list_products(
 
     items = (
         query
-        .options(joinedload(Product.category), joinedload(Product.images))
+        .options(joinedload(Product.category), selectinload(Product.images))
         .all()
     )
     return [product_to_dict(p) for p in items]
@@ -84,7 +84,7 @@ def list_products(
 def get_product(product_id: int, db: Session = Depends(get_db)):
     p = (
         db.query(Product)
-        .options(joinedload(Product.category), joinedload(Product.images))
+        .options(joinedload(Product.category), selectinload(Product.images))
         .filter(Product.id == product_id)
         .first()
     )

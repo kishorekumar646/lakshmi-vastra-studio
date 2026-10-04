@@ -6,7 +6,7 @@ import os
 import math
 from pathlib import Path
 from dotenv import load_dotenv
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, extract
 from database import get_db
 from models import Product, Order, OrderItem, OrderStatusHistory, DeliveryPerson, ShopOwner, Customer, Review, Inquiry, WishlistItem
@@ -46,7 +46,7 @@ def admin_list_products(
     offset = (page - 1) * per_page
     items = (
         base
-        .options(joinedload(Product.category), joinedload(Product.images))
+        .options(joinedload(Product.category), selectinload(Product.images))
         .order_by(Product.created_at.desc())
         .offset(offset)
         .limit(per_page)

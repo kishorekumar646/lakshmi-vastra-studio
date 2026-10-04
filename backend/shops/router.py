@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List
 import cloudinary
 import cloudinary.uploader
@@ -120,7 +120,7 @@ def list_shop_products(
     items = (
         db.query(Product)
         .filter(Product.shop_owner_id == owner.id)
-        .options(joinedload(Product.category), joinedload(Product.images))
+        .options(joinedload(Product.category), selectinload(Product.images))
         .order_by(Product.created_at.desc())
         .all()
     )
