@@ -1,0 +1,3 @@
+/*
+  Permissions-Policy: camera=*, microphone=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
