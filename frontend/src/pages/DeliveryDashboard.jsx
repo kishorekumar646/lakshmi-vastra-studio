@@ -13,6 +13,8 @@ export default function DeliveryDashboard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showScanner, setShowScanner] = useState(false);
+  const [otpInputs, setOtpInputs] = useState({});   // orderId → otp string
+  const [delivering, setDelivering] = useState({}); // orderId → bool
   const [person] = useState(() => JSON.parse(localStorage.getItem("delivery_person") || "{}"));
   const navigate = useNavigate();
   usePushNotifications("delivery_person", person.id, localStorage.getItem("delivery_token"));
@@ -42,13 +44,20 @@ export default function DeliveryDashboard() {
   };
 
   const handleDeliver = async (orderId) => {
-    if (!confirm("Mark this order as Delivered?")) return;
+    const otp = (otpInputs[orderId] || "").trim();
+    if (!otp || otp.length !== 4) {
+      toast.error("Enter the 4-digit OTP from the customer");
+      return;
+    }
+    setDelivering((p) => ({ ...p, [orderId]: true }));
     try {
-      await markDelivered(orderId);
-      toast.success("Order marked as Delivered!");
+      await markDelivered(orderId, otp);
+      toast.success("Order delivered successfully!");
       loadOrders();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed");
+    } finally {
+      setDelivering((p) => ({ ...p, [orderId]: false }));
     }
   };
 
@@ -127,13 +136,37 @@ export default function DeliveryDashboard() {
                 </div>
 
                 {o.status === "picked_up" && (
-                  <button onClick={() => handleDeliver(o.id)} style={{
-                    width: "100%", padding: "0.65rem", background: "#16a34a", color: "#fff",
-                    border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", fontSize: "0.9rem",
-                  }}>
-                    <CheckCircle size={16} /> Mark as Delivered
-                  </button>
+                  <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: "0.9rem 1rem" }}>
+                    <p style={{ margin: "0 0 0.6rem", fontSize: "0.8rem", fontWeight: 700, color: "#15803d" }}>
+                      🔐 Ask customer for their 4-digit delivery OTP
+                    </p>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <input
+                        type="number"
+                        maxLength={4}
+                        placeholder="Enter OTP"
+                        value={otpInputs[o.id] || ""}
+                        onChange={(e) => setOtpInputs((p) => ({ ...p, [o.id]: e.target.value.slice(0, 4) }))}
+                        style={{
+                          flex: 1, padding: "0.55rem 0.75rem", border: "1.5px solid #86efac",
+                          borderRadius: 6, fontSize: "1.1rem", fontWeight: 700, letterSpacing: "0.2em",
+                          textAlign: "center", outline: "none",
+                        }}
+                      />
+                      <button
+                        onClick={() => handleDeliver(o.id)}
+                        disabled={delivering[o.id]}
+                        style={{
+                          padding: "0.55rem 1rem", background: delivering[o.id] ? "#86efac" : "#16a34a",
+                          color: "#fff", border: "none", borderRadius: 6, cursor: delivering[o.id] ? "not-allowed" : "pointer",
+                          fontWeight: 700, display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.88rem",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <CheckCircle size={15} /> {delivering[o.id] ? "Verifying…" : "Confirm"}
+                      </button>
+                    </div>
+                  </div>
                 )}
 
                 {o.status === "ready_for_delivery" && (

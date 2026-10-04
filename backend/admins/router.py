@@ -213,6 +213,31 @@ def list_delivery_persons(db: Session = Depends(get_db), _: str = Depends(verify
     ]
 
 
+class UpdateDeliveryPersonBody(BaseModel):
+    name: str
+    email: str
+    phone: str = ""
+
+
+@router.put("/delivery-persons/{person_id}")
+def update_delivery_person(person_id: int, body: UpdateDeliveryPersonBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    person = db.query(DeliveryPerson).filter(DeliveryPerson.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Delivery person not found")
+    if not body.name.strip():
+        raise HTTPException(status_code=400, detail="Name is required")
+    if not body.email.strip():
+        raise HTTPException(status_code=400, detail="Email is required")
+    existing = db.query(DeliveryPerson).filter(DeliveryPerson.email == body.email, DeliveryPerson.id != person_id).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already in use")
+    person.name = body.name.strip()
+    person.email = body.email.strip()
+    person.phone = body.phone.strip()
+    db.commit()
+    return {"id": person.id, "name": person.name, "email": person.email, "phone": person.phone}
+
+
 @router.put("/delivery-persons/{person_id}/toggle-active")
 def toggle_delivery_person(person_id: int, db: Session = Depends(get_db), _: str = Depends(verify_token)):
     person = db.query(DeliveryPerson).filter(DeliveryPerson.id == person_id).first()

@@ -20,6 +20,8 @@ import Shop from "./pages/Shop";
 import Wishlist from "./pages/Wishlist";
 import Cart from "./pages/Cart";
 import Account from "./pages/Account";
+import ApiDocs from "./pages/ApiDocs";
+import About from "./pages/About";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
@@ -63,6 +65,7 @@ export default function App() {
             <ScrollToTop />
             <Routes>
               {/* Standalone portals — no Navbar/Footer */}
+              <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/install" element={<Install />} />
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/dashboard/*" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
@@ -85,6 +88,7 @@ export default function App() {
                       <Route path="/wishlist" element={<Wishlist />} />
                       <Route path="/cart" element={<Cart />} />
                       <Route path="/account" element={<Account />} />
+                      <Route path="/about" element={<About />} />
                       <Route path="/track/:orderId" element={<OrderTracking />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

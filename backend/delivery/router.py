@@ -1,3 +1,4 @@
+import random
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
@@ -44,6 +45,7 @@ def _order_dict(order: Order) -> dict:
         "status": order.status,
         "payment_method": order.payment_method,
         "delivery_address": order.delivery_address,
+        "delivery_otp": order.delivery_otp,
         "created_at": order.created_at,
         "customer": {
             "name": order.customer.name if order.customer else "",
@@ -97,21 +99,30 @@ def scan_qr_pickup(body: ScanBody, person: DeliveryPerson = Depends(get_current_
     if order.status != "ready_for_delivery":
         raise HTTPException(status_code=400, detail=f"Order is in '{order.status}' status, cannot mark picked up")
 
+    otp = str(random.randint(1000, 9999))
     order.status = "picked_up"
+    order.delivery_otp = otp
     db.add(OrderStatusHistory(order_id=order.id, status="picked_up", note=f"Picked up by {person.name}"))
     db.commit()
-    return {"success": True, "order_id": order.id, "status": order.status}
+    return {"success": True, "order_id": order.id, "status": order.status, "delivery_otp": otp}
+
+
+class DeliverBody(BaseModel):
+    otp: str
 
 
 @router.post("/orders/{order_id}/delivered")
-def mark_delivered(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+def mark_delivered(order_id: int, body: DeliverBody, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id, Order.delivery_person_id == person.id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     if order.status != "picked_up":
         raise HTTPException(status_code=400, detail=f"Order is in '{order.status}' status, cannot mark delivered")
+    if not order.delivery_otp or body.otp.strip() != order.delivery_otp:
+        raise HTTPException(status_code=400, detail="Incorrect OTP. Ask the customer for the 4-digit code.")
 
     order.status = "delivered"
-    db.add(OrderStatusHistory(order_id=order.id, status="delivered", note=f"Delivered by {person.name}"))
+    order.delivery_otp = None
+    db.add(OrderStatusHistory(order_id=order.id, status="delivered", note=f"Delivered by {person.name} — OTP verified"))
     db.commit()
     return {"success": True, "order_id": order.id, "status": order.status}

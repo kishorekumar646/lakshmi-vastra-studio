@@ -41,8 +41,30 @@ export function CartProvider({ children }) {
 
   const addItem = async (product, quantity = 1) => {
     if (customer) {
-      await addToCart(product.id, quantity);
-      fetchCart();
+      // Optimistic update — UI responds instantly
+      setItems((prev) => {
+        const idx = prev.findIndex((i) => i.product_id === product.id);
+        if (idx >= 0) {
+          return prev.map((item, i) =>
+            i === idx ? { ...item, quantity: item.quantity + quantity } : item
+          );
+        }
+        return [...prev, {
+          id: `tmp-${Date.now()}`,
+          product_id: product.id,
+          quantity,
+          name: product.name,
+          price: product.price,
+          image_url: product.image_url,
+          category_name: product.category_name || "",
+        }];
+      });
+      try {
+        await addToCart(product.id, quantity);
+        fetchCart(); // sync real server IDs in background
+      } catch {
+        fetchCart(); // revert on error
+      }
     } else {
       const current = loadGuestCart();
       const idx = current.findIndex((i) => i.product_id === product.id);

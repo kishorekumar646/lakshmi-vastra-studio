@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { stripPhone, formatPhone, phoneError } from "../utils/phone";
 import {
   getProducts, getAdminProducts, createProduct, updateProduct, deleteProduct, deleteProductImage,
   getCategories, createCategory, deleteCategory,
   getInquiries, markInquiryRead,
   getAdminReviews, deleteReview, toggleReviewVisibility,
   getAdminOrders, confirmOrder, assignDelivery,
-  getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson,
+  getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson, updateDeliveryPerson,
   getShopOwners, approveShopOwner, toggleShopOwner,
   getAdminPincodes, addPincode, deletePincode, togglePincode,
   getAdminCustomers,
@@ -95,8 +96,10 @@ export default function AdminDashboard() {
   const [paymentSearch, setPaymentSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState(null);
   const [expandedDelivery, setExpandedDelivery] = useState(null);
-  const [editingCustomer, setEditingCustomer] = useState(null); // { id, name, email }
+  const [editingCustomer, setEditingCustomer] = useState(null);
   const [customerSaving, setCustomerSaving] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState(null); // { id, name, email, phone }
+  const [deliverySaving, setDeliverySaving] = useState(false);
 
   // Push notifications for admin
   usePushNotifications("admin", null, localStorage.getItem("admin_token"));
@@ -1113,6 +1116,8 @@ export default function AdminDashboard() {
                 <form
                   onSubmit={async (e) => {
                     e.preventDefault();
+                    const pErr = phoneError(dpForm.phone, true);
+                    if (pErr) { toast.error(pErr); return; }
                     setDpSubmitting(true);
                     try {
                       await createDeliveryPerson(dpForm);
@@ -1139,7 +1144,10 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label>Phone *</label>
-                      <input value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: e.target.value })} placeholder="Phone number" required />
+                      <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                        <span style={{ padding: "0.55rem 0.75rem", background: "var(--cream)", borderRight: "1px solid var(--border-light)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>+91</span>
+                        <input type="tel" value={dpForm.phone} onChange={(e) => setDpForm({ ...dpForm, phone: stripPhone(e.target.value) })} placeholder="XXXXX XXXXX" maxLength={10} required style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
+                      </div>
                     </div>
                     <div>
                       <label>Password *</label>
@@ -1199,19 +1207,81 @@ export default function AdminDashboard() {
                     {/* Expandable detail panel */}
                     {expandedDelivery === dp.id && (
                       <div style={{ borderTop: "1px solid var(--border-light)", padding: "1rem 1.25rem", background: "var(--cream)" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem" }}>
-                          {[
-                            { label: "Phone", value: dp.phone || "—" },
-                            { label: "Email", value: dp.email },
-                            { label: "Total Deliveries", value: dp.total_deliveries ?? "—" },
-                            { label: "Added On", value: dp.created_at ? new Date(dp.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—" },
-                          ].map(({ label, value }) => (
-                            <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "0.55rem 0.85rem" }}>
-                              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
-                              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0, wordBreak: "break-all" }}>{value}</p>
+                        {editingDelivery?.id === dp.id ? (
+                          /* ── Edit form ── */
+                          <form
+                            onSubmit={async (e) => {
+                              e.preventDefault();
+                              const pErr = phoneError(editingDelivery.phone);
+                              if (pErr) { toast.error(pErr); return; }
+                              setDeliverySaving(true);
+                              try {
+                                await updateDeliveryPerson(dp.id, {
+                                  name: editingDelivery.name,
+                                  email: editingDelivery.email,
+                                  phone: editingDelivery.phone,
+                                });
+                                toast.success("Delivery person updated!");
+                                setEditingDelivery(null);
+                                loadDeliveryPersons();
+                              } catch (err) {
+                                toast.error(err.response?.data?.detail || "Failed to update");
+                              } finally {
+                                setDeliverySaving(false);
+                              }
+                            }}
+                            style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}
+                          >
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+                              <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Name *</label>
+                                <input value={editingDelivery.name} onChange={(e) => setEditingDelivery({ ...editingDelivery, name: e.target.value })} required style={{ width: "100%", boxSizing: "border-box" }} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Email *</label>
+                                <input type="email" value={editingDelivery.email} onChange={(e) => setEditingDelivery({ ...editingDelivery, email: e.target.value })} required style={{ width: "100%", boxSizing: "border-box" }} />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Phone</label>
+                                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                                  <span style={{ padding: "0.55rem 0.75rem", background: "var(--cream)", borderRight: "1px solid var(--border-light)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>+91</span>
+                                  <input type="tel" value={editingDelivery.phone} onChange={(e) => setEditingDelivery({ ...editingDelivery, phone: stripPhone(e.target.value) })} placeholder="XXXXX XXXXX" maxLength={10} style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
+                                </div>
+                              </div>
                             </div>
-                          ))}
-                        </div>
+                            <div style={{ display: "flex", gap: "0.6rem" }}>
+                              <button type="submit" className="btn-primary" disabled={deliverySaving} style={{ padding: "0.45rem 1.1rem", fontSize: "0.82rem", opacity: deliverySaving ? 0.7 : 1, display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                                <Check size={13} /> {deliverySaving ? "Saving…" : "Save"}
+                              </button>
+                              <button type="button" onClick={() => setEditingDelivery(null)} style={{ padding: "0.45rem 1rem", fontSize: "0.82rem", background: "#fff", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer", fontWeight: 600, color: "var(--text-muted)" }}>
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          /* ── Read-only view ── */
+                          <>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "0.75rem" }}>
+                              {[
+                                { label: "Phone", value: dp.phone ? formatPhone(dp.phone) : "—" },
+                                { label: "Email", value: dp.email },
+                                { label: "Total Deliveries", value: dp.total_deliveries ?? "—" },
+                                { label: "Added On", value: dp.created_at ? new Date(dp.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—" },
+                              ].map(({ label, value }) => (
+                                <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "0.55rem 0.85rem" }}>
+                                  <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
+                                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0, wordBreak: "break-all" }}>{value}</p>
+                                </div>
+                              ))}
+                            </div>
+                            <button
+                              onClick={() => setEditingDelivery({ id: dp.id, name: dp.name, email: dp.email, phone: dp.phone || "" })}
+                              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem", fontWeight: 600, padding: "0.38rem 0.9rem", background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", borderRadius: 7, cursor: "pointer" }}
+                            >
+                              <Edit2 size={12} /> Edit Details
+                            </button>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1491,8 +1561,8 @@ export default function AdminDashboard() {
                           {/* Read-only contact & address details */}
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.6rem" }}>
                             {[
-                              { label: "Phone", value: c.phone || "—" },
-                              { label: "Secondary Phone", value: c.secondary_phone || "—" },
+                              { label: "Phone", value: c.phone ? formatPhone(c.phone) : "—" },
+                              { label: "Secondary Phone", value: c.secondary_phone ? formatPhone(c.secondary_phone) : "—" },
                               { label: "City", value: c.city || "—" },
                               { label: "State", value: c.state || "—" },
                               { label: "PIN Code", value: c.pincode || "—" },

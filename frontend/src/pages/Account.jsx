@@ -1,10 +1,21 @@
 import { useEffect, useState, useCallback } from "react";
+
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < breakpoint);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
 import { Link, useNavigate } from "react-router-dom";
 import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { getOrders, cancelOrder, updateProfile } from "../api";
 import GoogleSignInButton from "../components/GoogleSignInButton";
+import { stripPhone, formatPhone, phoneError } from "../utils/phone";
 
 /* ── Shared styles ─────────────────────────────────────── */
 const PANEL_LEFT = {
@@ -150,11 +161,14 @@ function RegisterForm({ onSwitch, onGoogleSuccess }) {
   const [loading, setLoading] = useState(false);
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
+  const setPhone = (e) => setForm({ ...form, phone: stripPhone(e.target.value) });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (form.password !== form.confirm) { toast.error("Passwords do not match"); return; }
     if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+    const pErr = phoneError(form.phone);
+    if (pErr) { toast.error(pErr); return; }
     setLoading(true);
     try {
       await register({ name: form.name, email: form.email, phone: form.phone, password: form.password });
@@ -173,8 +187,13 @@ function RegisterForm({ onSwitch, onGoogleSuccess }) {
         placeholder="Your full name" required autoComplete="name" />
       <InputField label="Email" icon={Mail} type="email" value={form.email} onChange={set("email")}
         placeholder="you@example.com" required autoComplete="email" />
-      <InputField label="Phone (optional)" icon={Phone} value={form.phone} onChange={set("phone")}
-        placeholder="+91 XXXXX XXXXX" autoComplete="tel" />
+      <div>
+        <label style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem", display: "block" }}>Phone <span style={{ fontWeight: 400, textTransform: "none" }}>(optional)</span></label>
+        <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+          <span style={{ padding: "0.6rem 0.75rem", background: "var(--cream)", borderRight: "1px solid var(--border-light)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>+91</span>
+          <input type="tel" value={form.phone} onChange={setPhone} placeholder="XXXXX XXXXX" maxLength={10} autoComplete="tel" style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
+        </div>
+      </div>
       <InputField label="Password" icon={Lock} type="password" value={form.password} onChange={set("password")}
         placeholder="Min. 6 characters" required autoComplete="new-password" />
       <InputField label="Confirm Password" icon={Lock} type="password" value={form.confirm} onChange={set("confirm")}
@@ -363,6 +382,10 @@ function ProfileSection({ customer }) {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    const pErr = phoneError(form.phone);
+    if (pErr) { toast.error(pErr); return; }
+    const spErr = phoneError(form.secondary_phone);
+    if (spErr) { toast.error("Secondary phone: " + spErr); return; }
     setSaving(true);
     try {
       const { data } = await updateProfile(form);
@@ -418,16 +441,16 @@ function ProfileSection({ customer }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
             <div style={inputWrap}>
               <label style={labelSt}>Phone Number</label>
-              <div style={{ position: "relative" }}>
-                <Phone size={15} style={{ position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "#9B7B6A", pointerEvents: "none" }} />
-                <input value={form.phone} onChange={set("phone")} placeholder="+91 XXXXX XXXXX" autoComplete="tel" style={{ paddingLeft: "2.5rem" }} />
+              <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                <span style={{ padding: "0.55rem 0.75rem", background: "var(--cream)", borderRight: "1px solid var(--border-light)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>+91</span>
+                <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: stripPhone(e.target.value) })} placeholder="XXXXX XXXXX" maxLength={10} autoComplete="tel" style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
               </div>
             </div>
             <div style={inputWrap}>
               <label style={labelSt}>Secondary Phone <span style={{ fontWeight: 400, textTransform: "none", fontSize: "0.7rem" }}>(optional)</span></label>
-              <div style={{ position: "relative" }}>
-                <Phone size={15} style={{ position: "absolute", left: "0.9rem", top: "50%", transform: "translateY(-50%)", color: "#9B7B6A", pointerEvents: "none" }} />
-                <input value={form.secondary_phone} onChange={set("secondary_phone")} placeholder="Alternate number" style={{ paddingLeft: "2.5rem" }} />
+              <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                <span style={{ padding: "0.55rem 0.75rem", background: "var(--cream)", borderRight: "1px solid var(--border-light)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>+91</span>
+                <input type="tel" value={form.secondary_phone} onChange={(e) => setForm({ ...form, secondary_phone: stripPhone(e.target.value) })} placeholder="XXXXX XXXXX" maxLength={10} autoComplete="tel" style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
               </div>
             </div>
           </div>
@@ -444,7 +467,7 @@ function ProfileSection({ customer }) {
               />
             </div>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
             <div style={inputWrap}>
               <label style={labelSt}>City</label>
               <input value={form.city} onChange={set("city")} placeholder="Chennai" />
@@ -469,8 +492,8 @@ function ProfileSection({ customer }) {
         </form>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-          <ReadonlyField label="Phone Number" value={customer.phone || "Not provided"} Icon={Phone} />
-          <ReadonlyField label="Secondary Phone" value={customer.secondary_phone || "Not provided"} Icon={Phone} />
+          <ReadonlyField label="Phone Number" value={customer.phone ? formatPhone(customer.phone) : "Not provided"} Icon={Phone} />
+          <ReadonlyField label="Secondary Phone" value={customer.secondary_phone ? formatPhone(customer.secondary_phone) : "Not provided"} Icon={Phone} />
           <div style={{ gridColumn: "1 / -1", background: "var(--cream)", borderRadius: 10, padding: "1.1rem 1.25rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
             <div style={{ width: 34, height: 34, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
               <MapPin size={15} color="var(--primary)" />
@@ -501,6 +524,7 @@ function ProfileSection({ customer }) {
 export default function Account() {
   const { customer, logout, googleAuth, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState("login");
   const [activeSection, setActiveSection] = useState("profile");
 
@@ -571,7 +595,7 @@ export default function Account() {
             <div style={{
               background: "#fff",
               borderRadius: 16,
-              padding: "2.25rem 2.5rem",
+              padding: isMobile ? "1.5rem 1.1rem" : "2.25rem 2.5rem",
               boxShadow: "0 20px 60px rgba(0,0,0,0.1), 0 4px 16px rgba(0,0,0,0.06)",
               border: "1px solid rgba(255,255,255,0.8)",
             }}>
@@ -621,90 +645,129 @@ export default function Account() {
         <h1 className="section-title" style={{ marginBottom: "0.5rem" }}>Account</h1>
         <div className="section-divider" style={{ marginBottom: "2.5rem" }} />
 
-        <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start", flexWrap: "wrap" }}>
-          {/* Sidebar */}
-          <aside style={{
-            flex: "0 0 230px",
-            background: "#fff",
-            borderRadius: 12,
-            overflow: "hidden",
-            border: "1px solid var(--border-light)",
-            boxShadow: "0 2px 16px rgba(0,0,0,0.05)",
-            animation: "fadeIn 0.4s ease",
-          }}>
-            {/* Avatar header */}
-            <div style={{ background: "linear-gradient(135deg, #0D0611, #7B1D45)", padding: "1.75rem 1.5rem" }}>
+        {isMobile ? (
+          /* ── Mobile layout: avatar strip + horizontal tabs ── */
+          <div>
+            {/* Avatar strip */}
+            <div style={{
+              background: "linear-gradient(135deg, #0D0611, #7B1D45)",
+              borderRadius: 12, padding: "1.25rem 1.25rem",
+              display: "flex", alignItems: "center", gap: "1rem",
+              marginBottom: "1rem",
+            }}>
               <div style={{
-                width: 52, height: 52, borderRadius: "50%",
-                background: "rgba(201,168,76,0.25)",
-                border: "2px solid var(--gold)",
+                width: 46, height: 46, borderRadius: "50%", flexShrink: 0,
+                background: "rgba(201,168,76,0.25)", border: "2px solid var(--gold)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "var(--gold)", fontWeight: 700, fontSize: "1.3rem",
-                marginBottom: "0.75rem",
+                color: "var(--gold)", fontWeight: 700, fontSize: "1.2rem",
               }}>
                 {customer.name.charAt(0).toUpperCase()}
               </div>
-              <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.95rem" }}>{customer.name}</p>
-              <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.78rem", marginTop: "0.15rem" }}>{customer.email}</p>
-            </div>
-
-            {/* Nav items */}
-            <div style={{ padding: "0.75rem 0" }}>
-              {[["profile", "Profile", User], ["orders", "My Orders", Package]].map(([s, label, Icon]) => (
-                <button key={s} onClick={() => setActiveSection(s)} style={{
-                  display: "flex", alignItems: "center", gap: "0.65rem",
-                  width: "100%", textAlign: "left",
-                  padding: "0.7rem 1.25rem",
-                  background: activeSection === s ? "var(--cream)" : "none",
-                  border: "none",
-                  borderLeft: activeSection === s ? "3px solid var(--primary)" : "3px solid transparent",
-                  cursor: "pointer",
-                  color: activeSection === s ? "var(--primary)" : "var(--text-muted)",
-                  fontWeight: activeSection === s ? 700 : 400,
-                  fontSize: "0.87rem",
-                  transition: "all 0.18s",
-                }}>
-                  <Icon size={15} />
-                  {label}
-                </button>
-              ))}
-
-              <div style={{ height: 1, background: "var(--border-light)", margin: "0.5rem 1.25rem" }} />
-
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.92rem", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{customer.name}</p>
+                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.73rem", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{customer.email}</p>
+              </div>
               <button
                 onClick={() => { logout(); navigate("/"); toast.success("Signed out"); }}
-                style={{
-                  display: "flex", alignItems: "center", gap: "0.65rem",
-                  width: "100%", textAlign: "left",
-                  padding: "0.7rem 1.25rem",
-                  background: "none", border: "none",
-                  borderLeft: "3px solid transparent",
-                  cursor: "pointer",
-                  color: "#c0392b", fontWeight: 500, fontSize: "0.87rem",
-                  transition: "background 0.15s",
-                }}
+                style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: 8, padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.3rem", flexShrink: 0 }}
               >
-                <LogOut size={15} /> Sign Out
+                <LogOut size={13} /> Out
               </button>
             </div>
-          </aside>
 
-          {/* Content */}
-          <div style={{ flex: 1, minWidth: 0, animation: "fadeIn 0.4s ease" }}>
-            {activeSection === "profile" && (
-              <ProfileSection customer={customer} />
-            )}
+            {/* Horizontal tab bar */}
+            <div style={{ display: "flex", background: "#fff", borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-light)", marginBottom: "1.25rem" }}>
+              {[["profile", "Profile", User], ["orders", "My Orders", Package]].map(([s, label, Icon]) => (
+                <button key={s} onClick={() => setActiveSection(s)} style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem",
+                  padding: "0.75rem 0.5rem", border: "none", cursor: "pointer",
+                  background: activeSection === s ? "var(--primary)" : "#fff",
+                  color: activeSection === s ? "#fff" : "var(--text-muted)",
+                  fontWeight: activeSection === s ? 700 : 500, fontSize: "0.84rem",
+                  borderBottom: activeSection === s ? "none" : "none",
+                  transition: "all 0.2s",
+                }}>
+                  <Icon size={14} /> {label}
+                </button>
+              ))}
+            </div>
 
-            {activeSection === "orders" && (
-              <div>
-                <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", color: "var(--text)", marginBottom: "1.5rem" }}>
-                  Order History
-                </h2>
-                <OrderHistory />
-              </div>
-            )}
+            {/* Content */}
+            <div style={{ animation: "fadeIn 0.3s ease" }}>
+              {activeSection === "profile" && <ProfileSection customer={customer} />}
+              {activeSection === "orders" && (
+                <div>
+                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.1rem", color: "var(--text)", marginBottom: "1.25rem" }}>Order History</h2>
+                  <OrderHistory />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ── Desktop layout: sidebar + content ── */
+          <div style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}>
+            {/* Sidebar */}
+            <aside style={{
+              flex: "0 0 230px",
+              background: "#fff", borderRadius: 12, overflow: "hidden",
+              border: "1px solid var(--border-light)",
+              boxShadow: "0 2px 16px rgba(0,0,0,0.05)",
+              animation: "fadeIn 0.4s ease",
+            }}>
+              <div style={{ background: "linear-gradient(135deg, #0D0611, #7B1D45)", padding: "1.75rem 1.5rem" }}>
+                <div style={{
+                  width: 52, height: 52, borderRadius: "50%",
+                  background: "rgba(201,168,76,0.25)", border: "2px solid var(--gold)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "var(--gold)", fontWeight: 700, fontSize: "1.3rem", marginBottom: "0.75rem",
+                }}>
+                  {customer.name.charAt(0).toUpperCase()}
+                </div>
+                <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.95rem" }}>{customer.name}</p>
+                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.78rem", marginTop: "0.15rem" }}>{customer.email}</p>
+              </div>
+              <div style={{ padding: "0.75rem 0" }}>
+                {[["profile", "Profile", User], ["orders", "My Orders", Package]].map(([s, label, Icon]) => (
+                  <button key={s} onClick={() => setActiveSection(s)} style={{
+                    display: "flex", alignItems: "center", gap: "0.65rem",
+                    width: "100%", textAlign: "left", padding: "0.7rem 1.25rem",
+                    background: activeSection === s ? "var(--cream)" : "none", border: "none",
+                    borderLeft: activeSection === s ? "3px solid var(--primary)" : "3px solid transparent",
+                    cursor: "pointer",
+                    color: activeSection === s ? "var(--primary)" : "var(--text-muted)",
+                    fontWeight: activeSection === s ? 700 : 400, fontSize: "0.87rem",
+                    transition: "all 0.18s",
+                  }}>
+                    <Icon size={15} /> {label}
+                  </button>
+                ))}
+                <div style={{ height: 1, background: "var(--border-light)", margin: "0.5rem 1.25rem" }} />
+                <button
+                  onClick={() => { logout(); navigate("/"); toast.success("Signed out"); }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "0.65rem",
+                    width: "100%", textAlign: "left", padding: "0.7rem 1.25rem",
+                    background: "none", border: "none", borderLeft: "3px solid transparent",
+                    cursor: "pointer", color: "#c0392b", fontWeight: 500, fontSize: "0.87rem",
+                  }}
+                >
+                  <LogOut size={15} /> Sign Out
+                </button>
+              </div>
+            </aside>
+
+            {/* Content */}
+            <div style={{ flex: 1, minWidth: 0, animation: "fadeIn 0.4s ease" }}>
+              {activeSection === "profile" && <ProfileSection customer={customer} />}
+              {activeSection === "orders" && (
+                <div>
+                  <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", color: "var(--text)", marginBottom: "1.5rem" }}>Order History</h2>
+                  <OrderHistory />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

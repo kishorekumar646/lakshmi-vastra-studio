@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { trackOrder } from "../api";
 import { Package, CheckCircle, Truck, MapPin, Clock, ArrowLeft, ShoppingBag, Star } from "lucide-react";
+import { formatPhone } from "../utils/phone";
 
 const STEPS = [
   {
@@ -109,6 +110,34 @@ export default function OrderTracking() {
           </div>
         </div>
 
+        {/* OTP card — shown to customer when order is out for delivery */}
+        {order.status === "picked_up" && order.delivery_otp && (
+          <div style={{
+            background: "linear-gradient(135deg, #1a4080 0%, #2563eb 100%)",
+            borderRadius: 12, padding: "1.25rem 1.5rem", marginBottom: "1.25rem",
+            boxShadow: "0 4px 20px rgba(26,64,128,0.3)",
+          }}>
+            <p style={{ margin: "0 0 0.5rem", color: "rgba(255,255,255,0.75)", fontSize: "0.78rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              🔐 Delivery OTP — share with your delivery person
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {order.delivery_otp.split("").map((digit, i) => (
+                  <div key={i} style={{
+                    width: 48, height: 56, borderRadius: 10,
+                    background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontSize: "1.6rem", fontWeight: 900, letterSpacing: 0,
+                  }}>{digit}</div>
+                ))}
+              </div>
+              <p style={{ margin: 0, color: "rgba(255,255,255,0.7)", fontSize: "0.78rem", lineHeight: 1.5, flex: 1 }}>
+                Give this 4-digit code to the delivery person when they arrive at your door.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Timeline */}
         <div style={{ background: "#fff", borderRadius: 10, padding: "1.5rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
           <h3 style={{ fontSize: "0.88rem", fontWeight: 700, marginBottom: "1.5rem", color: "#333", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tracking Timeline</h3>
@@ -180,7 +209,7 @@ export default function OrderTracking() {
               <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em" }}>Your Delivery Person</p>
               <p style={{ margin: "0.1rem 0 0", fontWeight: 700, fontSize: "0.95rem", color: "#222" }}>{order.delivery_person.name}</p>
               {order.delivery_person.phone && (
-                <a href={`tel:${order.delivery_person.phone}`} style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: 600 }}>{order.delivery_person.phone}</a>
+                <a href={`tel:+91${order.delivery_person.phone.replace(/\D/g, "")}`} style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: 600 }}>{formatPhone(order.delivery_person.phone)}</a>
               )}
             </div>
           </div>

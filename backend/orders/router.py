@@ -101,6 +101,8 @@ def track_order(order_id: int, customer: Customer = Depends(get_current_customer
     result = _order_dict(order)
     if order.delivery_person:
         result["delivery_person"] = {"name": order.delivery_person.name, "phone": order.delivery_person.phone}
+    if order.status == "picked_up" and order.delivery_otp:
+        result["delivery_otp"] = order.delivery_otp
     return result
 
 

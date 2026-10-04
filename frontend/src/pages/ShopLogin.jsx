@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { shopLogin, shopRegister } from "../api";
 import toast from "react-hot-toast";
 import { Lock, Mail, User, Store } from "lucide-react";
+import { stripPhone, phoneError } from "../utils/phone";
 
 export default function ShopLogin() {
   const [mode, setMode] = useState("login"); // login | register
@@ -14,6 +15,10 @@ export default function ShopLogin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (mode === "register") {
+      const pErr = phoneError(form.phone);
+      if (pErr) { toast.error(pErr); return; }
+    }
     setLoading(true);
     try {
       if (mode === "login") {
@@ -82,7 +87,10 @@ export default function ShopLogin() {
               </div>
               <div>
                 <label style={{ fontSize: "0.8rem", marginBottom: "0.3rem", display: "block" }}>Phone</label>
-                <input value={form.phone} onChange={set("phone")} placeholder="+91 98765 43210" />
+                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #ddd", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                  <span style={{ padding: "0.6rem 0.75rem", background: "#f7f3ef", borderRight: "1px solid #ddd", fontSize: "0.875rem", fontWeight: 700, color: "#6B5744", whiteSpace: "nowrap" }}>+91</span>
+                  <input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: stripPhone(e.target.value) }))} placeholder="XXXXX XXXXX" maxLength={10} style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
+                </div>
               </div>
             </>
           )}

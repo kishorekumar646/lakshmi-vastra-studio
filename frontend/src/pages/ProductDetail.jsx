@@ -11,6 +11,7 @@ import RelatedProducts from "../components/RelatedProducts";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
+import TrustBadges from "../components/TrustBadges";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -306,6 +307,8 @@ export default function ProductDetail() {
                 <Heart size={18} fill={wishlisted ? "#fff" : "none"} color={wishlisted ? "#fff" : "var(--primary)"} />
               </button>
             </div>
+
+            <TrustBadges compact />
 
             {/* Secondary actions */}
             <div style={styles.actions}>

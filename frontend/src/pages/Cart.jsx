@@ -5,6 +5,8 @@ import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { createOrder, verifyPayment, updateProfile } from "../api";
+import { formatPhone } from "../utils/phone";
+import TrustBadges from "../components/TrustBadges";
 
 const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
 
@@ -209,8 +211,10 @@ export default function Cart() {
                 <span>₹{cartTotal.toLocaleString("en-IN")}</span>
               </div>
 
+              <TrustBadges compact />
+
               {/* Razorpay badge */}
-              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", textAlign: "center", marginBottom: "1rem", marginTop: "0.5rem" }}>
                 Secured by <strong>Razorpay</strong> — UPI, Cards, Net Banking
               </p>
 
@@ -258,7 +262,7 @@ export default function Cart() {
                 <div>
                   <label style={{ ...labelSt, color: "var(--text-muted)" }}>Phone Number</label>
                   <div style={{ background: "var(--cream)", border: "1px solid var(--border-light)", borderRadius: 8, padding: "0.6rem 0.85rem", fontSize: "0.9rem", color: "var(--text)", fontWeight: 600 }}>
-                    {address.phone || "—"}
+                    {address.phone ? formatPhone(address.phone) : "—"}
                   </div>
                 </div>
               </div>

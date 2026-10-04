@@ -168,6 +168,7 @@ class Order(Base):
     delivery_address = Column(Text)
     delivery_person_id = Column(Integer, ForeignKey("delivery_persons.id"), nullable=True)
     qr_token = Column(String(100), unique=True, index=True)
+    delivery_otp = Column(String(6), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     customer = relationship("Customer", back_populates="orders")

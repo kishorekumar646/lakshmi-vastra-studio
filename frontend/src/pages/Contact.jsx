@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { submitInquiry, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
 import toast from "react-hot-toast";
 import { Phone, MessageCircle, MapPin, Clock } from "lucide-react";
+import { stripPhone, phoneError } from "../utils/phone";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
@@ -20,6 +21,8 @@ export default function Contact() {
       toast.error("Please fill in all required fields.");
       return;
     }
+    const pErr = phoneError(form.phone, true);
+    if (pErr) { toast.error(pErr); return; }
     setSubmitting(true);
     try {
       await submitInquiry(form);
@@ -110,7 +113,10 @@ export default function Contact() {
               </div>
               <div style={styles.field}>
                 <label>Phone *</label>
-                <input name="phone" value={form.phone} onChange={handleChange} placeholder="Your WhatsApp / mobile number" required />
+                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #ddd", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                  <span style={{ padding: "0.6rem 0.75rem", background: "#f7f3ef", borderRight: "1px solid #ddd", fontSize: "0.875rem", fontWeight: 700, color: "#6B5744", whiteSpace: "nowrap" }}>+91</span>
+                  <input type="tel" name="phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: stripPhone(e.target.value) })} placeholder="XXXXX XXXXX" maxLength={10} required style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
+                </div>
               </div>
               <div style={styles.field}>
                 <label>Email</label>

@@ -37,6 +37,7 @@ def _run_migrations():
         ("orders", "razorpay_payment_id", "TEXT"),
         ("orders", "delivery_person_id", "INTEGER REFERENCES delivery_persons(id)"),
         ("orders", "qr_token", "TEXT"),
+        ("orders", "delivery_otp", "TEXT"),
         ("customers", "secondary_phone", "TEXT"),
         ("customers", "address", "TEXT"),
         ("customers", "city", "TEXT"),
@@ -47,14 +48,20 @@ def _run_migrations():
         for table, col, col_def in new_cols:
             if col_def is None:
                 continue
-            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_def}"))
-            conn.commit()
+            try:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
+                conn.commit()
+            except Exception:
+                conn.rollback()  # column already exists — safe to skip
 
         # Backfill NULLs — old rows predating the column addition
-        conn.execute(text("UPDATE products SET is_available = TRUE WHERE is_available IS NULL"))
-        conn.execute(text("UPDATE products SET is_featured = FALSE WHERE is_featured IS NULL"))
-        conn.execute(text("UPDATE orders SET payment_method = 'razorpay' WHERE payment_method IS NULL"))
-        conn.commit()
+        try:
+            conn.execute(text("UPDATE products SET is_available = TRUE WHERE is_available IS NULL"))
+            conn.execute(text("UPDATE products SET is_featured = FALSE WHERE is_featured IS NULL"))
+            conn.execute(text("UPDATE orders SET payment_method = 'razorpay' WHERE payment_method IS NULL"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
 
 
 _run_migrations()

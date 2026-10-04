@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getProducts, getCategories, getRecentReviews } from "../api";
 import ProductCard from "../components/ProductCard";
 import { ProductCardSkeleton, CategoryCardSkeleton, ReviewCardSkeleton } from "../components/Skeleton";
+import TrustBadges from "../components/TrustBadges";
 import StarRating from "../components/StarRating";
 
 const WHY_US = [
@@ -58,6 +59,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <TrustBadges />
 
       {/* ── Categories ──────────────── */}
       {(categoriesLoading || categories.length > 0) && (
