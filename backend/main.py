@@ -33,6 +33,8 @@ def _run_migrations():
         # new
         ("products", "shop_owner_id", "INTEGER REFERENCES shop_owners(id)"),
         ("orders", "payment_method", "TEXT DEFAULT 'razorpay'"),
+        ("orders", "razorpay_order_id", "TEXT"),
+        ("orders", "razorpay_payment_id", "TEXT"),
         ("orders", "delivery_person_id", "INTEGER REFERENCES delivery_persons(id)"),
         ("orders", "qr_token", "TEXT"),
         ("customers", "secondary_phone", "TEXT"),
@@ -45,11 +47,8 @@ def _run_migrations():
         for table, col, col_def in new_cols:
             if col_def is None:
                 continue
-            try:
-                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}"))
-                conn.commit()
-            except Exception:
-                pass  # column already exists
+            conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_def}"))
+            conn.commit()
 
 
 _run_migrations()
