@@ -12,6 +12,7 @@ import {
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
+import InstallGuideSheet from "../components/InstallGuideSheet";
 
 /* ── helpers ─────────────────────────────────────────────── */
 const STATUS_LABEL = { ready_for_delivery: "Ready for Pickup", picked_up: "Picked Up", delivered: "Delivered" };
@@ -225,7 +226,7 @@ export default function DeliveryDashboard() {
   const [delivering, setDelivering] = useState({});
   const [person] = useState(() => JSON.parse(localStorage.getItem("delivery_person") || "{}"));
   const navigate = useNavigate();
-  const { canInstall, install } = usePwaInstall();
+  const { canInstall, install, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("delivery_person", person.id, localStorage.getItem("delivery_token"));
 
   useEffect(() => { loadCore(); }, []);
@@ -529,6 +530,15 @@ export default function DeliveryDashboard() {
       />
 
       {showScanner && <QrScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
+
+      {/* PWA Install Guide */}
+      <InstallGuideSheet
+        open={guideOpen}
+        onClose={closeGuide}
+        appName="Delivery Portal"
+        iconEmoji="🚚"
+        themeColor="#1a4080"
+      />
 
       <style>{`
         @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:.3} }

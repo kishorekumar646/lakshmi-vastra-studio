@@ -9,6 +9,7 @@ import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X,
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
+import InstallGuideSheet from "../components/InstallGuideSheet";
 
 const EMPTY = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 
@@ -26,7 +27,7 @@ export default function ShopDashboard() {
   const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
   const [owner] = useState(() => JSON.parse(localStorage.getItem("shop_owner") || "{}"));
   const navigate = useNavigate();
-  const { canInstall, install } = usePwaInstall();
+  const { canInstall, install, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("shop_owner", owner.id, localStorage.getItem("shop_token"));
 
   // Products
@@ -337,6 +338,15 @@ export default function ShopDashboard() {
 
       {/* QR Scanner */}
       {showScanner && <QrScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
+
+      {/* PWA Install Guide */}
+      <InstallGuideSheet
+        open={guideOpen}
+        onClose={closeGuide}
+        appName="Shop Owner Portal"
+        iconEmoji="🏪"
+        themeColor="#7B1D45"
+      />
     </div>
   );
 }
