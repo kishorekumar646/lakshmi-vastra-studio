@@ -1162,9 +1162,16 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexShrink: 0 }}>
-                        <span style={{ padding: "0.18rem 0.65rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: dp.is_active ? "#D1FAE5" : "#F1F5F9", color: dp.is_active ? "#065F46" : "#64748B" }}>
-                          {dp.is_active ? "Active" : "Inactive"}
-                        </span>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try { await toggleDeliveryPerson(dp.id); toast.success("Status updated"); loadDeliveryPersons(); }
+                            catch { toast.error("Failed"); }
+                          }}
+                          style={{ padding: "0.3rem 0.85rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}
+                        >
+                          {dp.is_active ? "Deactivate" : "Activate"}
+                        </button>
                         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{expandedDelivery === dp.id ? "▲" : "▼"}</span>
                       </div>
                     </div>
@@ -1172,7 +1179,7 @@ export default function AdminDashboard() {
                     {/* Expandable detail panel */}
                     {expandedDelivery === dp.id && (
                       <div style={{ borderTop: "1px solid var(--border-light)", padding: "1rem 1.25rem", background: "var(--cream)" }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "1rem" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem" }}>
                           {[
                             { label: "Phone", value: dp.phone || "—" },
                             { label: "Email", value: dp.email },
@@ -1185,16 +1192,6 @@ export default function AdminDashboard() {
                             </div>
                           ))}
                         </div>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try { await toggleDeliveryPerson(dp.id); toast.success("Status updated"); loadDeliveryPersons(); }
-                            catch { toast.error("Failed"); }
-                          }}
-                          style={{ padding: "0.45rem 1.1rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.85rem", fontWeight: 700 }}
-                        >
-                          {dp.is_active ? "Deactivate" : "Activate"}
-                        </button>
                       </div>
                     )}
                   </div>
