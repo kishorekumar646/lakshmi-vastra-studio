@@ -1015,7 +1015,14 @@ img {
 
 @media (max-width: 768px) {
   .admin-page { flex-direction: column; }
-  .admin-mobile-header { display: flex; }
+
+  .admin-mobile-header {
+    display: flex;
+    position: sticky;
+    top: 0;
+    z-index: 198;
+  }
+
   .admin-sidebar {
     position: fixed;
     top: 0;
@@ -1026,7 +1033,32 @@ img {
   }
   .admin-sidebar.open { transform: translateX(0); }
   .admin-sidebar-overlay.open { display: block; }
-  .admin-main { padding: 1.25rem; }
+
+  .admin-main {
+    padding: 1rem 0.85rem 5rem;
+    min-height: 0;
+  }
+
+  .admin-section-title { font-size: 1.25rem; }
+
+  .admin-card { padding: 1rem; border-radius: 10px; }
+  .admin-card-title { font-size: 1rem; }
+
+  /* Tables scroll horizontally */
+  .admin-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+  .admin-table { min-width: 580px; font-size: 0.8rem; }
+  .admin-table th, .admin-table td { padding: 0.6rem 0.75rem; }
+  .admin-thumb { width: 36px; height: 36px; }
+
+  /* Forms single column */
+  .admin-form-grid { grid-template-columns: 1fr; }
+
+  /* Edit/delete buttons stack or shrink */
+  .admin-edit-btn, .admin-delete-btn { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+
+  /* Section header wraps on small screens */
+  .admin-section-header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+  .admin-section-header .btn-primary { width: 100%; justify-content: center; }
 }
 
 /* Admin content components */
@@ -1236,10 +1268,11 @@ img {
 
 .inquiry-card.unread { border-left-color: var(--primary); background: #FEFBFF; }
 
-/* Table scroll on mobile */
+/* Table scroll on mobile (also covered by 768px block above) */
 @media (max-width: 640px) {
   .admin-table-wrap { overflow-x: auto; }
   .admin-form-grid { grid-template-columns: 1fr; }
+  .admin-table { min-width: 520px; font-size: 0.78rem; }
 }
 
 /* ── Pagination ─────────────── */
