@@ -61,6 +61,13 @@ export const adminLogin = (username, password) => {
 export const getAdminOrders = (page = 1, perPage = 20, status = "") =>
   api.get("/api/admin/orders", { params: { page, per_page: perPage, status: status || undefined } });
 export const getAdminDashboard = () => api.get("/api/admin/dashboard");
+
+// ── Pincodes ──────────────────────────────────────────────────────────────────
+export const checkPincode = (pincode) => api.get("/api/pincodes/check", { params: { pincode } });
+export const getAdminPincodes = () => api.get("/api/admin/pincodes");
+export const addPincode = (data) => api.post("/api/admin/pincodes", data);
+export const deletePincode = (id) => api.delete(`/api/admin/pincodes/${id}`);
+export const togglePincode = (id) => api.put(`/api/admin/pincodes/${id}/toggle`);
 export const confirmOrder = (id) => api.put(`/api/admin/orders/${id}/confirm`);
 export const assignDelivery = (orderId, deliveryPersonId) =>
   api.put(`/api/admin/orders/${orderId}/assign-delivery`, { delivery_person_id: deliveryPersonId });

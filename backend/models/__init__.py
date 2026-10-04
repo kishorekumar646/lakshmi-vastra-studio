@@ -213,3 +213,14 @@ class OrderStatusHistory(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     order = relationship("Order", back_populates="status_history")
+
+
+class DeliveryPincode(Base):
+    __tablename__ = "delivery_pincodes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    pincode = Column(String(10), unique=True, nullable=False, index=True)
+    city = Column(String(100), nullable=True)
+    state = Column(String(100), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

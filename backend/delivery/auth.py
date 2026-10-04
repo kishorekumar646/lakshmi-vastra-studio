@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt as _bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -12,20 +12,22 @@ SECRET_KEY = os.getenv("SECRET_KEY", "changeme-secret-key")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7  # 7 days
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/delivery/login", auto_error=False)
 
 
-def _prepare(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+def _prepare(password: str) -> bytes:
+    return hashlib.sha256(password.encode()).hexdigest().encode("utf-8")
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(_prepare(password))
+    return _bcrypt.hashpw(_prepare(password), _bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(_prepare(plain), hashed)
+    try:
+        return _bcrypt.checkpw(_prepare(plain), hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_delivery_token(delivery_person_id: int, email: str) -> str:

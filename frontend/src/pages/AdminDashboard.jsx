@@ -9,11 +9,12 @@ import {
   getAdminOrders, confirmOrder, assignDelivery,
   getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson,
   getShopOwners, approveShopOwner, toggleShopOwner,
+  getAdminPincodes, addPincode, deletePincode, togglePincode,
 } from "../api";
 import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
-  ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp,
+  ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp, MapPin,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -77,6 +78,12 @@ export default function AdminDashboard() {
   const [shopOwners, setShopOwners] = useState([]);
   const [shopOwnersLoading, setShopOwnersLoading] = useState(false);
 
+  // Pincodes tab
+  const [pincodes, setPincodes] = useState([]);
+  const [pincodesLoading, setPincodesLoading] = useState(false);
+  const [pincodeForm, setPincodeForm] = useState({ pincode: "", city: "", state: "" });
+  const [pincodeSubmitting, setPincodeSubmitting] = useState(false);
+
   // Push notifications for admin
   usePushNotifications("admin", null, localStorage.getItem("admin_token"));
 
@@ -132,6 +139,11 @@ export default function AdminDashboard() {
     getShopOwners().then((r) => setShopOwners(r.data)).catch(() => {}).finally(() => setShopOwnersLoading(false));
   };
 
+  const loadPincodes = () => {
+    setPincodesLoading(true);
+    getAdminPincodes().then((r) => setPincodes(r.data)).catch(() => {}).finally(() => setPincodesLoading(false));
+  };
+
   const loadAll = () => {
     loadProducts(1);
     getCategories().then((r) => setCategories(r.data));
@@ -140,6 +152,7 @@ export default function AdminDashboard() {
     loadOrders();
     loadDeliveryPersons();
     loadShopOwners();
+    loadPincodes();
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -309,6 +322,7 @@ export default function AdminDashboard() {
     { key: "orders", label: "Orders", icon: <ShoppingBag size={17} />, badge: pendingOrders || null, badgeRed: true },
     { key: "shopowners", label: "Shop Owners", icon: <Store size={17} />, badge: pendingApprovals || null, badgeRed: true },
     { key: "delivery", label: "Delivery", icon: <Truck size={17} />, badge: deliveryPersons.length || null },
+    { key: "pincodes", label: "Delivery Zones", icon: <MapPin size={17} />, badge: pincodes.length || null },
   ];
 
   return (
@@ -1143,6 +1157,142 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Delivery Zones (Pincodes) Tab ── */}
+        {tab === "pincodes" && (
+          <div>
+            <div className="admin-section-header">
+              <h2 className="admin-section-title">Delivery Zones — PIN Codes</h2>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                {pincodes.filter(p => p.is_active).length} active · {pincodes.length} total
+              </span>
+            </div>
+
+            {/* Add form */}
+            <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
+              <h3 className="admin-card-title">Add PIN Code</h3>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (pincodeForm.pincode.length !== 6 || !/^\d{6}$/.test(pincodeForm.pincode)) {
+                    toast.error("PIN code must be exactly 6 digits");
+                    return;
+                  }
+                  setPincodeSubmitting(true);
+                  try {
+                    await addPincode(pincodeForm);
+                    toast.success(`PIN ${pincodeForm.pincode} added!`);
+                    setPincodeForm({ pincode: "", city: "", state: "" });
+                    loadPincodes();
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || "Failed to add pincode");
+                  } finally {
+                    setPincodeSubmitting(false);
+                  }
+                }}
+                style={{ display: "flex", gap: "0.75rem", alignItems: "flex-end", flexWrap: "wrap" }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", minWidth: 110 }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>PIN Code *</label>
+                  <input
+                    value={pincodeForm.pincode}
+                    onChange={(e) => setPincodeForm({ ...pincodeForm, pincode: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+                    placeholder="600001"
+                    maxLength={6}
+                    required
+                    style={{ width: 110 }}
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", flex: 1, minWidth: 140 }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>City</label>
+                  <input
+                    value={pincodeForm.city}
+                    onChange={(e) => setPincodeForm({ ...pincodeForm, city: e.target.value })}
+                    placeholder="Chennai"
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem", flex: 1, minWidth: 140 }}>
+                  <label style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>State</label>
+                  <input
+                    value={pincodeForm.state}
+                    onChange={(e) => setPincodeForm({ ...pincodeForm, state: e.target.value })}
+                    placeholder="Tamil Nadu"
+                  />
+                </div>
+                <button type="submit" className="btn-primary" disabled={pincodeSubmitting} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: pincodeSubmitting ? 0.7 : 1 }}>
+                  <Plus size={15} /> {pincodeSubmitting ? "Adding…" : "Add PIN"}
+                </button>
+              </form>
+            </div>
+
+            {/* Pincodes list */}
+            {pincodesLoading ? (
+              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading…</p>
+            ) : pincodes.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
+                <MapPin size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
+                <p>No PIN codes added yet.</p>
+                <p style={{ fontSize: "0.82rem", marginTop: "0.4rem" }}>Add PIN codes above — customers will see delivery availability on every product page.</p>
+              </div>
+            ) : (
+              <div className="admin-table-wrap">
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>PIN Code</th>
+                      <th>City</th>
+                      <th>State</th>
+                      <th>Status</th>
+                      <th>Added</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pincodes.map((p) => (
+                      <tr key={p.id}>
+                        <td><strong style={{ fontFamily: "monospace", fontSize: "1rem", color: "var(--primary)", letterSpacing: "0.05em" }}>{p.pincode}</strong></td>
+                        <td style={{ color: "var(--text)" }}>{p.city || "—"}</td>
+                        <td style={{ color: "var(--text-muted)" }}>{p.state || "—"}</td>
+                        <td>
+                          <button
+                            onClick={async () => {
+                              try { await togglePincode(p.id); loadPincodes(); }
+                              catch { toast.error("Failed"); }
+                            }}
+                            style={{
+                              background: p.is_active ? "#DCFCE7" : "#F1F5F9",
+                              color: p.is_active ? "#166534" : "#64748B",
+                              border: "none", borderRadius: 100, padding: "3px 10px",
+                              fontSize: "0.72rem", fontWeight: 700, cursor: "pointer",
+                            }}
+                          >
+                            {p.is_active ? "Active" : "Paused"}
+                          </button>
+                        </td>
+                        <td style={{ color: "var(--text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                          {new Date(p.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                        </td>
+                        <td>
+                          <button
+                            onClick={async () => {
+                              if (!confirm(`Remove PIN code ${p.pincode}?`)) return;
+                              try { await deletePincode(p.id); toast.success("Removed"); loadPincodes(); }
+                              catch { toast.error("Failed"); }
+                            }}
+                            className="admin-delete-btn"
+                            title="Remove"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

@@ -19,6 +19,7 @@ from wishlist import router as wishlist_router
 from shops import router as shops_router
 from delivery import router as delivery_router
 from notifications import router as push_router
+from pincodes import router as pincodes_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -72,6 +73,7 @@ app.include_router(orders_router.router)
 app.include_router(shops_router.router)
 app.include_router(delivery_router.router)
 app.include_router(push_router.router)
+app.include_router(pincodes_router.router)
 
 
 @app.get("/")

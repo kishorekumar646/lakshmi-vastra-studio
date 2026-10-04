@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getProduct, getReviews, submitReview, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
-import { ArrowLeft, Phone, ChevronLeft, ChevronRight, Share2, ShoppingCart, Zap, Minus, Plus, Check, Heart } from "lucide-react";
+import { getProduct, getReviews, submitReview, checkPincode, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
+import { ArrowLeft, Phone, ChevronLeft, ChevronRight, Share2, ShoppingCart, Zap, Minus, Plus, Check, Heart, MapPin, CheckCircle, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { ProductDetailSkeleton } from "../components/Skeleton";
 import Lightbox from "../components/Lightbox";
@@ -35,6 +35,25 @@ export default function ProductDetail() {
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+
+  // Pincode checker
+  const [pinInput, setPinInput] = useState("");
+  const [pinResult, setPinResult] = useState(null); // null | {serviceable, city, state}
+  const [pinChecking, setPinChecking] = useState(false);
+
+  const handlePinCheck = async (e) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(pinInput)) { toast.error("Enter a valid 6-digit PIN code"); return; }
+    setPinChecking(true);
+    try {
+      const { data } = await checkPincode(pinInput);
+      setPinResult(data);
+    } catch {
+      setPinResult({ serviceable: false, city: "", state: "" });
+    } finally {
+      setPinChecking(false);
+    }
+  };
 
   // Reviews
   const [reviews, setReviews] = useState([]);
@@ -320,6 +339,37 @@ export default function ProductDetail() {
                 )}
               </div>
             )}
+
+            {/* ── PIN Code delivery checker ── */}
+            <div style={{ marginTop: "1.5rem", padding: "1.1rem 1.25rem", background: "var(--cream)", borderRadius: 10, border: "1px solid var(--border-light)" }}>
+              <p style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text)", marginBottom: "0.65rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <MapPin size={14} color="var(--primary)" /> Check Delivery Availability
+              </p>
+              <form onSubmit={handlePinCheck} style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  value={pinInput}
+                  onChange={(e) => { setPinInput(e.target.value.replace(/\D/g, "").slice(0, 6)); setPinResult(null); }}
+                  placeholder="Enter 6-digit PIN code"
+                  maxLength={6}
+                  style={{ flex: 1, padding: "0.5rem 0.75rem", borderRadius: 6, border: "1px solid var(--border)", fontSize: "0.88rem", fontFamily: "monospace", letterSpacing: "0.1em" }}
+                />
+                <button
+                  type="submit"
+                  disabled={pinChecking || pinInput.length !== 6}
+                  style={{ padding: "0.5rem 1rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, cursor: pinInput.length === 6 ? "pointer" : "not-allowed", fontSize: "0.85rem", fontWeight: 700, opacity: pinInput.length !== 6 ? 0.5 : 1, whiteSpace: "nowrap" }}
+                >
+                  {pinChecking ? "Checking…" : "Check"}
+                </button>
+              </form>
+              {pinResult && (
+                <div style={{ marginTop: "0.65rem", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.84rem", fontWeight: 600, color: pinResult.serviceable ? "#16a34a" : "#dc2626" }}>
+                  {pinResult.serviceable
+                    ? <><CheckCircle size={15} /> Delivery available{pinResult.city ? ` in ${pinResult.city}${pinResult.state ? `, ${pinResult.state}` : ""}` : ""}!</>
+                    : <><XCircle size={15} /> Sorry, we don't deliver to PIN {pinInput} yet.</>
+                  }
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
