@@ -52,22 +52,29 @@ export default function InstallGuideSheet({
         }}
       />
 
-      {/* Bottom sheet */}
+      {/* Centered modal */}
       <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0,
+        position: "fixed", inset: 0,
         zIndex: 9999,
-        borderRadius: "20px 20px 0 0",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        pointerEvents: "none",
+      }}>
+      <div style={{
+        width: "100%", maxWidth: 420,
+        borderRadius: 20,
         overflow: "hidden",
-        boxShadow: "0 -16px 48px rgba(0,0,0,0.4)",
-        animation: "lvInstallUp 0.3s cubic-bezier(0.32,0.72,0,1)",
-        maxHeight: "92vh",
+        boxShadow: "0 24px 64px rgba(0,0,0,0.45)",
+        animation: "lvInstallPop 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+        maxHeight: "90vh",
         display: "flex",
         flexDirection: "column",
+        pointerEvents: "all",
       }}>
         <style>{`
-          @keyframes lvInstallUp {
-            from { transform: translateY(100%); opacity:0 }
-            to   { transform: translateY(0);    opacity:1 }
+          @keyframes lvInstallPop {
+            from { transform: scale(0.88); opacity:0 }
+            to   { transform: scale(1);    opacity:1 }
           }
         `}</style>
 
@@ -205,6 +212,7 @@ export default function InstallGuideSheet({
             </>
           )}
         </div>
+      </div>
       </div>
     </>
   );
