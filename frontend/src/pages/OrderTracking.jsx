@@ -1,15 +1,48 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { trackOrder } from "../api";
-import { Package, CheckCircle, Truck, MapPin, Clock, ArrowLeft } from "lucide-react";
+import { Package, CheckCircle, Truck, MapPin, Clock, ArrowLeft, ShoppingBag, Star } from "lucide-react";
 
 const STEPS = [
-  { key: "pending",              label: "Order Placed",           icon: Package },
-  { key: "confirmed",            label: "Confirmed",              icon: CheckCircle },
-  { key: "ready_for_delivery",   label: "Ready for Delivery",     icon: Package },
-  { key: "picked_up",            label: "Picked Up",              icon: Truck },
-  { key: "delivered",            label: "Delivered",              icon: MapPin },
+  {
+    key: "pending",
+    label: "Order Placed",
+    icon: ShoppingBag,
+    desc: "Your order has been received and is awaiting confirmation.",
+  },
+  {
+    key: "confirmed",
+    label: "Order Confirmed",
+    icon: CheckCircle,
+    desc: "Payment confirmed. The shop is now preparing your package.",
+  },
+  {
+    key: "ready_for_delivery",
+    label: "Packed & Ready",
+    icon: Package,
+    desc: "Your order is packed and waiting to be picked up by delivery.",
+  },
+  {
+    key: "picked_up",
+    label: "Out for Delivery",
+    icon: Truck,
+    desc: "Your package is on the way!",
+  },
+  {
+    key: "delivered",
+    label: "Delivered",
+    icon: Star,
+    desc: "Your order has been delivered. Enjoy your saree!",
+  },
 ];
+
+const STATUS_BANNER = {
+  pending: { bg: "#FEF9C3", color: "#854D0E", border: "#FDE047", emoji: "🕐", msg: "Waiting for confirmation" },
+  confirmed: { bg: "#DBEAFE", color: "#1E40AF", border: "#93C5FD", emoji: "📦", msg: "Shop is packing your order" },
+  ready_for_delivery: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "✅", msg: "Packed & waiting for pickup" },
+  picked_up: { bg: "#EDE9FE", color: "#5B21B6", border: "#C4B5FD", emoji: "🚚", msg: "Out for delivery" },
+  delivered: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "🎉", msg: "Delivered successfully!" },
+};
 
 function stepIndex(status) {
   const i = STEPS.findIndex((s) => s.key === status);
@@ -32,7 +65,7 @@ export default function OrderTracking() {
 
   if (loading) return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <p style={{ color: "#888" }}>Loading order...</p>
+      <p style={{ color: "#888" }}>Loading order…</p>
     </div>
   );
 
@@ -44,58 +77,92 @@ export default function OrderTracking() {
   );
 
   const current = stepIndex(order.status);
+  const banner = STATUS_BANNER[order.status] || STATUS_BANNER.pending;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8f7f5", padding: "1.5rem 1rem" }}>
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
+
         <button onClick={() => navigate("/account")}
           style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", cursor: "pointer", color: "var(--primary)", fontWeight: 600, marginBottom: "1.5rem" }}>
           <ArrowLeft size={16} /> Back to Orders
         </button>
 
-        <h2 style={{ fontFamily: "'Playfair Display', serif", color: "var(--primary)", marginBottom: "0.25rem" }}>
-          Order #{order.id}
-        </h2>
-        <p style={{ color: "#888", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
-          {order.payment_method === "cod" ? "Cash on Delivery" : "Paid via Razorpay"} · ₹{order.total.toLocaleString("en-IN")}
-        </p>
+        {/* Header */}
+        <div style={{ marginBottom: "1.25rem" }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", color: "var(--primary)", margin: "0 0 0.2rem" }}>
+            Order #{order.id}
+          </h2>
+          <p style={{ color: "#888", fontSize: "0.85rem", margin: 0 }}>
+            {order.payment_method === "cod" ? "Cash on Delivery" : "Paid via Razorpay"} · ₹{order.total.toLocaleString("en-IN")}
+          </p>
+        </div>
 
-        {/* Status timeline */}
+        {/* Current status banner */}
+        <div style={{ background: banner.bg, border: `1px solid ${banner.border}`, borderRadius: 10, padding: "1rem 1.25rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span style={{ fontSize: "1.6rem", lineHeight: 1 }}>{banner.emoji}</span>
+          <div>
+            <p style={{ margin: 0, fontWeight: 700, color: banner.color, fontSize: "0.95rem" }}>{banner.msg}</p>
+            <p style={{ margin: 0, fontSize: "0.78rem", color: banner.color, opacity: 0.75 }}>
+              {STEPS[current].desc}
+            </p>
+          </div>
+        </div>
+
+        {/* Timeline */}
         <div style={{ background: "#fff", borderRadius: 10, padding: "1.5rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, marginBottom: "1.5rem", color: "#333" }}>Tracking Status</h3>
+          <h3 style={{ fontSize: "0.88rem", fontWeight: 700, marginBottom: "1.5rem", color: "#333", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tracking Timeline</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {STEPS.map((step, i) => {
               const done = i <= current;
               const active = i === current;
+              const future = i > current;
               const Icon = step.icon;
+              const historyEntry = order.status_history?.find((h) => h.status === step.key);
               return (
                 <div key={step.key} style={{ display: "flex", gap: "1rem", position: "relative" }}>
+                  {/* Icon column */}
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                     <div style={{
-                      width: 36, height: 36, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
-                      background: done ? "var(--primary)" : "#e5e5e5",
-                      color: done ? "#fff" : "#aaa",
+                      width: 38, height: 38, borderRadius: "50%",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      background: active ? "var(--primary)" : done ? "#4CAF50" : "#e5e5e5",
+                      color: done || active ? "#fff" : "#bbb",
                       flexShrink: 0,
-                      boxShadow: active ? "0 0 0 4px rgba(123,29,69,0.15)" : "none",
+                      boxShadow: active ? "0 0 0 5px rgba(123,29,69,0.12)" : "none",
                       transition: "all 0.2s",
                     }}>
                       <Icon size={16} />
                     </div>
                     {i < STEPS.length - 1 && (
-                      <div style={{ width: 2, flexGrow: 1, background: done && i < current ? "var(--primary)" : "#e5e5e5", minHeight: 32, margin: "2px 0" }} />
+                      <div style={{
+                        width: 2, flexGrow: 1,
+                        background: i < current ? "#4CAF50" : "#e5e5e5",
+                        minHeight: 36, margin: "3px 0",
+                      }} />
                     )}
                   </div>
-                  <div style={{ paddingBottom: i < STEPS.length - 1 ? "1.5rem" : 0, paddingTop: "0.4rem" }}>
-                    <p style={{ margin: 0, fontWeight: active ? 700 : 500, color: done ? "#222" : "#aaa", fontSize: "0.9rem" }}>
+
+                  {/* Text column */}
+                  <div style={{ paddingBottom: i < STEPS.length - 1 ? "1.75rem" : 0, paddingTop: "0.35rem", flex: 1 }}>
+                    <p style={{
+                      margin: 0,
+                      fontWeight: active ? 700 : done ? 600 : 400,
+                      color: active ? "var(--primary)" : done ? "#222" : "#bbb",
+                      fontSize: "0.92rem",
+                    }}>
                       {step.label}
+                      {active && <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", background: "var(--primary)", color: "#fff", padding: "0.1rem 0.45rem", borderRadius: 20, verticalAlign: "middle", fontWeight: 700 }}>NOW</span>}
                     </p>
-                    {order.status_history?.filter((h) => h.status === step.key).map((h, j) => (
-                      <p key={j} style={{ margin: "0.15rem 0 0", fontSize: "0.75rem", color: "#888" }}>
-                        <Clock size={10} style={{ display: "inline", marginRight: 3 }} />
-                        {new Date(h.created_at).toLocaleString("en-IN")}
-                        {h.note && ` · ${h.note}`}
+                    {historyEntry ? (
+                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#888", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                        <Clock size={10} />
+                        {new Date(historyEntry.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {historyEntry.note && ` · ${historyEntry.note}`}
                       </p>
-                    ))}
+                    ) : future ? (
+                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#ccc" }}>{step.desc}</p>
+                    ) : null}
                   </div>
                 </div>
               );
@@ -105,41 +172,54 @@ export default function OrderTracking() {
 
         {/* Delivery person */}
         {order.delivery_person && (
-          <div style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-            <h3 style={{ fontSize: "0.85rem", fontWeight: 700, marginBottom: "0.5rem", color: "#333" }}>Delivery Person</h3>
-            <p style={{ margin: 0, fontSize: "0.9rem" }}>{order.delivery_person.name}</p>
-            <p style={{ margin: 0, fontSize: "0.85rem", color: "#666" }}>{order.delivery_person.phone}</p>
+          <div style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "0.85rem" }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ color: "#fff", fontWeight: 700, fontSize: "1rem" }}>{order.delivery_person.name?.[0]?.toUpperCase()}</span>
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em" }}>Your Delivery Person</p>
+              <p style={{ margin: "0.1rem 0 0", fontWeight: 700, fontSize: "0.95rem", color: "#222" }}>{order.delivery_person.name}</p>
+              {order.delivery_person.phone && (
+                <a href={`tel:${order.delivery_person.phone}`} style={{ fontSize: "0.85rem", color: "var(--primary)", fontWeight: 600 }}>{order.delivery_person.phone}</a>
+              )}
+            </div>
           </div>
         )}
 
         {/* Delivery address */}
-        <div style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ fontSize: "0.85rem", fontWeight: 700, marginBottom: "0.5rem", color: "#333" }}>Delivery Address</h3>
-          <p style={{ margin: 0, fontSize: "0.9rem", color: "#555" }}>{order.delivery_address}</p>
-        </div>
+        {order.delivery_address && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+              <MapPin size={14} color="var(--primary)" />
+              <h3 style={{ fontSize: "0.78rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em", margin: 0 }}>Delivery Address</h3>
+            </div>
+            <p style={{ margin: 0, fontSize: "0.9rem", color: "#555", lineHeight: 1.55 }}>{order.delivery_address}</p>
+          </div>
+        )}
 
         {/* Order items */}
         <div style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ fontSize: "0.85rem", fontWeight: 700, marginBottom: "1rem", color: "#333" }}>Items</h3>
+          <h3 style={{ fontSize: "0.78rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 1rem" }}>Items Ordered</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
             {order.items.map((item, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                  {item.image_url && <img src={item.image_url} alt={item.name} style={{ width: 44, height: 44, objectFit: "cover", borderRadius: 6 }} />}
+                  {item.image_url && <img src={item.image_url} alt={item.name} style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 6 }} />}
                   <div>
-                    <p style={{ margin: 0, fontWeight: 500, fontSize: "0.9rem" }}>{item.name}</p>
-                    <p style={{ margin: 0, fontSize: "0.8rem", color: "#888" }}>Qty: {item.quantity}</p>
+                    <p style={{ margin: 0, fontWeight: 600, fontSize: "0.9rem", color: "#222" }}>{item.name}</p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#888" }}>Qty: {item.quantity}</p>
                   </div>
                 </div>
-                <p style={{ margin: 0, fontWeight: 600, color: "var(--primary)" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                <p style={{ margin: 0, fontWeight: 700, color: "var(--primary)" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
               </div>
             ))}
           </div>
           <div style={{ borderTop: "1px solid #eee", marginTop: "1rem", paddingTop: "1rem", display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: 700 }}>Total</span>
-            <span style={{ fontWeight: 700, color: "var(--primary)" }}>₹{order.total.toLocaleString("en-IN")}</span>
+            <span style={{ fontWeight: 700, fontSize: "0.95rem" }}>Total</span>
+            <span style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--primary)" }}>₹{order.total.toLocaleString("en-IN")}</span>
           </div>
         </div>
+
       </div>
     </div>
   );
