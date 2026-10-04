@@ -21,7 +21,7 @@ import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
   ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp, MapPin,
-  CreditCard, Banknote, XCircle, Clock,
+  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -91,6 +91,7 @@ export default function AdminDashboard() {
   // Shop Owners tab
   const [shopOwners, setShopOwners] = useState([]);
   const [shopOwnersLoading, setShopOwnersLoading] = useState(false);
+  const [shopSearch, setShopSearch] = useState("");
 
   // Shop-Product assignments
   const [shopAssignments, setShopAssignments] = useState([]);
@@ -1336,63 +1337,139 @@ export default function AdminDashboard() {
 
         {/* ── Shop Owners Tab ────────────── */}
         {tab === "shopowners" && (
-          <div>
-            <div className="admin-section-header">
-              <h2 className="admin-section-title">Shop Owners ({shopOwners.length})</h2>
-              {pendingApprovals > 0 && (
-                <span style={{ background: "var(--primary)", color: "#fff", borderRadius: 100, padding: "0.25rem 0.9rem", fontSize: "0.78rem", fontWeight: 700 }}>
-                  {pendingApprovals} pending
-                </span>
-              )}
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+            {/* Stats row */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" }}>
+              {[
+                { label: "Total Shops", value: shopOwners.length, color: "#1E293B", bg: "#F1F5F9", icon: <Store size={18} /> },
+                { label: "Approved", value: shopOwners.filter(s => s.is_approved).length, color: "#065F46", bg: "#D1FAE5", icon: <CheckCircle size={18} /> },
+                { label: "Pending", value: shopOwners.filter(s => !s.is_approved).length, color: "#92400E", bg: "#FEF3C7", icon: <AlertCircle size={18} /> },
+                { label: "Active Now", value: shopOwners.filter(s => s.is_active).length, color: "#1D4ED8", bg: "#DBEAFE", icon: <TrendingUp size={18} /> },
+              ].map(({ label, value, color, bg, icon }) => (
+                <div key={label} style={{ background: "#fff", border: "1px solid var(--border-light)", borderRadius: 12, padding: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
+                    <span style={{ background: bg, color, borderRadius: 8, padding: "0.3rem", display: "flex", alignItems: "center" }}>{icon}</span>
+                  </div>
+                  <span style={{ fontSize: "1.6rem", fontWeight: 800, color: "var(--text)", lineHeight: 1 }}>{value}</span>
+                </div>
+              ))}
             </div>
 
+            {/* Header + search */}
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
+              <h2 className="admin-section-title" style={{ margin: 0, flex: 1 }}>Shop Owners</h2>
+              <div style={{ position: "relative", minWidth: 220 }}>
+                <Search size={15} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+                <input
+                  value={shopSearch}
+                  onChange={e => setShopSearch(e.target.value)}
+                  placeholder="Search by name or shop…"
+                  style={{ paddingLeft: "2rem", paddingRight: "0.75rem", paddingTop: "0.5rem", paddingBottom: "0.5rem", border: "1.5px solid var(--border-light)", borderRadius: 8, fontSize: "0.85rem", width: "100%", boxSizing: "border-box", outline: "none" }}
+                />
+              </div>
+            </div>
+
+            {/* Content */}
             {shopOwnersLoading ? (
-              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading…</p>
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>Loading…</div>
             ) : shopOwners.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
-                <Store size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
-                <p>No shop owners registered yet.</p>
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 12, border: "1px solid var(--border-light)" }}>
+                <Store size={40} style={{ opacity: 0.25, marginBottom: "0.75rem" }} />
+                <p style={{ margin: 0, fontWeight: 600 }}>No shop owners registered yet.</p>
               </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {shopOwners.map((s) => (
-                  <div key={s.id} style={{ background: "#fff", borderRadius: 10, padding: "1.1rem 1.25rem", border: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "0.95rem" }}>{s.name}</p>
-                      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{s.shop_name} · {s.email} · {s.phone}</p>
-                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                        Joined {new Date(s.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-                      <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: s.is_approved ? "#D1FAE5" : "#FEF3C7", color: s.is_approved ? "#065F46" : "#92400E" }}>
-                        {s.is_approved ? "Approved" : "Pending"}
-                      </span>
-                      {!s.is_approved && (
-                        <button
-                          onClick={async () => {
-                            try { await approveShopOwner(s.id); toast.success(`${s.name} approved!`); loadShopOwners(); }
-                            catch { toast.error("Failed"); }
-                          }}
-                          style={{ padding: "0.35rem 0.8rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.3rem" }}
-                        >
-                          <Check size={13} /> Approve
-                        </button>
-                      )}
-                      <button
-                        onClick={async () => {
-                          try { await toggleShopOwner(s.id); toast.success("Status updated"); loadShopOwners(); }
-                          catch { toast.error("Failed"); }
-                        }}
-                        style={{ padding: "0.35rem 0.8rem", background: s.is_active ? "#fee2e2" : "#D1FAE5", color: s.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700 }}
-                      >
-                        {s.is_active ? "Deactivate" : "Activate"}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            ) : (() => {
+              const q = shopSearch.toLowerCase();
+              const filtered = shopOwners.filter(s =>
+                s.name.toLowerCase().includes(q) ||
+                s.shop_name.toLowerCase().includes(q) ||
+                s.email.toLowerCase().includes(q)
+              );
+              return filtered.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "2.5rem", color: "var(--text-muted)", background: "#fff", borderRadius: 12, border: "1px solid var(--border-light)" }}>
+                  No results for "<strong>{shopSearch}</strong>"
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
+                  {filtered.map((s) => {
+                    const initials = s.shop_name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+                    const statusColor = s.is_approved ? "#065F46" : "#92400E";
+                    const statusBg   = s.is_approved ? "#D1FAE5" : "#FEF3C7";
+                    return (
+                      <div key={s.id} style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--border-light)", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                        {/* Card top accent */}
+                        <div style={{ height: 4, background: s.is_approved ? "#16a34a" : "#D97706" }} />
+
+                        <div style={{ padding: "1.25rem" }}>
+                          {/* Avatar + names */}
+                          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.9rem", marginBottom: "1rem" }}>
+                            <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #7B1D45, #1a4080)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <span style={{ color: "#fff", fontWeight: 800, fontSize: "1rem", fontFamily: "'Playfair Display', serif" }}>{initials}</span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.shop_name}</p>
+                              <p style={{ margin: "0.15rem 0 0", fontSize: "0.82rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</p>
+                            </div>
+                            <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: statusBg, color: statusColor, flexShrink: 0 }}>
+                              {s.is_approved ? "Approved" : "Pending"}
+                            </span>
+                          </div>
+
+                          {/* Contact details */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", marginBottom: "1rem" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                              <Mail size={13} style={{ flexShrink: 0 }} />
+                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                              <Phone size={13} style={{ flexShrink: 0 }} />
+                              <span>+91 {s.phone}</span>
+                            </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                              <Calendar size={13} style={{ flexShrink: 0 }} />
+                              <span>Joined {new Date(s.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                            </div>
+                          </div>
+
+                          {/* Active status pill */}
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "1rem" }}>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.72rem", fontWeight: 600, color: s.is_active ? "#065F46" : "#94a3b8", background: s.is_active ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.is_active ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 20, padding: "0.2rem 0.6rem" }}>
+                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.is_active ? "#16a34a" : "#CBD5E1", display: "inline-block" }} />
+                              {s.is_active ? "Active" : "Inactive"}
+                            </span>
+                          </div>
+
+                          {/* Actions */}
+                          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                            {!s.is_approved && (
+                              <button
+                                onClick={async () => {
+                                  try { await approveShopOwner(s.id); toast.success(`${s.shop_name} approved!`); loadShopOwners(); }
+                                  catch { toast.error("Failed"); }
+                                }}
+                                style={{ flex: 1, padding: "0.5rem 0.75rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem" }}
+                              >
+                                <Check size={13} /> Approve
+                              </button>
+                            )}
+                            <button
+                              onClick={async () => {
+                                try { await toggleShopOwner(s.id); toast.success("Status updated"); loadShopOwners(); }
+                                catch { toast.error("Failed"); }
+                              }}
+                              style={{ flex: 1, padding: "0.5rem 0.75rem", background: s.is_active ? "#FEF2F2" : "#F0FDF4", color: s.is_active ? "#DC2626" : "#16a34a", border: `1px solid ${s.is_active ? "#FECACA" : "#BBF7D0"}`, borderRadius: 8, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700 }}
+                            >
+                              {s.is_active ? "Deactivate" : "Activate"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
