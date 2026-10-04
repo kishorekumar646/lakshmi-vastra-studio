@@ -32,6 +32,7 @@ import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
 
 const splashKey = "lvs_splashed";
+const PORTAL = import.meta.env.VITE_PORTAL; // "shop" | "delivery" | undefined
 
 function ShopProtectedRoute({ children }) {
   const token = localStorage.getItem("shop_token");
@@ -43,7 +44,39 @@ function DeliveryProtectedRoute({ children }) {
   return token ? children : <Navigate to="/delivery/login" replace />;
 }
 
+// ── Shop-only standalone build ──────────────────────────────────────
+function ShopApp() {
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/shop/login" element={<ShopLogin />} />
+        <Route path="/shop/dashboard/*" element={<ShopProtectedRoute><ShopDashboard /></ShopProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/shop/login" replace />} />
+      </Routes>
+    </>
+  );
+}
+
+// ── Delivery-only standalone build ──────────────────────────────────
+function DeliveryApp() {
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/delivery/login" element={<DeliveryLogin />} />
+        <Route path="/delivery/dashboard" element={<DeliveryProtectedRoute><DeliveryDashboard /></DeliveryProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/delivery/login" replace />} />
+      </Routes>
+    </>
+  );
+}
+
 export default function App() {
+  // Portal-specific standalone builds — minimal, no customer shell
+  if (PORTAL === "shop") return <ShopApp />;
+  if (PORTAL === "delivery") return <DeliveryApp />;
+
   const [showSplash, setShowSplash] = useState(() => sessionStorage.getItem(splashKey) !== "1");
   const onSplashDone = useCallback(() => {
     sessionStorage.setItem(splashKey, "1");
