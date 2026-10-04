@@ -1,19 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
-  <rect width="192" height="192" rx="36" fill="#7B1D45"/>
-  <!-- Store building -->
-  <rect x="36" y="80" width="120" height="80" rx="6" fill="rgba(255,255,255,0.15)"/>
-  <rect x="36" y="80" width="120" height="80" rx="6" fill="none" stroke="white" stroke-width="5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#7B1D45"/>
+
+  <!-- Hanging fabric decoration -->
+  <path d="M72 118 Q130 90 188 118 Q230 90 256 104 Q282 90 324 118 Q382 90 440 118"
+        fill="none" stroke="#D4AF37" stroke-width="6" stroke-linecap="round" opacity="0.85"/>
+  <ellipse cx="130" cy="126" rx="10" ry="18" fill="#D4AF37" opacity="0.8" transform="rotate(-8,130,126)"/>
+  <ellipse cx="256" cy="112" rx="10" ry="18" fill="#D4AF37" opacity="0.8"/>
+  <ellipse cx="382" cy="126" rx="10" ry="18" fill="#D4AF37" opacity="0.8" transform="rotate(8,382,126)"/>
+
+  <!-- Gold awning -->
+  <path d="M60 212 L452 212 L420 144 L92 144 Z" fill="#D4AF37"/>
+  <!-- Awning scallop edge -->
+  <path d="M60 212 Q83 196 106 212 Q129 196 152 212 Q175 196 198 212 Q221 196 244 212 Q267 196 290 212 Q313 196 336 212 Q359 196 382 212 Q405 196 428 212 Q440 196 452 212"
+        fill="#B8860B"/>
+
+  <!-- Store body -->
+  <rect x="80" y="210" width="352" height="252" rx="14" fill="rgba(255,255,255,0.14)" stroke="white" stroke-width="9"/>
+
+  <!-- Left display window -->
+  <rect x="108" y="242" width="88" height="66" rx="8" fill="white" opacity="0.85"/>
+  <!-- Saree drape in window -->
+  <path d="M120 254 C136 265 150 272 172 264 C178 261 180 270 176 278"
+        fill="none" stroke="#7B1D45" stroke-width="6" stroke-linecap="round"/>
+  <path d="M122 268 C138 276 156 278 170 272"
+        fill="none" stroke="#D4AF37" stroke-width="3.5" stroke-linecap="round" opacity="0.75"/>
+
+  <!-- Right display window -->
+  <rect x="316" y="242" width="88" height="66" rx="8" fill="white" opacity="0.85"/>
+  <path d="M328 254 C344 265 358 272 380 264 C386 261 388 270 384 278"
+        fill="none" stroke="#7B1D45" stroke-width="6" stroke-linecap="round"/>
+  <path d="M330 268 C346 276 364 278 378 272"
+        fill="none" stroke="#D4AF37" stroke-width="3.5" stroke-linecap="round" opacity="0.75"/>
+
   <!-- Door -->
-  <rect x="78" y="118" width="36" height="42" rx="4" fill="white" opacity="0.9"/>
-  <!-- Windows -->
-  <rect x="48" y="96" width="28" height="22" rx="4" fill="white" opacity="0.8"/>
-  <rect x="116" y="96" width="28" height="22" rx="4" fill="white" opacity="0.8"/>
-  <!-- Awning -->
-  <polygon points="28,80 164,80 152,56 40,56" fill="#D4AF37"/>
-  <line x1="68" y1="56" x2="60" y2="80" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-  <line x1="96" y1="56" x2="96" y2="80" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-  <line x1="124" y1="56" x2="132" y2="80" stroke="rgba(255,255,255,0.4)" stroke-width="2"/>
-  <!-- Sign -->
-  <rect x="56" y="38" width="80" height="20" rx="4" fill="#D4AF37"/>
-  <text x="96" y="52" text-anchor="middle" font-size="11" font-family="serif" font-weight="bold" fill="#7B1D45">SHOP</text>
+  <rect x="210" y="326" width="92" height="136" rx="10" fill="white" opacity="0.9"/>
+  <circle cx="283" cy="400" r="7" fill="#D4AF37"/>
+
+  <!-- LV text on awning -->
+  <text x="256" y="196" text-anchor="middle" font-size="42" font-family="Georgia, serif"
+        font-weight="bold" fill="#7B1D45" letter-spacing="6">LV</text>
 </svg>
