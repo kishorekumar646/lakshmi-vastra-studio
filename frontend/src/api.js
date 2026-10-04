@@ -79,6 +79,7 @@ export const toggleDeliveryPerson = (id) => api.put(`/api/admin/delivery-persons
 
 // ── Admin Shop Owners ─────────────────────────────────────────────────────────
 export const getShopOwners = () => api.get("/api/admin/shop-owners");
+export const getAdminCustomers = () => api.get("/api/admin/customers");
 export const approveShopOwner = (id) => api.put(`/api/admin/shop-owners/${id}/approve`);
 export const toggleShopOwner = (id) => api.put(`/api/admin/shop-owners/${id}/toggle-active`);
 

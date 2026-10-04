@@ -258,7 +258,19 @@ def toggle_shop_owner(owner_id: int, db: Session = Depends(get_db), _: str = Dep
 def list_customers(db: Session = Depends(get_db), _: str = Depends(verify_token)):
     customers = db.query(Customer).order_by(Customer.created_at.desc()).all()
     return [
-        {"id": c.id, "name": c.name, "email": c.email, "phone": c.phone, "created_at": c.created_at}
+        {
+            "id": c.id,
+            "name": c.name,
+            "email": c.email,
+            "phone": c.phone or "",
+            "secondary_phone": c.secondary_phone or "",
+            "address": c.address or "",
+            "city": c.city or "",
+            "state": c.state or "",
+            "pincode": c.pincode or "",
+            "total_orders": len(c.orders),
+            "created_at": c.created_at,
+        }
         for c in customers
     ]
 

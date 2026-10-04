@@ -10,6 +10,7 @@ import {
   getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson,
   getShopOwners, approveShopOwner, toggleShopOwner,
   getAdminPincodes, addPincode, deletePincode, togglePincode,
+  getAdminCustomers,
 } from "../api";
 import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
@@ -83,6 +84,10 @@ export default function AdminDashboard() {
   const [pincodesLoading, setPincodesLoading] = useState(false);
   const [pincodeForm, setPincodeForm] = useState({ pincode: "", city: "", state: "" });
   const [pincodeSubmitting, setPincodeSubmitting] = useState(false);
+  const [customers, setCustomers] = useState([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [expandedCustomer, setExpandedCustomer] = useState(null);
 
   // Push notifications for admin
   usePushNotifications("admin", null, localStorage.getItem("admin_token"));
@@ -144,6 +149,11 @@ export default function AdminDashboard() {
     getAdminPincodes().then((r) => setPincodes(r.data)).catch(() => {}).finally(() => setPincodesLoading(false));
   };
 
+  const loadCustomers = () => {
+    setCustomersLoading(true);
+    getAdminCustomers().then((r) => setCustomers(r.data)).catch(() => {}).finally(() => setCustomersLoading(false));
+  };
+
   const loadAll = () => {
     loadProducts(1);
     getCategories().then((r) => setCategories(r.data));
@@ -153,6 +163,7 @@ export default function AdminDashboard() {
     loadDeliveryPersons();
     loadShopOwners();
     loadPincodes();
+    loadCustomers();
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -323,6 +334,7 @@ export default function AdminDashboard() {
     { key: "shopowners", label: "Shop Owners", icon: <Store size={17} />, badge: pendingApprovals || null, badgeRed: true },
     { key: "delivery", label: "Delivery", icon: <Truck size={17} />, badge: deliveryPersons.length || null },
     { key: "pincodes", label: "Delivery Zones", icon: <MapPin size={17} />, badge: pincodes.length || null },
+    { key: "customers", label: "Customers", icon: <Users size={17} />, badge: customers.length || null },
   ];
 
   return (
@@ -1293,6 +1305,93 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "customers" && (
+          <div>
+            <div className="admin-section-header">
+              <h2 className="admin-section-title">Customers</h2>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{customers.length} registered</span>
+            </div>
+
+            {/* Search */}
+            <div style={{ marginBottom: "1rem" }}>
+              <input
+                value={customerSearch}
+                onChange={(e) => setCustomerSearch(e.target.value)}
+                placeholder="Search by name, email or phone…"
+                style={{ width: "100%", maxWidth: 400 }}
+              />
+            </div>
+
+            {customersLoading ? (
+              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading…</p>
+            ) : customers.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
+                <Users size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
+                <p>No customers registered yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {customers
+                  .filter((c) => {
+                    const q = customerSearch.toLowerCase();
+                    return !q || c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q) || c.phone?.includes(q);
+                  })
+                  .map((c) => (
+                    <div key={c.id} className="admin-card" style={{ padding: "1rem 1.25rem" }}>
+                      <div
+                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", gap: "1rem" }}
+                        onClick={() => setExpandedCustomer(expandedCustomer === c.id ? null : c.id)}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", flex: 1, minWidth: 0 }}>
+                          <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}>{c.name?.[0]?.toUpperCase() || "?"}</span>
+                          </div>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</p>
+                            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0 }}>{c.email}</p>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", flexShrink: 0 }}>
+                          <div style={{ textAlign: "right" }}>
+                            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>Orders</p>
+                            <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--primary)", margin: 0 }}>{c.total_orders}</p>
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                            {new Date(c.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                          </div>
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{expandedCustomer === c.id ? "▲" : "▼"}</span>
+                        </div>
+                      </div>
+
+                      {expandedCustomer === c.id && (
+                        <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-light)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+                          {[
+                            { label: "Phone", value: c.phone || "—" },
+                            { label: "Secondary Phone", value: c.secondary_phone || "—" },
+                            { label: "City", value: c.city || "—" },
+                            { label: "State", value: c.state || "—" },
+                            { label: "PIN Code", value: c.pincode || "—" },
+                          ].map(({ label, value }) => (
+                            <div key={label} style={{ background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
+                              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>{value}</p>
+                            </div>
+                          ))}
+                          {c.address && (
+                            <div style={{ gridColumn: "1 / -1", background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>Delivery Address</p>
+                              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>{c.address}</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
               </div>
             )}
           </div>
