@@ -12,6 +12,7 @@ import {
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
+import IosInstallGuide from "../components/IosInstallGuide";
 
 /* ── helpers ─────────────────────────────────────────────── */
 const STATUS_LABEL = { ready_for_delivery: "Ready for Pickup", picked_up: "Picked Up", delivered: "Delivered" };
@@ -225,7 +226,7 @@ export default function DeliveryDashboard() {
   const [delivering, setDelivering] = useState({});
   const [person] = useState(() => JSON.parse(localStorage.getItem("delivery_person") || "{}"));
   const navigate = useNavigate();
-  const { canInstall, install } = usePwaInstall();
+  const { canInstall, install, showGuide, setShowGuide, platform } = usePwaInstall();
   usePushNotifications("delivery_person", person.id, localStorage.getItem("delivery_token"));
 
   useEffect(() => { loadCore(); }, []);
@@ -528,6 +529,7 @@ export default function DeliveryDashboard() {
         counts={{ active: orders.length, completed: completed.length }}
       />
 
+      {showGuide && <IosInstallGuide appName="Delivery Portal" platform={platform} onClose={() => setShowGuide(false)} />}
       {showScanner && <QrScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
 
       <style>{`
