@@ -26,11 +26,11 @@ Base.metadata.create_all(bind=engine)
 
 def _run_migrations():
     new_cols = [
-        # existing
+        ("products", "is_available", "BOOLEAN DEFAULT TRUE"),
+        ("products", "is_featured", "BOOLEAN DEFAULT FALSE"),
         ("products", "is_handloom", "BOOLEAN DEFAULT FALSE"),
         ("products", "has_multiple_colours", "BOOLEAN DEFAULT FALSE"),
         ("products", "custom_orders", "BOOLEAN DEFAULT FALSE"),
-        # new
         ("products", "shop_owner_id", "INTEGER REFERENCES shop_owners(id)"),
         ("orders", "payment_method", "TEXT DEFAULT 'razorpay'"),
         ("orders", "razorpay_order_id", "TEXT"),
@@ -49,6 +49,12 @@ def _run_migrations():
                 continue
             conn.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_def}"))
             conn.commit()
+
+        # Backfill NULLs — old rows predating the column addition
+        conn.execute(text("UPDATE products SET is_available = TRUE WHERE is_available IS NULL"))
+        conn.execute(text("UPDATE products SET is_featured = FALSE WHERE is_featured IS NULL"))
+        conn.execute(text("UPDATE orders SET payment_method = 'razorpay' WHERE payment_method IS NULL"))
+        conn.commit()
 
 
 _run_migrations()
