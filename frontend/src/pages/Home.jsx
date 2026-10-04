@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getProducts, getCategories, getRecentReviews, WHATSAPP_NUMBER } from "../api";
+import { getProducts, getCategories, getRecentReviews } from "../api";
 import ProductCard from "../components/ProductCard";
 import { ProductCardSkeleton, CategoryCardSkeleton, ReviewCardSkeleton } from "../components/Skeleton";
 import StarRating from "../components/StarRating";
@@ -8,7 +8,7 @@ import StarRating from "../components/StarRating";
 const WHY_US = [
   { icon: "🪡", title: "Authentic Handlooms", desc: "Sourced directly from master weavers across India — every piece tells a story." },
   { icon: "✨", title: "Curated Quality", desc: "Each saree is handpicked for its craftsmanship, colour, and finish." },
-  { icon: "💬", title: "Personal Guidance", desc: "Our team is available on WhatsApp to help you find the perfect match." },
+  { icon: "💬", title: "Personal Guidance", desc: "Our team is always ready to help you find the perfect match for any occasion." },
   { icon: "🚚", title: "Local Delivery", desc: "Fast, safe delivery within our local area — right to your doorstep." },
 ];
 
@@ -47,14 +47,7 @@ export default function Home() {
           </p>
           <div className="hero-btns">
             <Link to="/catalog" className="btn-gold">Explore Collection</Link>
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hello%2C%20I%27d%20like%20to%20know%20more%20about%20your%20collection.`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-outline"
-            >
-              Chat on WhatsApp
-            </a>
+            <Link to="/shop" className="btn-outline">Shop Now</Link>
           </div>
 
           {/* Trust pills */}
@@ -223,16 +216,9 @@ export default function Home() {
             maxWidth: 500,
             margin: "0 auto 2.25rem",
           }}>
-            Message us on WhatsApp — we'll help you pick the perfect piece for any occasion.
+            Browse our curated collection and find the perfect piece for any occasion.
           </p>
-          <a
-            href={`https://wa.me/${WHATSAPP_NUMBER}`}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-gold"
-          >
-            Chat on WhatsApp
-          </a>
+          <Link to="/shop" className="btn-gold">Shop Collection</Link>
         </div>
       </section>
     </>
