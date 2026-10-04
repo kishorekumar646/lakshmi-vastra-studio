@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 
+const isMobile = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   window.navigator.standalone === true;
@@ -24,14 +25,18 @@ export function usePwaInstall() {
   }, [installed, prompt]);
 
   const install = async () => {
-    if (!prompt) return;
-    prompt.prompt();
-    const { outcome } = await prompt.userChoice;
-    if (outcome === "accepted") setInstalled(true);
-    setPrompt(null);
-    window.__pwaPrompt = null;
+    if (prompt) {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === "accepted") setInstalled(true);
+      setPrompt(null);
+      window.__pwaPrompt = null;
+    }
+    // If no prompt yet, Chrome will show its own install banner when ready
   };
 
-  // Only show button when browser has confirmed app is installable
-  return { canInstall: !!prompt && !installed, install };
+  // Always show on mobile (unless already installed), show on desktop only when prompt is ready
+  const canInstall = !installed && (isMobile() || !!prompt);
+
+  return { canInstall, install };
 }
