@@ -15,6 +15,7 @@ import {
   getAdminCustomers,
   updateAdminCustomer,
   getAdminPayments,
+  adminTrackOrder,
 } from "../api";
 import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
@@ -77,6 +78,8 @@ export default function AdminDashboard() {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [assignModal, setAssignModal] = useState(null); // { orderId }
   const [assignDpId, setAssignDpId] = useState("");
+  const [trackModal, setTrackModal] = useState(null); // order data
+  const [trackLoading, setTrackLoading] = useState(false);
 
   // Delivery Persons tab
   const [deliveryPersons, setDeliveryPersons] = useState([]);
@@ -1160,21 +1163,132 @@ export default function AdminDashboard() {
                                   <Truck size={13} /> Assign Delivery
                                 </button>
                               )}
-                              <a
-                                href={`/track/${o.id}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ padding: "0.4rem 0.9rem", background: "#F8FAFC", color: "#475569", border: "1px solid #E2E8F0", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: "0.35rem" }}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setTrackLoading(true);
+                                  adminTrackOrder(o.id)
+                                    .then((r) => setTrackModal(r.data))
+                                    .catch(() => toast.error("Failed to load tracking info"))
+                                    .finally(() => setTrackLoading(false));
+                                }}
+                                style={{ padding: "0.4rem 0.9rem", background: "#F8FAFC", color: "#475569", border: "1px solid #E2E8F0", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.35rem" }}
                               >
-                                📍 Track
-                              </a>
+                                {trackLoading ? "…" : "📍 Track"}
+                              </button>
                             </div>
                           </div>
                         )}
                       </div>
                     );
                   })}
+                </div>
+              )}
+
+              {/* Admin Track Order Modal */}
+              {trackModal && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={() => setTrackModal(null)}>
+                  <div style={{ background: "#fff", borderRadius: 14, padding: "1.75rem", maxWidth: 520, width: "100%", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
+                    {/* Header */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.25rem" }}>
+                      <div>
+                        <h3 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "#1a4080", fontSize: "1.15rem" }}>Order #{trackModal.id} — Admin Track</h3>
+                        <p style={{ margin: "0.2rem 0 0", fontSize: "0.8rem", color: "#888" }}>
+                          {trackModal.payment_method === "cod" ? "Cash on Delivery" : "Paid via Razorpay"} · ₹{trackModal.total?.toLocaleString("en-IN")}
+                        </p>
+                      </div>
+                      <button onClick={() => setTrackModal(null)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: "1.3rem", color: "#888", lineHeight: 1 }}>×</button>
+                    </div>
+
+                    {/* Customer info */}
+                    <div style={{ background: "#F0F7FF", borderRadius: 10, padding: "0.9rem 1.1rem", marginBottom: "1rem" }}>
+                      <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: "#1a4080", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.4rem" }}>Customer</p>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem", color: "#222" }}>{trackModal.customer?.name || "—"}</p>
+                      <p style={{ margin: "0.1rem 0 0", fontSize: "0.83rem", color: "#555" }}>{trackModal.customer?.email}</p>
+                      {trackModal.customer?.phone && <p style={{ margin: "0.1rem 0 0", fontSize: "0.83rem", color: "#1a4080", fontWeight: 600 }}>📞 {trackModal.customer.phone}</p>}
+                    </div>
+
+                    {/* Delivery address */}
+                    {trackModal.delivery_address && (
+                      <div style={{ background: "#f8f7f5", borderRadius: 10, padding: "0.9rem 1.1rem", marginBottom: "1rem" }}>
+                        <p style={{ margin: "0 0 0.3rem", fontSize: "0.72rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em" }}>Delivery Address</p>
+                        <p style={{ margin: 0, fontSize: "0.88rem", color: "#555" }}>{trackModal.delivery_address}</p>
+                      </div>
+                    )}
+
+                    {/* Delivery OTP — always visible to admin */}
+                    {trackModal.delivery_otp && (
+                      <div style={{ background: "linear-gradient(135deg, #1a4080 0%, #2563eb 100%)", borderRadius: 10, padding: "0.9rem 1.1rem", marginBottom: "1rem" }}>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.75)", textTransform: "uppercase", letterSpacing: "0.06em" }}>🔐 Delivery OTP</p>
+                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                          {trackModal.delivery_otp.split("").map((d, i) => (
+                            <div key={i} style={{ width: 40, height: 46, borderRadius: 8, background: "rgba(255,255,255,0.15)", border: "2px solid rgba(255,255,255,0.3)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: "1.4rem", fontWeight: 900 }}>{d}</div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Delivery person */}
+                    {trackModal.delivery_person && (
+                      <div style={{ background: "#f8f7f5", borderRadius: 10, padding: "0.9rem 1.1rem", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#1a4080", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ color: "#fff", fontWeight: 700 }}>{trackModal.delivery_person.name?.[0]?.toUpperCase()}</span>
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontSize: "0.72rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em" }}>Delivery Person</p>
+                          <p style={{ margin: "0.1rem 0 0", fontWeight: 700, fontSize: "0.9rem", color: "#222" }}>{trackModal.delivery_person.name}</p>
+                          {trackModal.delivery_person.phone && <p style={{ margin: 0, fontSize: "0.83rem", color: "#1a4080", fontWeight: 600 }}>📞 {trackModal.delivery_person.phone}</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status timeline */}
+                    <div style={{ background: "#f8f7f5", borderRadius: 10, padding: "0.9rem 1.1rem", marginBottom: "1rem" }}>
+                      <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em" }}>Status History</p>
+                      {trackModal.status_history?.length ? (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                          {[...trackModal.status_history].sort((a, b) => new Date(a.created_at) - new Date(b.created_at)).map((h, i) => (
+                            <div key={i} style={{ display: "flex", gap: "0.65rem", alignItems: "flex-start" }}>
+                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#1a4080", flexShrink: 0, marginTop: "0.35rem" }} />
+                              <div>
+                                <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#222", textTransform: "capitalize" }}>{h.status.replace(/_/g, " ")}</p>
+                                {h.note && <p style={{ margin: "0.1rem 0 0", fontSize: "0.78rem", color: "#555" }}>{h.note}</p>}
+                                <p style={{ margin: "0.1rem 0 0", fontSize: "0.73rem", color: "#aaa" }}>
+                                  {new Date(h.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : <p style={{ margin: 0, fontSize: "0.83rem", color: "#bbb" }}>No history yet</p>}
+                    </div>
+
+                    {/* Items */}
+                    <div style={{ background: "#f8f7f5", borderRadius: 10, padding: "0.9rem 1.1rem" }}>
+                      <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: "0.06em" }}>Items</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                        {trackModal.items?.map((item, i) => (
+                          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                              {item.image_url && <img src={item.image_url} alt={item.name} style={{ width: 40, height: 40, objectFit: "cover", borderRadius: 6 }} />}
+                              <div>
+                                <p style={{ margin: 0, fontWeight: 600, fontSize: "0.88rem", color: "#222" }}>{item.name}</p>
+                                <p style={{ margin: 0, fontSize: "0.75rem", color: "#888" }}>
+                                  Qty: {item.quantity}
+                                  {item.shop_name && <span style={{ marginLeft: "0.5rem", background: "#EFF6FF", color: "#1a4080", padding: "0.1rem 0.4rem", borderRadius: 4, fontWeight: 600 }}>🏪 {item.shop_name}</span>}
+                                </p>
+                              </div>
+                            </div>
+                            <p style={{ margin: 0, fontWeight: 700, color: "#1a4080", fontSize: "0.88rem" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ borderTop: "1px solid #e5e5e5", marginTop: "0.75rem", paddingTop: "0.75rem", display: "flex", justifyContent: "space-between" }}>
+                        <span style={{ fontWeight: 700, fontSize: "0.9rem" }}>Total</span>
+                        <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "#1a4080" }}>₹{trackModal.total?.toLocaleString("en-IN")}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

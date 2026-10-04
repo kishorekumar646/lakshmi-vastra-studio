@@ -136,6 +136,28 @@ def list_all_orders(
     }
 
 
+@router.get("/orders/{order_id}/track")
+def admin_track_order(order_id: int, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    order = (
+        db.query(Order)
+        .filter(Order.id == order_id)
+        .options(
+            joinedload(Order.customer),
+            joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
+            joinedload(Order.status_history),
+            joinedload(Order.delivery_person),
+        )
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    result = _order_dict(order)
+    if order.delivery_otp:
+        result["delivery_otp"] = order.delivery_otp
+    return result
+
+
 @router.put("/orders/{order_id}/confirm")
 def confirm_order(order_id: int, db: Session = Depends(get_db), _: str = Depends(verify_token)):
     order = db.query(Order).filter(Order.id == order_id).first()

@@ -127,7 +127,7 @@ function TabBar({ active, onChange, counts }) {
 }
 
 /* ── Active order card ───────────────────────────────────── */
-function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver }) {
+function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, onOpenScanner }) {
   return (
     <div style={{
       background: "#fff", borderRadius: 14, overflow: "hidden",
@@ -203,9 +203,21 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver }) 
         )}
 
         {o.status === "ready_for_delivery" && (
-          <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.65rem 0.9rem", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#92400E", fontWeight: 700 }}>
-              📦 Go to shop → Scan QR to confirm pickup
+          <div>
+            <button
+              onClick={onOpenScanner}
+              style={{
+                width: "100%", padding: "0.75rem", background: "linear-gradient(135deg, #0f2460, #1a4080)",
+                color: "#fff", border: "none", borderRadius: 10, cursor: "pointer",
+                fontWeight: 700, fontSize: "0.88rem",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+                boxShadow: "0 3px 10px rgba(26,64,128,0.25)",
+              }}
+            >
+              <ScanLine size={16} /> Scan QR to Confirm Pickup
+            </button>
+            <p style={{ margin: "0.45rem 0 0", fontSize: "0.72rem", color: "#94A3B8", textAlign: "center" }}>
+              Ask the shop to show the order QR code
             </p>
           </div>
         )}
@@ -470,7 +482,12 @@ export default function DeliveryDashboard() {
             {/* Active summary */}
             {orders.length > 0 && (
               <div style={{ background: "#fff", borderRadius: 14, padding: "1rem 1.1rem", marginBottom: "1.25rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
-                <p style={{ margin: "0 0 0.75rem", fontWeight: 700, fontSize: "0.8rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em" }}>Active Now</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                  <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em" }}>Active Now</p>
+                  <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "#EFF6FF", color: "#1a4080", border: "1.5px solid #BFDBFE", borderRadius: 8, padding: "0.35rem 0.75rem", cursor: "pointer", fontWeight: 700, fontSize: "0.75rem" }}>
+                    <ScanLine size={13} /> Scan QR
+                  </button>
+                </div>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
                   {readyCount > 0 && (
                     <button onClick={() => switchTab("active")} style={{ flex: 1, background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.75rem", textAlign: "center", cursor: "pointer" }}>
@@ -510,12 +527,12 @@ export default function DeliveryDashboard() {
         {tab === "active" && (
           <div>
             <button onClick={() => setShowScanner(true)} style={{
-              width: "100%", padding: "0.85rem", background: "linear-gradient(135deg, #0f2460, #1a4080)", color: "#fff",
-              border: "none", borderRadius: 12, cursor: "pointer", fontWeight: 700, fontSize: "0.95rem",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem",
-              marginBottom: "1.1rem", boxShadow: "0 4px 14px rgba(26,64,128,0.3)",
+              width: "100%", padding: "0.65rem", background: "#EFF6FF", color: "#1a4080",
+              border: "1.5px solid #BFDBFE", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: "0.85rem",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+              marginBottom: "1rem",
             }}>
-              <ScanLine size={18} /> Scan QR to Pick Up Order
+              <ScanLine size={16} /> Scan QR
             </button>
 
             {loading ? (
@@ -537,6 +554,7 @@ export default function DeliveryDashboard() {
                     key={o.id} o={o}
                     otpInputs={otpInputs} setOtpInputs={setOtpInputs}
                     delivering={delivering} onDeliver={handleDeliver}
+                    onOpenScanner={() => setShowScanner(true)}
                   />
                 ))}
               </div>
