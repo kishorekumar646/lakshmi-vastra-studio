@@ -29,7 +29,19 @@ export default function Cart() {
   const navigate = useNavigate();
   const [showCheckout, setShowCheckout] = useState(false);
   const [placing, setPlacing] = useState(false);
-  const [address, setAddress] = useState({ name: "", phone: "", address: "", city: "", pincode: "" });
+  const [address, setAddress] = useState({ name: "", phone: "", address: "", city: "", state: "", pincode: "" });
+
+  const openCheckout = () => {
+    setAddress({
+      name:    customer?.name    || "",
+      phone:   customer?.phone   || "",
+      address: customer?.address || "",
+      city:    customer?.city    || "",
+      state:   customer?.state   || "",
+      pincode: customer?.pincode || "",
+    });
+    setShowCheckout(true);
+  };
 
   useEffect(() => {
     document.title = "Cart | Lakshmi Vastra Studio";
@@ -55,7 +67,7 @@ export default function Cart() {
     e.preventDefault();
     setPlacing(true);
 
-    const fullAddress = `${address.name}, ${address.phone}, ${address.address}, ${address.city} - ${address.pincode}`;
+    const fullAddress = [address.name, address.phone, address.address, address.city, address.state, address.pincode].filter(Boolean).join(", ");
 
     try {
       // Step 1: create order on backend (calls Razorpay API)
@@ -191,7 +203,7 @@ export default function Cart() {
               <button
                 className="btn-primary"
                 style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
-                onClick={() => setShowCheckout(true)}
+                onClick={openCheckout}
               >
                 Proceed to Pay <ArrowRight size={16} />
               </button>
@@ -237,11 +249,15 @@ export default function Cart() {
               <div style={{ display: "flex", gap: "0.75rem" }}>
                 <div style={{ flex: 1 }}>
                   <label style={labelSt}>City</label>
-                  <input value={address.city} onChange={set("city")} placeholder="City" required autoComplete="address-level2" style={{ width: "100%", boxSizing: "border-box" }} />
+                  <input value={address.city} onChange={set("city")} placeholder="Chennai" required autoComplete="address-level2" style={{ width: "100%", boxSizing: "border-box" }} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={labelSt}>Pincode</label>
-                  <input value={address.pincode} onChange={set("pincode")} placeholder="515001" required pattern="[0-9]{6}" maxLength={6} autoComplete="postal-code" style={{ width: "100%", boxSizing: "border-box" }} />
+                  <label style={labelSt}>State</label>
+                  <input value={address.state} onChange={set("state")} placeholder="Tamil Nadu" required autoComplete="address-level1" style={{ width: "100%", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ flex: "0 0 100px" }}>
+                  <label style={labelSt}>PIN Code</label>
+                  <input value={address.pincode} onChange={set("pincode")} placeholder="600001" required pattern="[0-9]{6}" maxLength={6} autoComplete="postal-code" style={{ width: "100%", boxSizing: "border-box" }} />
                 </div>
               </div>
 
