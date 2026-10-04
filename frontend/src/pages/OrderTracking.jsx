@@ -84,9 +84,9 @@ export default function OrderTracking() {
     <div style={{ minHeight: "100vh", background: "#f8f7f5", padding: "1.5rem 1rem" }}>
       <div style={{ maxWidth: 600, margin: "0 auto" }}>
 
-        <button onClick={() => navigate("/account")}
+        <button onClick={() => navigate(-1)}
           style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", cursor: "pointer", color: "var(--primary)", fontWeight: 600, marginBottom: "1.5rem" }}>
-          <ArrowLeft size={16} /> Back to Orders
+          <ArrowLeft size={16} /> Back
         </button>
 
         {/* Header */}

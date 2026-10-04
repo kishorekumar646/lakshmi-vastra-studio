@@ -80,6 +80,8 @@ function AdminApp() {
       <Routes>
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard/*" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        {/* Track page must work in admin portal so Track links open correctly */}
+        <Route path="/track/:orderId" element={<OrderTracking />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </>
