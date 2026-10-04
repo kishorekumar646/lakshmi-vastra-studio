@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getDeliveryOrders, getDeliveryStats, getCompletedDeliveries,
-  deliveryScanQr, markDelivered,
+  deliveryScanQr, markDelivered, updateDeliveryProfile,
 } from "../api";
 import {
   LogOut, Truck, ScanLine, CheckCircle, MapPin, Package,
-  TrendingUp, Star, LayoutDashboard, ListChecks, History,
+  TrendingUp, Star, LayoutDashboard, ListChecks, History, UserCircle,
+  Upload, AlertTriangle,
 } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -21,6 +22,42 @@ const STATUS_COLOR = { ready_for_delivery: "#d97706", picked_up: "#7c3aed", deli
 function fmt(n) { return Number(n || 0).toLocaleString("en-IN"); }
 function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* ── Profile helpers ─────────────────────────────────────── */
+const profileLabelStyle = {
+  display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#475569",
+  marginBottom: "0.35rem", textTransform: "uppercase", letterSpacing: "0.05em",
+};
+const profileInputStyle = {
+  width: "100%", padding: "0.65rem 0.85rem", border: "1.5px solid #E2E8F0",
+  borderRadius: 9, fontSize: "0.88rem", color: "#0F172A", outline: "none",
+  background: "#F8FAFC", marginBottom: "1rem", boxSizing: "border-box",
+};
+
+function DocUploadBox({ label, file, existingUrl, onChange }) {
+  const preview = file ? URL.createObjectURL(file) : existingUrl;
+  return (
+    <div style={{ marginBottom: "0.5rem" }}>
+      {preview && (
+        <div style={{ marginBottom: "0.5rem" }}>
+          <img src={preview} alt={label} style={{ width: "100%", maxHeight: 160, objectFit: "cover", borderRadius: 8, border: "1.5px solid #E2E8F0" }} />
+          {file && <p style={{ margin: "0.25rem 0 0", fontSize: "0.72rem", color: "#16a34a" }}>New photo selected</p>}
+          {!file && existingUrl && <p style={{ margin: "0.25rem 0 0", fontSize: "0.72rem", color: "#16a34a" }}>✓ Uploaded</p>}
+        </div>
+      )}
+      <label style={{
+        display: "inline-flex", alignItems: "center", gap: "0.5rem", cursor: "pointer",
+        padding: "0.55rem 1rem", borderRadius: 8, border: "1.5px dashed #CBD5E1",
+        fontSize: "0.82rem", fontWeight: 600, color: "#64748B", background: "#F8FAFC",
+        width: "100%", boxSizing: "border-box", justifyContent: "center",
+      }}>
+        <Upload size={15} /> {existingUrl && !file ? `Replace ${label} Photo` : `Upload ${label} Photo`}
+        <input type="file" accept="image/*" style={{ display: "none" }}
+          onChange={(e) => { if (e.target.files[0]) onChange(e.target.files[0]); }} />
+      </label>
+    </div>
+  );
 }
 
 /* ── StatCard ────────────────────────────────────────────── */
@@ -49,6 +86,7 @@ function TabBar({ active, onChange, counts }) {
     { key: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { key: "active",    label: "Active",    icon: ListChecks,  badge: counts.active },
     { key: "completed", label: "Completed", icon: History,     badge: counts.completed },
+    { key: "account",   label: "Account",   icon: UserCircle,  badge: counts.profileWarning ? "!" : 0 },
   ];
   return (
     <div style={{
@@ -69,10 +107,11 @@ function TabBar({ active, onChange, counts }) {
           }}>
             <div style={{ position: "relative" }}>
               <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-              {t.badge > 0 && (
+              {(t.badge > 0 || t.badge === "!") && (
                 <span style={{
                   position: "absolute", top: -5, right: -8,
-                  background: "#1a4080", color: "#fff", borderRadius: 20,
+                  background: t.badge === "!" ? "#D97706" : "#1a4080",
+                  color: "#fff", borderRadius: 20,
                   fontSize: "0.55rem", fontWeight: 900, padding: "0.1rem 0.35rem", minWidth: 14, textAlign: "center",
                 }}>
                   {t.badge}
@@ -224,7 +263,7 @@ export default function DeliveryDashboard() {
   const [showScanner, setShowScanner] = useState(false);
   const [otpInputs, setOtpInputs] = useState({});
   const [delivering, setDelivering] = useState({});
-  const [person] = useState(() => JSON.parse(localStorage.getItem("delivery_person") || "{}"));
+  const [person, setPerson] = useState(() => JSON.parse(localStorage.getItem("delivery_person") || "{}"));
   const navigate = useNavigate();
   const { canInstall, install, nativeInstall, hasNativePrompt, installing, installed: appInstalled, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("delivery_person", person.id, localStorage.getItem("delivery_token"));
@@ -280,6 +319,37 @@ export default function DeliveryDashboard() {
       toast.error(err.response?.data?.detail || "Failed");
     } finally {
       setDelivering((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
+  // ── Account / Profile ──────────────────────────────────────────────
+  const [profileForm, setProfileForm] = useState({
+    vehicle_type: person.vehicle_type || "",
+    vehicle_number: person.vehicle_number || "",
+    licence_number: person.licence_number || "",
+    pan_card: person.pan_card || "",
+  });
+  const [licenceFile, setLicenceFile] = useState(null);
+  const [panFile, setPanFile] = useState(null);
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  const handleProfileSave = async () => {
+    setProfileSaving(true);
+    try {
+      const fd = new FormData();
+      Object.entries(profileForm).forEach(([k, v]) => { if (v) fd.append(k, v); });
+      if (licenceFile) fd.append("licence_image", licenceFile);
+      if (panFile) fd.append("pan_image", panFile);
+      const { data } = await updateDeliveryProfile(fd);
+      setPerson(data);
+      localStorage.setItem("delivery_person", JSON.stringify(data));
+      toast.success("Profile updated!");
+      setLicenceFile(null);
+      setPanFile(null);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Save failed");
+    } finally {
+      setProfileSaving(false);
     }
   };
 
@@ -474,6 +544,123 @@ export default function DeliveryDashboard() {
           </div>
         )}
 
+        {/* ════ ACCOUNT TAB ════ */}
+        {tab === "account" && (
+          <div style={{ maxWidth: 480, margin: "0 auto" }}>
+            {/* Profile status banner */}
+            {!person.profile_complete && (
+              <div style={{
+                background: "#FEF3C7", border: "1.5px solid #FCD34D", borderRadius: 12,
+                padding: "0.85rem 1rem", marginBottom: "1.25rem", display: "flex", alignItems: "flex-start", gap: "0.7rem",
+              }}>
+                <AlertTriangle size={18} color="#D97706" style={{ flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <p style={{ margin: 0, fontWeight: 700, color: "#92400E", fontSize: "0.88rem" }}>Profile Incomplete</p>
+                  <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "#B45309", lineHeight: 1.5 }}>
+                    Add your vehicle details, licence, and PAN card to complete verification.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {person.profile_complete && (
+              <div style={{
+                background: "#D1FAE5", border: "1.5px solid #6EE7B7", borderRadius: 12,
+                padding: "0.85rem 1rem", marginBottom: "1.25rem", display: "flex", alignItems: "center", gap: "0.7rem",
+              }}>
+                <CheckCircle size={18} color="#16a34a" style={{ flexShrink: 0 }} />
+                <p style={{ margin: 0, fontWeight: 700, color: "#15803D", fontSize: "0.88rem" }}>
+                  Profile Verified ✓
+                </p>
+              </div>
+            )}
+
+            {/* Person info */}
+            <div style={{ background: "#fff", borderRadius: 14, padding: "1.25rem", marginBottom: "1rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <p style={{ margin: "0 0 0.1rem", fontWeight: 800, fontSize: "1.05rem", color: "#0F172A" }}>{person.name}</p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#64748B" }}>{person.email}</p>
+              {person.phone && <p style={{ margin: "0.1rem 0 0", fontSize: "0.82rem", color: "#64748B" }}>{person.phone}</p>}
+            </div>
+
+            {/* Vehicle details */}
+            <div style={{ background: "#fff", borderRadius: 14, padding: "1.25rem", marginBottom: "1rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.78rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.07em" }}>Vehicle Details</p>
+
+              <label style={profileLabelStyle}>Vehicle Type</label>
+              <select
+                value={profileForm.vehicle_type}
+                onChange={(e) => setProfileForm((p) => ({ ...p, vehicle_type: e.target.value }))}
+                style={profileInputStyle}
+              >
+                <option value="">Select vehicle type</option>
+                <option value="Bike">Bike / Motorcycle</option>
+                <option value="Bicycle">Bicycle</option>
+                <option value="Auto">Auto Rickshaw</option>
+                <option value="Car">Car</option>
+                <option value="Other">Other</option>
+              </select>
+
+              <label style={profileLabelStyle}>Registration Number</label>
+              <input
+                type="text" placeholder="e.g. TN 01 AB 1234"
+                value={profileForm.vehicle_number}
+                onChange={(e) => setProfileForm((p) => ({ ...p, vehicle_number: e.target.value }))}
+                style={profileInputStyle}
+              />
+            </div>
+
+            {/* KYC documents */}
+            <div style={{ background: "#fff", borderRadius: 14, padding: "1.25rem", marginBottom: "1rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
+              <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.78rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.07em" }}>KYC Documents</p>
+
+              <label style={profileLabelStyle}>Driving Licence Number</label>
+              <input
+                type="text" placeholder="e.g. TN0120230012345"
+                value={profileForm.licence_number}
+                onChange={(e) => setProfileForm((p) => ({ ...p, licence_number: e.target.value }))}
+                style={profileInputStyle}
+              />
+
+              <label style={profileLabelStyle}>Licence Photo</label>
+              <DocUploadBox
+                label="Licence"
+                file={licenceFile}
+                existingUrl={person.licence_image_url}
+                onChange={(f) => setLicenceFile(f)}
+              />
+
+              <label style={{ ...profileLabelStyle, marginTop: "1rem" }}>PAN Card Number</label>
+              <input
+                type="text" placeholder="e.g. ABCDE1234F" maxLength={10}
+                value={profileForm.pan_card}
+                onChange={(e) => setProfileForm((p) => ({ ...p, pan_card: e.target.value.toUpperCase() }))}
+                style={profileInputStyle}
+              />
+
+              <label style={profileLabelStyle}>PAN Card Photo</label>
+              <DocUploadBox
+                label="PAN Card"
+                file={panFile}
+                existingUrl={person.pan_image_url}
+                onChange={(f) => setPanFile(f)}
+              />
+            </div>
+
+            <button
+              onClick={handleProfileSave}
+              disabled={profileSaving}
+              style={{
+                width: "100%", padding: "0.9rem", borderRadius: 12, border: "none", cursor: "pointer",
+                background: profileSaving ? "#93C5FD" : "linear-gradient(135deg, #0f2460, #1a4080)",
+                color: "#fff", fontWeight: 800, fontSize: "0.95rem",
+                boxShadow: "0 4px 14px rgba(26,64,128,0.3)", marginBottom: "1.5rem",
+              }}
+            >
+              {profileSaving ? "Saving…" : "Save Profile"}
+            </button>
+          </div>
+        )}
+
         {/* ════ COMPLETED ORDERS TAB ════ */}
         {tab === "completed" && (
           <div>
@@ -526,7 +713,7 @@ export default function DeliveryDashboard() {
       <TabBar
         active={tab}
         onChange={switchTab}
-        counts={{ active: orders.length, completed: completed.length }}
+        counts={{ active: orders.length, completed: completed.length, profileWarning: !person.profile_complete }}
       />
 
       {showScanner && <QrScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}

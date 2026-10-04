@@ -39,11 +39,19 @@ def _run_migrations():
         ("orders", "qr_token", "TEXT"),
         ("orders", "delivery_otp", "TEXT"),
         ("delivery_persons", "earning_per_delivery", "REAL DEFAULT 50.0"),
+        ("delivery_persons", "vehicle_type", "TEXT"),
+        ("delivery_persons", "vehicle_number", "TEXT"),
+        ("delivery_persons", "licence_number", "TEXT"),
+        ("delivery_persons", "pan_card", "TEXT"),
+        ("delivery_persons", "licence_image_url", "TEXT"),
+        ("delivery_persons", "pan_image_url", "TEXT"),
+        ("delivery_persons", "profile_complete", "BOOLEAN DEFAULT FALSE"),
         ("customers", "secondary_phone", "TEXT"),
         ("customers", "address", "TEXT"),
         ("customers", "city", "TEXT"),
         ("customers", "state", "TEXT"),
         ("customers", "pincode", "TEXT"),
+        ("order_items", "shop_owner_id", "INTEGER REFERENCES shop_owners(id)"),
     ]
     with engine.connect() as conn:
         for table, col, col_def in new_cols:
@@ -60,6 +68,32 @@ def _run_migrations():
             conn.execute(text("UPDATE products SET is_available = TRUE WHERE is_available IS NULL"))
             conn.execute(text("UPDATE products SET is_featured = FALSE WHERE is_featured IS NULL"))
             conn.execute(text("UPDATE orders SET payment_method = 'razorpay' WHERE payment_method IS NULL"))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+        # Backfill order_items.shop_owner_id from the product's shop_owner_id
+        try:
+            conn.execute(text("""
+                UPDATE order_items
+                SET shop_owner_id = (
+                    SELECT p.shop_owner_id FROM products p WHERE p.id = order_items.product_id
+                )
+                WHERE shop_owner_id IS NULL
+            """))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+
+        # Seed shop_products from existing products that already have a shop_owner_id
+        try:
+            conn.execute(text("""
+                INSERT INTO shop_products (shop_owner_id, product_id, is_available)
+                SELECT shop_owner_id, id, TRUE
+                FROM products
+                WHERE shop_owner_id IS NOT NULL
+                ON CONFLICT DO NOTHING
+            """))
             conn.commit()
         except Exception:
             conn.rollback()

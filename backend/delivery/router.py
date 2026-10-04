@@ -1,8 +1,12 @@
 import random
+import os
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
+import cloudinary
+import cloudinary.uploader
 from database import get_db
 from models import DeliveryPerson, Order, OrderItem, OrderStatusHistory, Product
 from delivery.auth import verify_password, create_delivery_token, get_current_delivery_person
@@ -36,7 +40,60 @@ def me(person: DeliveryPerson = Depends(get_current_delivery_person)):
 
 
 def _person_dict(p: DeliveryPerson) -> dict:
-    return {"id": p.id, "name": p.name, "email": p.email, "phone": p.phone, "earning_per_delivery": p.earning_per_delivery or 50.0}
+    return {
+        "id": p.id,
+        "name": p.name,
+        "email": p.email,
+        "phone": p.phone,
+        "earning_per_delivery": p.earning_per_delivery or 50.0,
+        "vehicle_type": p.vehicle_type,
+        "vehicle_number": p.vehicle_number,
+        "licence_number": p.licence_number,
+        "pan_card": p.pan_card,
+        "licence_image_url": p.licence_image_url,
+        "pan_image_url": p.pan_image_url,
+        "profile_complete": bool(p.profile_complete),
+    }
+
+
+def _upload_doc(file: UploadFile) -> str:
+    result = cloudinary.uploader.upload(file.file, folder="lakshmi-vastra/delivery-docs")
+    return result["secure_url"]
+
+
+@router.put("/profile")
+async def update_profile(
+    vehicle_type: Optional[str] = Form(None),
+    vehicle_number: Optional[str] = Form(None),
+    licence_number: Optional[str] = Form(None),
+    pan_card: Optional[str] = Form(None),
+    licence_image: Optional[UploadFile] = File(None),
+    pan_image: Optional[UploadFile] = File(None),
+    person: DeliveryPerson = Depends(get_current_delivery_person),
+    db: Session = Depends(get_db),
+):
+    if vehicle_type is not None:
+        person.vehicle_type = vehicle_type.strip() or None
+    if vehicle_number is not None:
+        person.vehicle_number = vehicle_number.strip().upper() or None
+    if licence_number is not None:
+        person.licence_number = licence_number.strip().upper() or None
+    if pan_card is not None:
+        person.pan_card = pan_card.strip().upper() or None
+
+    if licence_image and licence_image.filename:
+        person.licence_image_url = _upload_doc(licence_image)
+    if pan_image and pan_image.filename:
+        person.pan_image_url = _upload_doc(pan_image)
+
+    person.profile_complete = bool(
+        person.vehicle_type and person.vehicle_number
+        and person.licence_number and person.pan_card
+        and person.licence_image_url and person.pan_image_url
+    )
+    db.commit()
+    db.refresh(person)
+    return _person_dict(person)
 
 
 def _order_dict(order: Order) -> dict:

@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func, extract
 from database import get_db
-from models import Product, Order, OrderItem, OrderStatusHistory, DeliveryPerson, ShopOwner, Customer, Review, Inquiry, WishlistItem
+from models import Product, Order, OrderItem, OrderStatusHistory, DeliveryPerson, ShopOwner, Customer, Review, Inquiry, WishlistItem, ShopProduct
 from admins.auth import create_access_token, verify_token
 from products.router import product_to_dict
 from delivery.auth import hash_password as delivery_hash_password
@@ -89,6 +89,8 @@ def _order_dict(order: Order) -> dict:
                 "quantity": item.quantity,
                 "price": item.price,
                 "image_url": item.product.image_url if item.product else None,
+                "shop_name": item.shop_owner.shop_name if item.shop_owner else None,
+                "shop_owner_id": item.shop_owner_id,
             }
             for item in order.items
         ],
@@ -116,6 +118,7 @@ def list_all_orders(
         .options(
             joinedload(Order.customer),
             joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
             joinedload(Order.delivery_person),
             joinedload(Order.status_history),
         )
@@ -529,3 +532,85 @@ def dashboard(db: Session = Depends(get_db), _: str = Depends(verify_token)):
         "recent_orders": recent_orders,
         "payment_split": {"cod": cod_count, "online": online_count},
     }
+
+
+# ── Shop-Product assignments ──────────────────────────────────────────────────
+
+@router.get("/shop-products")
+def list_shop_products(
+    product_id: int = Query(None),
+    shop_owner_id: int = Query(None),
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_token),
+):
+    """List which shops carry which products."""
+    q = db.query(ShopProduct).options(
+        joinedload(ShopProduct.shop_owner),
+        joinedload(ShopProduct.product),
+    )
+    if product_id:
+        q = q.filter(ShopProduct.product_id == product_id)
+    if shop_owner_id:
+        q = q.filter(ShopProduct.shop_owner_id == shop_owner_id)
+    rows = q.all()
+    return [
+        {
+            "id": r.id,
+            "product_id": r.product_id,
+            "product_name": r.product.name if r.product else "",
+            "shop_owner_id": r.shop_owner_id,
+            "shop_name": r.shop_owner.shop_name if r.shop_owner else "",
+            "price_override": r.price_override,
+            "is_available": r.is_available,
+        }
+        for r in rows
+    ]
+
+
+class AssignShopProductBody(BaseModel):
+    product_id: int
+    shop_owner_id: int
+    price_override: float = None
+
+
+@router.post("/shop-products")
+def assign_product_to_shop(body: AssignShopProductBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    """Assign a product to a shop (creates ShopProduct entry)."""
+    existing = db.query(ShopProduct).filter(
+        ShopProduct.product_id == body.product_id,
+        ShopProduct.shop_owner_id == body.shop_owner_id,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="This product is already assigned to this shop")
+
+    product = db.query(Product).filter(Product.id == body.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    shop = db.query(ShopOwner).filter(ShopOwner.id == body.shop_owner_id).first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop not found")
+
+    sp = ShopProduct(
+        product_id=body.product_id,
+        shop_owner_id=body.shop_owner_id,
+        price_override=body.price_override,
+        is_available=True,
+    )
+    db.add(sp)
+    # Also set as primary shop on product if product has no shop yet
+    if not product.shop_owner_id:
+        product.shop_owner_id = body.shop_owner_id
+    db.commit()
+    db.refresh(sp)
+    return {"id": sp.id, "product_id": sp.product_id, "shop_owner_id": sp.shop_owner_id, "shop_name": shop.shop_name}
+
+
+@router.delete("/shop-products/{sp_id}")
+def unassign_product_from_shop(sp_id: int, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    """Remove a shop's assignment to a product."""
+    sp = db.query(ShopProduct).filter(ShopProduct.id == sp_id).first()
+    if not sp:
+        raise HTTPException(status_code=404, detail="Assignment not found")
+    db.delete(sp)
+    db.commit()
+    return {"success": True}

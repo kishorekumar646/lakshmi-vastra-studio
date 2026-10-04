@@ -32,6 +32,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
+  const [userInteracted, setUserInteracted] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
@@ -149,6 +150,24 @@ export default function ProductDetail() {
     ? product.images.map((img) => img.url)
     : (product.image_url ? [product.image_url] : []);
 
+  // Auto-slide every 3s; pause when lightbox open or user manually navigated
+  useEffect(() => {
+    if (images.length <= 1 || lightboxOpen || userInteracted) return;
+    const timer = setInterval(() => {
+      setActiveImg((prev) => (prev + 1) % images.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [images.length, lightboxOpen, userInteracted]);
+
+  // Resume auto-slide 5s after user manually taps an arrow/thumbnail
+  useEffect(() => {
+    if (!userInteracted) return;
+    const t = setTimeout(() => setUserInteracted(false), 5000);
+    return () => clearTimeout(t);
+  }, [userInteracted]);
+
+  const goToImg = (i) => { setActiveImg(i); setUserInteracted(true); };
+
   const canPrev = activeImg > 0;
   const canNext = activeImg < images.length - 1;
 
@@ -195,14 +214,14 @@ export default function ProductDetail() {
               {images.length > 1 && (
                 <>
                   <button
-                    onClick={() => setActiveImg((p) => p - 1)}
+                    onClick={() => goToImg(activeImg - 1)}
                     disabled={!canPrev}
                     style={{ ...styles.imgArrow, left: 10, opacity: canPrev ? 1 : 0.35 }}
                   >
                     <ChevronLeft size={20} />
                   </button>
                   <button
-                    onClick={() => setActiveImg((p) => p + 1)}
+                    onClick={() => goToImg(activeImg + 1)}
                     disabled={!canNext}
                     style={{ ...styles.imgArrow, right: 10, opacity: canNext ? 1 : 0.35 }}
                   >
@@ -218,7 +237,7 @@ export default function ProductDetail() {
                 {images.map((url, i) => (
                   <button
                     key={i}
-                    onClick={() => setActiveImg(i)}
+                    onClick={() => goToImg(i)}
                     style={{
                       ...styles.thumbBtn,
                       ...(i === activeImg ? styles.thumbBtnActive : {}),

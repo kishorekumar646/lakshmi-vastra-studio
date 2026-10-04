@@ -81,6 +81,9 @@ export const toggleDeliveryPerson = (id) => api.put(`/api/admin/delivery-persons
 export const getShopOwners = () => api.get("/api/admin/shop-owners");
 export const approveShopOwner = (id) => api.put(`/api/admin/shop-owners/${id}/approve`);
 export const toggleShopOwner = (id) => api.put(`/api/admin/shop-owners/${id}/toggle-active`);
+export const getAdminShopProducts = (params) => api.get("/api/admin/shop-products", { params });
+export const assignProductToShop = (data) => api.post("/api/admin/shop-products", data);
+export const unassignProductFromShop = (id) => api.delete(`/api/admin/shop-products/${id}`);
 
 // ── Admin Delivery Persons (edit) ─────────────────────────────────────────────
 export const updateDeliveryPerson = (id, data) => api.put(`/api/admin/delivery-persons/${id}`, data);
@@ -137,6 +140,7 @@ export const getDeliveryStats = () => api.get("/api/delivery/stats");
 export const getCompletedDeliveries = () => api.get("/api/delivery/orders/completed");
 export const deliveryScanQr = (qr_token) => api.post("/api/delivery/orders/scan", { qr_token });
 export const markDelivered = (orderId, otp) => api.post(`/api/delivery/orders/${orderId}/delivered`, { otp });
+export const updateDeliveryProfile = (formData) => api.put("/api/delivery/profile", formData, { headers: { "Content-Type": "multipart/form-data" } });
 
 export const WHATSAPP_NUMBER = import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210";
 export const PHONE_NUMBER = import.meta.env.VITE_PHONE_NUMBER || "+91 98765 43210";

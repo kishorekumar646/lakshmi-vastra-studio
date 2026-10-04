@@ -265,12 +265,18 @@ def _order_dict(order: Order) -> dict:
 
 @router.get("/orders")
 def list_orders(owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
-    # Orders that contain at least one product belonging to this shop owner
+    # Use OrderItem.shop_owner_id snapshot; fall back to product join for old rows
     orders = (
         db.query(Order)
         .join(Order.items)
-        .join(OrderItem.product)
-        .filter(Product.shop_owner_id == owner.id)
+        .filter(
+            (OrderItem.shop_owner_id == owner.id) |
+            (
+                (OrderItem.shop_owner_id == None) &
+                (OrderItem.product_id == Product.id) &
+                (Product.shop_owner_id == owner.id)
+            )
+        )
         .filter(Order.status.in_(["confirmed", "ready_for_delivery", "picked_up", "delivered"]))
         .options(
             joinedload(Order.items).joinedload(OrderItem.product),

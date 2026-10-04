@@ -10,6 +10,7 @@ import {
   getAdminOrders, confirmOrder, assignDelivery,
   getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson, updateDeliveryPerson,
   getShopOwners, approveShopOwner, toggleShopOwner,
+  getAdminShopProducts, assignProductToShop, unassignProductFromShop,
   getAdminPincodes, addPincode, deletePincode, togglePincode,
   getAdminCustomers,
   updateAdminCustomer,
@@ -71,6 +72,9 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderPaymentFilter, setOrderPaymentFilter] = useState("all");
+  const [expandedOrder, setExpandedOrder] = useState(null);
   const [assignModal, setAssignModal] = useState(null); // { orderId }
   const [assignDpId, setAssignDpId] = useState("");
 
@@ -84,6 +88,13 @@ export default function AdminDashboard() {
   // Shop Owners tab
   const [shopOwners, setShopOwners] = useState([]);
   const [shopOwnersLoading, setShopOwnersLoading] = useState(false);
+
+  // Shop-Product assignments
+  const [shopAssignments, setShopAssignments] = useState([]);
+  const [assignForm, setAssignForm] = useState({ product_id: "", shop_owner_id: "" });
+  const [assigning, setAssigning] = useState(false);
+  const loadShopAssignments = () =>
+    getAdminShopProducts().then((r) => setShopAssignments(r.data)).catch(() => {});
 
   // Pincodes tab
   const [pincodes, setPincodes] = useState([]);
@@ -185,6 +196,9 @@ export default function AdminDashboard() {
     loadPincodes();
     loadCustomers();
     loadPayments();
+    loadShopAssignments();
+    // Flat product list for assignment dropdown
+    getAdminProducts(1, 200).then((r) => setAllProducts(r.data.items || [])).catch(() => {});
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -911,149 +925,300 @@ export default function AdminDashboard() {
           </div>
         )}
         {/* ── Orders Tab ─────────────────── */}
-        {tab === "orders" && (
-          <div>
-            <div className="admin-section-header">
-              <h2 className="admin-section-title">Orders ({orders.length})</h2>
-              <select
-                value={orderStatusFilter}
-                onChange={(e) => { setOrderStatusFilter(e.target.value); loadOrders(e.target.value); }}
-                style={{ padding: "0.45rem 0.75rem", borderRadius: 6, border: "1px solid var(--border)", fontSize: "0.85rem", background: "#fff", cursor: "pointer" }}
-              >
-                <option value="all">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="confirmed">Confirmed</option>
-                <option value="ready_for_delivery">Ready for Delivery</option>
-                <option value="picked_up">Picked Up</option>
-                <option value="delivered">Delivered</option>
-              </select>
-            </div>
+        {tab === "orders" && (() => {
+          const ORDER_STATUS = {
+            pending:              { bg: "#FEF3C7", color: "#92400E",  border: "#FDE047", label: "Pending",            dot: "#F59E0B" },
+            confirmed:            { bg: "#DBEAFE", color: "#1E40AF",  border: "#93C5FD", label: "Confirmed",          dot: "#3B82F6" },
+            ready_for_delivery:   { bg: "#D1FAE5", color: "#065F46",  border: "#6EE7B7", label: "Ready for Delivery", dot: "#10B981" },
+            picked_up:            { bg: "#EDE9FE", color: "#5B21B6",  border: "#C4B5FD", label: "Picked Up",          dot: "#7C3AED" },
+            delivered:            { bg: "#DCFCE7", color: "#166534",  border: "#86EFAC", label: "Delivered",          dot: "#16A34A" },
+          };
+          const STATUS_STEPS = ["pending", "confirmed", "ready_for_delivery", "picked_up", "delivered"];
 
-            {ordersLoading ? (
-              <p style={{ color: "var(--text-muted)", padding: "2rem", textAlign: "center" }}>Loading orders…</p>
-            ) : orders.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 8, border: "1px solid var(--border-light)" }}>
-                <ShoppingBag size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
-                <p>No orders found.</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-                {orders.map((o) => {
-                  const statusColors = {
-                    pending: { bg: "#FEF3C7", color: "#92400E" },
-                    confirmed: { bg: "#DBEAFE", color: "#1E40AF" },
-                    ready_for_delivery: { bg: "#D1FAE5", color: "#065F46" },
-                    picked_up: { bg: "#EDE9FE", color: "#5B21B6" },
-                    delivered: { bg: "#DCFCE7", color: "#166534" },
-                  };
-                  const sc = statusColors[o.status] || { bg: "#F1F5F9", color: "#64748B" };
-                  return (
-                    <div key={o.id} style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", border: "1px solid var(--border-light)", boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                        <div>
-                          <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem", color: "var(--text)" }}>Order #{o.id}</p>
-                          <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                            {o.customer?.name} · {o.payment_method === "cod" ? "💵 COD" : "💳 Paid"} · ₹{o.total?.toLocaleString("en-IN")}
-                          </p>
-                          <p style={{ margin: "0.2rem 0 0", fontSize: "0.78rem", color: "var(--text-muted)" }}>{o.delivery_address}</p>
-                        </div>
-                        <span style={{ padding: "0.25rem 0.75rem", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: sc.bg, color: sc.color, whiteSpace: "nowrap" }}>
-                          {o.status?.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                        </span>
-                      </div>
+          // Client-side filtering (search + payment)
+          const filtered = orders.filter((o) => {
+            const q = orderSearch.toLowerCase();
+            if (q) {
+              const match =
+                String(o.id).includes(q) ||
+                o.customer?.name?.toLowerCase().includes(q) ||
+                o.customer?.phone?.includes(q) ||
+                o.delivery_address?.toLowerCase().includes(q);
+              if (!match) return false;
+            }
+            if (orderPaymentFilter !== "all" && o.payment_method !== orderPaymentFilter) return false;
+            return true;
+          });
 
-                      <div style={{ fontSize: "0.82rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>
-                        {o.items?.map((item, i) => (
-                          <span key={i}>{item.name} ×{item.quantity}{i < o.items.length - 1 ? ", " : ""}</span>
-                        ))}
-                      </div>
+          // Summary counts (from full list, not filtered)
+          const counts = STATUS_STEPS.reduce((acc, s) => { acc[s] = orders.filter((o) => o.status === s).length; return acc; }, {});
 
-                      {o.delivery_person && (
-                        <p style={{ margin: "0 0 0.75rem", fontSize: "0.8rem", color: "#1a4080", fontWeight: 600 }}>
-                          Delivery: {o.delivery_person.name} ({o.delivery_person.phone})
-                        </p>
-                      )}
-
-                      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                        {o.status === "pending" && o.payment_method === "cod" && (
-                          <button
-                            onClick={async () => {
-                              try { await confirmOrder(o.id); toast.success("Order confirmed!"); loadOrders(orderStatusFilter); }
-                              catch { toast.error("Failed to confirm"); }
-                            }}
-                            style={{ padding: "0.4rem 0.9rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
-                          >
-                            <CheckCircle size={14} /> Confirm COD
-                          </button>
-                        )}
-                        {o.status === "confirmed" && !o.delivery_person_id && (
-                          <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.9rem", background: "#FEF9C3", color: "#854D0E", borderRadius: 6, fontSize: "0.82rem", fontWeight: 600, border: "1px solid #FDE047" }}>
-                            <span style={{ fontSize: "0.9rem" }}>⏳</span> Waiting for shop to pack
-                          </span>
-                        )}
-                        {o.status === "ready_for_delivery" && !o.delivery_person_id && (
-                          <button
-                            onClick={() => { setAssignModal({ orderId: o.id }); setAssignDpId(""); }}
-                            style={{ padding: "0.4rem 0.9rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
-                          >
-                            <Truck size={14} /> Assign Delivery
-                          </button>
-                        )}
-                        <a
-                          href={`/track/${o.id}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ padding: "0.4rem 0.9rem", background: "var(--cream)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, textDecoration: "none" }}
-                        >
-                          Track
-                        </a>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Assign Delivery Modal */}
-            {assignModal && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-                <div style={{ background: "#fff", borderRadius: 12, padding: "1.75rem", maxWidth: 400, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
-                  <h3 style={{ marginTop: 0, marginBottom: "1.25rem", fontSize: "1rem", color: "var(--text)" }}>Assign Delivery Person</h3>
-                  <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "0.5rem" }}>Select Delivery Person</label>
-                  <select
-                    value={assignDpId}
-                    onChange={(e) => setAssignDpId(e.target.value)}
-                    style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 6, border: "1px solid var(--border)", fontSize: "0.9rem", marginBottom: "1.25rem" }}
+          return (
+            <div>
+              {/* ── Status summary strip ── */}
+              <div style={{ display: "flex", gap: "0.5rem", overflowX: "auto", paddingBottom: "0.25rem", marginBottom: "1.25rem" }}>
+                {[["all", "All", orders.length, "#64748B"], ...STATUS_STEPS.map((s) => [s, ORDER_STATUS[s]?.label, counts[s], ORDER_STATUS[s]?.dot])].map(([key, label, count, dotColor]) => (
+                  <button
+                    key={key}
+                    onClick={() => { setOrderStatusFilter(key); loadOrders(key === "all" ? "all" : key); }}
+                    style={{
+                      flexShrink: 0, display: "flex", alignItems: "center", gap: "0.4rem",
+                      padding: "0.45rem 0.9rem", borderRadius: 8, border: "none", cursor: "pointer",
+                      fontWeight: 700, fontSize: "0.8rem", transition: "all 0.15s",
+                      background: orderStatusFilter === key ? "var(--primary)" : "#fff",
+                      color: orderStatusFilter === key ? "#fff" : "#475569",
+                      boxShadow: orderStatusFilter === key ? "0 2px 8px rgba(123,29,69,0.25)" : "0 1px 3px rgba(0,0,0,0.08)",
+                    }}
                   >
-                    <option value="">-- Select --</option>
-                    {deliveryPersons.filter((dp) => dp.is_active).map((dp) => (
-                      <option key={dp.id} value={dp.id}>{dp.name} ({dp.phone})</option>
-                    ))}
-                  </select>
-                  <div style={{ display: "flex", gap: "0.75rem" }}>
-                    <button
-                      disabled={!assignDpId}
-                      onClick={async () => {
-                        try {
-                          await assignDelivery(assignModal.orderId, parseInt(assignDpId));
-                          toast.success("Delivery person assigned!");
-                          setAssignModal(null);
-                          loadOrders(orderStatusFilter);
-                        } catch { toast.error("Failed to assign"); }
-                      }}
-                      style={{ flex: 1, padding: "0.6rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: assignDpId ? "pointer" : "not-allowed", fontWeight: 700, opacity: assignDpId ? 1 : 0.5 }}
+                    <span style={{ width: 7, height: 7, borderRadius: "50%", background: orderStatusFilter === key ? "rgba(255,255,255,0.8)" : dotColor, flexShrink: 0 }} />
+                    {label}
+                    <span style={{ background: orderStatusFilter === key ? "rgba(255,255,255,0.2)" : "#F1F5F9", borderRadius: 20, padding: "0.05rem 0.45rem", fontSize: "0.72rem" }}>
+                      {count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* ── Search + filter bar ── */}
+              <div style={{ display: "flex", gap: "0.65rem", marginBottom: "1.1rem", flexWrap: "wrap" }}>
+                <div style={{ flex: "1 1 220px", position: "relative" }}>
+                  <input
+                    type="text"
+                    placeholder="Search by order #, customer name, phone, address…"
+                    value={orderSearch}
+                    onChange={(e) => setOrderSearch(e.target.value)}
+                    style={{ width: "100%", padding: "0.55rem 0.85rem 0.55rem 2.2rem", border: "1.5px solid var(--border-light)", borderRadius: 8, fontSize: "0.85rem", outline: "none", boxSizing: "border-box", background: "#fff" }}
+                  />
+                  <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none" }}>🔍</span>
+                </div>
+                <select
+                  value={orderPaymentFilter}
+                  onChange={(e) => setOrderPaymentFilter(e.target.value)}
+                  style={{ padding: "0.55rem 0.85rem", border: "1.5px solid var(--border-light)", borderRadius: 8, fontSize: "0.85rem", background: "#fff", cursor: "pointer", outline: "none" }}
+                >
+                  <option value="all">All Payments</option>
+                  <option value="cod">💵 COD</option>
+                  <option value="razorpay">💳 Online</option>
+                </select>
+                <button
+                  onClick={() => { setOrderSearch(""); setOrderPaymentFilter("all"); setOrderStatusFilter("all"); loadOrders("all"); }}
+                  style={{ padding: "0.55rem 0.9rem", border: "1.5px solid var(--border-light)", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: "0.82rem", color: "#64748B", fontWeight: 600 }}
+                >
+                  Clear
+                </button>
+                <button
+                  onClick={() => loadOrders(orderStatusFilter)}
+                  style={{ padding: "0.55rem 0.9rem", border: "none", borderRadius: 8, background: "var(--primary)", color: "#fff", cursor: "pointer", fontSize: "0.82rem", fontWeight: 700 }}
+                >
+                  ↻ Refresh
+                </button>
+              </div>
+
+              <p style={{ fontSize: "0.78rem", color: "#94A3B8", marginBottom: "0.75rem" }}>
+                Showing {filtered.length} of {orders.length} orders
+              </p>
+
+              {ordersLoading ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} style={{ background: "#fff", borderRadius: 12, height: 110, animation: "pulse 1.5s ease-in-out infinite", border: "1px solid var(--border-light)" }} />
+                  ))}
+                </div>
+              ) : filtered.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)", background: "#fff", borderRadius: 12, border: "1px solid var(--border-light)" }}>
+                  <ShoppingBag size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
+                  <p style={{ margin: 0, fontWeight: 600 }}>No orders found</p>
+                  <p style={{ margin: "0.35rem 0 0", fontSize: "0.83rem" }}>Try a different filter or search term</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {filtered.map((o) => {
+                    const sc = ORDER_STATUS[o.status] || { bg: "#F1F5F9", color: "#64748B", border: "#E2E8F0", label: o.status, dot: "#94A3B8" };
+                    const stepIdx = STATUS_STEPS.indexOf(o.status);
+                    const isExpanded = expandedOrder === o.id;
+                    return (
+                      <div key={o.id} style={{ background: "#fff", borderRadius: 12, border: `1px solid ${sc.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+                        {/* ── Order header row ── */}
+                        <div
+                          onClick={() => setExpandedOrder(isExpanded ? null : o.id)}
+                          style={{ padding: "1rem 1.25rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
+                        >
+                          {/* Status dot */}
+                          <div style={{ width: 10, height: 10, borderRadius: "50%", background: sc.dot, flexShrink: 0 }} />
+
+                          {/* Order ID */}
+                          <span style={{ fontWeight: 800, fontSize: "0.95rem", color: "var(--text)", minWidth: 80 }}>#{o.id}</span>
+
+                          {/* Customer */}
+                          <div style={{ flex: "1 1 160px" }}>
+                            <p style={{ margin: 0, fontWeight: 700, fontSize: "0.88rem", color: "var(--text)" }}>{o.customer?.name || "—"}</p>
+                            <p style={{ margin: 0, fontSize: "0.73rem", color: "#94A3B8" }}>{o.customer?.phone}</p>
+                          </div>
+
+                          {/* Amount + payment */}
+                          <div style={{ textAlign: "right", flexShrink: 0 }}>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--primary)" }}>₹{o.total?.toLocaleString("en-IN")}</p>
+                            <p style={{ margin: 0, fontSize: "0.7rem", color: "#94A3B8" }}>{o.payment_method === "cod" ? "💵 COD" : "💳 Paid"}</p>
+                          </div>
+
+                          {/* Status badge */}
+                          <span style={{
+                            padding: "0.3rem 0.8rem", borderRadius: 20, fontSize: "0.73rem", fontWeight: 700,
+                            background: sc.bg, color: sc.color, border: `1px solid ${sc.border}`, whiteSpace: "nowrap", flexShrink: 0,
+                          }}>
+                            {sc.label}
+                          </span>
+
+                          {/* Chevron */}
+                          <span style={{ color: "#94A3B8", fontSize: "0.8rem", marginLeft: "auto" }}>{isExpanded ? "▲" : "▼"}</span>
+                        </div>
+
+                        {/* ── Progress bar ── */}
+                        <div style={{ padding: "0 1.25rem", display: "flex", alignItems: "center", gap: 0, marginBottom: "0.1rem" }}>
+                          {STATUS_STEPS.map((s, i) => {
+                            const done = i <= stepIdx;
+                            const active = i === stepIdx;
+                            return (
+                              <div key={s} style={{ display: "flex", alignItems: "center", flex: i < STATUS_STEPS.length - 1 ? 1 : 0 }}>
+                                <div style={{
+                                  width: 9, height: 9, borderRadius: "50%", flexShrink: 0,
+                                  background: active ? sc.dot : done ? "#10B981" : "#E2E8F0",
+                                  border: active ? `2px solid ${sc.dot}` : "none",
+                                  boxShadow: active ? `0 0 0 3px ${sc.bg}` : "none",
+                                }} />
+                                {i < STATUS_STEPS.length - 1 && (
+                                  <div style={{ flex: 1, height: 2, background: i < stepIdx ? "#10B981" : "#E2E8F0", margin: "0 1px" }} />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* ── Expanded detail ── */}
+                        {isExpanded && (
+                          <div style={{ borderTop: `1px solid ${sc.border}`, padding: "1rem 1.25rem", background: "#FAFBFC" }}>
+                            {/* Items with shop badges */}
+                            <div style={{ marginBottom: "0.9rem" }}>
+                              <p style={{ margin: "0 0 0.5rem", fontSize: "0.72rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.07em" }}>Items</p>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                                {o.items?.map((item, i) => (
+                                  <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem", background: "#fff", borderRadius: 8, padding: "0.45rem 0.75rem", border: "1px solid #E2E8F0" }}>
+                                    {item.image_url && <img src={item.image_url} alt="" style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6 }} />}
+                                    <span style={{ fontWeight: 600, fontSize: "0.85rem", flex: 1 }}>{item.name}</span>
+                                    <span style={{ fontSize: "0.78rem", color: "#64748B" }}>×{item.quantity}</span>
+                                    <span style={{ fontWeight: 700, fontSize: "0.85rem", color: "var(--primary)" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                                    {item.shop_name && (
+                                      <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#EEF2FF", color: "#4338CA", padding: "0.15rem 0.55rem", borderRadius: 20, whiteSpace: "nowrap", border: "1px solid #C7D2FE" }}>
+                                        🏪 {item.shop_name}
+                                      </span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Delivery address */}
+                            <div style={{ marginBottom: "0.9rem", display: "flex", gap: "0.5rem" }}>
+                              <span style={{ fontSize: "0.85rem" }}>📍</span>
+                              <p style={{ margin: 0, fontSize: "0.82rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+                            </div>
+
+                            {/* Delivery person */}
+                            {o.delivery_person && (
+                              <div style={{ marginBottom: "0.9rem", background: "#EFF6FF", borderRadius: 8, padding: "0.55rem 0.85rem", display: "flex", alignItems: "center", gap: "0.55rem" }}>
+                                <Truck size={14} color="#1a4080" />
+                                <p style={{ margin: 0, fontSize: "0.82rem", color: "#1a4080", fontWeight: 700 }}>
+                                  {o.delivery_person.name} · {o.delivery_person.phone}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Actions */}
+                            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                              {o.status === "pending" && o.payment_method === "cod" && (
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try { await confirmOrder(o.id); toast.success("Order confirmed!"); loadOrders(orderStatusFilter); }
+                                    catch { toast.error("Failed to confirm"); }
+                                  }}
+                                  style={{ padding: "0.4rem 0.9rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                                >
+                                  <CheckCircle size={13} /> Confirm COD
+                                </button>
+                              )}
+                              {o.status === "confirmed" && !o.delivery_person && (
+                                <span style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.9rem", background: "#FEF9C3", color: "#854D0E", borderRadius: 6, fontSize: "0.82rem", fontWeight: 600, border: "1px solid #FDE047" }}>
+                                  ⏳ Waiting for shop to pack
+                                </span>
+                              )}
+                              {o.status === "ready_for_delivery" && !o.delivery_person && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setAssignModal({ orderId: o.id }); setAssignDpId(""); }}
+                                  style={{ padding: "0.4rem 0.9rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                                >
+                                  <Truck size={13} /> Assign Delivery
+                                </button>
+                              )}
+                              <a
+                                href={`/track/${o.id}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ padding: "0.4rem 0.9rem", background: "#F8FAFC", color: "#475569", border: "1px solid #E2E8F0", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, textDecoration: "none", display: "flex", alignItems: "center", gap: "0.35rem" }}
+                              >
+                                📍 Track
+                              </a>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Assign Delivery Modal */}
+              {assignModal && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+                  <div style={{ background: "#fff", borderRadius: 12, padding: "1.75rem", maxWidth: 400, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
+                    <h3 style={{ marginTop: 0, marginBottom: "1.25rem", fontSize: "1rem", color: "var(--text)" }}>Assign Delivery Person</h3>
+                    <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-muted)", display: "block", marginBottom: "0.5rem" }}>Select Delivery Person</label>
+                    <select
+                      value={assignDpId}
+                      onChange={(e) => setAssignDpId(e.target.value)}
+                      style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 6, border: "1px solid var(--border)", fontSize: "0.9rem", marginBottom: "1.25rem" }}
                     >
-                      Assign
-                    </button>
-                    <button onClick={() => setAssignModal(null)} style={{ flex: 1, padding: "0.6rem", background: "var(--cream)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
-                      Cancel
-                    </button>
+                      <option value="">-- Select --</option>
+                      {deliveryPersons.filter((dp) => dp.is_active).map((dp) => (
+                        <option key={dp.id} value={dp.id}>{dp.name} ({dp.phone})</option>
+                      ))}
+                    </select>
+                    <div style={{ display: "flex", gap: "0.75rem" }}>
+                      <button
+                        disabled={!assignDpId}
+                        onClick={async () => {
+                          try {
+                            await assignDelivery(assignModal.orderId, parseInt(assignDpId));
+                            toast.success("Delivery person assigned!");
+                            setAssignModal(null);
+                            loadOrders(orderStatusFilter);
+                          } catch { toast.error("Failed to assign"); }
+                        }}
+                        style={{ flex: 1, padding: "0.6rem", background: "#1a4080", color: "#fff", border: "none", borderRadius: 6, cursor: assignDpId ? "pointer" : "not-allowed", fontWeight: 700, opacity: assignDpId ? 1 : 0.5 }}
+                      >
+                        Assign
+                      </button>
+                      <button onClick={() => setAssignModal(null)} style={{ flex: 1, padding: "0.6rem", background: "var(--cream)", color: "var(--text)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontWeight: 600 }}>
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── Shop Owners Tab ────────────── */}
         {tab === "shopowners" && (

@@ -39,6 +39,13 @@ class DeliveryPerson(Base):
     hashed_password = Column(String(200), nullable=False)
     is_active = Column(Boolean, default=True)
     earning_per_delivery = Column(Float, default=50.0)
+    vehicle_type = Column(String(50))       # Bike, Bicycle, Auto, etc.
+    vehicle_number = Column(String(50))     # registration number
+    licence_number = Column(String(50))
+    pan_card = Column(String(20))
+    licence_image_url = Column(String(500))
+    pan_image_url = Column(String(500))
+    profile_complete = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     assigned_orders = relationship("Order", back_populates="delivery_person")
@@ -183,17 +190,33 @@ class Order(Base):
     )
 
 
+class ShopProduct(Base):
+    """Junction table — one product can be carried by multiple shops."""
+    __tablename__ = "shop_products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    shop_owner_id = Column(Integer, ForeignKey("shop_owners.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    price_override = Column(Float, nullable=True)   # None = use base product price
+    is_available = Column(Boolean, default=True)
+
+    shop_owner = relationship("ShopOwner")
+    product = relationship("Product")
+
+
 class OrderItem(Base):
     __tablename__ = "order_items"
 
     id = Column(Integer, primary_key=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"))
     product_id = Column(Integer, ForeignKey("products.id"))
+    shop_owner_id = Column(Integer, ForeignKey("shop_owners.id"), nullable=True)  # snapshot at order time
     quantity = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
 
     order = relationship("Order", back_populates="items")
     product = relationship("Product")
+    shop_owner = relationship("ShopOwner")
 
 
 class PushSubscription(Base):

@@ -164,7 +164,13 @@ def create_order(body: CreateOrderBody, background: BackgroundTasks, customer: C
 
     for item in cart_items:
         if item.product:
-            db.add(OrderItem(order_id=order.id, product_id=item.product_id, quantity=item.quantity, price=item.product.price))
+            db.add(OrderItem(
+                order_id=order.id,
+                product_id=item.product_id,
+                shop_owner_id=item.product.shop_owner_id,  # snapshot which shop owns this item
+                quantity=item.quantity,
+                price=item.product.price,
+            ))
 
     db.add(OrderStatusHistory(order_id=order.id, status="pending", note="Order placed"))
     db.query(CartItem).filter(CartItem.customer_id == customer.id).delete()
