@@ -286,6 +286,34 @@ def list_customers(db: Session = Depends(get_db), _: str = Depends(verify_token)
     ]
 
 
+class UpdateCustomerBody(BaseModel):
+    name: str
+    email: str
+
+
+@router.put("/customers/{customer_id}")
+def update_customer(customer_id: int, body: UpdateCustomerBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    customer = db.query(Customer).filter(Customer.id == customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    name = body.name.strip()
+    email = body.email.strip().lower()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+    if not email:
+        raise HTTPException(status_code=400, detail="Email cannot be empty")
+    # Check email uniqueness if changed
+    if email != customer.email:
+        existing = db.query(Customer).filter(Customer.email == email).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already in use by another account")
+    customer.name = name
+    customer.email = email
+    db.commit()
+    db.refresh(customer)
+    return {"id": customer.id, "name": customer.name, "email": customer.email}
+
+
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 @router.get("/dashboard")

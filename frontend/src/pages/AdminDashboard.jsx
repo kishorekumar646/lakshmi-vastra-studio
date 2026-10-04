@@ -11,6 +11,7 @@ import {
   getShopOwners, approveShopOwner, toggleShopOwner,
   getAdminPincodes, addPincode, deletePincode, togglePincode,
   getAdminCustomers,
+  updateAdminCustomer,
 } from "../api";
 import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
@@ -89,6 +90,8 @@ export default function AdminDashboard() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [expandedCustomer, setExpandedCustomer] = useState(null);
   const [expandedDelivery, setExpandedDelivery] = useState(null);
+  const [editingCustomer, setEditingCustomer] = useState(null); // { id, name, email }
+  const [customerSaving, setCustomerSaving] = useState(false);
 
   // Push notifications for admin
   usePushNotifications("admin", null, localStorage.getItem("admin_token"));
@@ -1401,25 +1404,99 @@ export default function AdminDashboard() {
                       </div>
 
                       {expandedCustomer === c.id && (
-                        <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-light)", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
-                          {[
-                            { label: "Phone", value: c.phone || "—" },
-                            { label: "Secondary Phone", value: c.secondary_phone || "—" },
-                            { label: "City", value: c.city || "—" },
-                            { label: "State", value: c.state || "—" },
-                            { label: "PIN Code", value: c.pincode || "—" },
-                          ].map(({ label, value }) => (
-                            <div key={label} style={{ background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
-                              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
-                              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>{value}</p>
+                        <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border-light)" }}>
+
+                          {/* Editable: Name & Email */}
+                          {editingCustomer?.id === c.id ? (
+                            <div style={{ background: "#EFF6FF", borderRadius: 8, padding: "1rem", marginBottom: "0.75rem", border: "1px solid #BFDBFE" }}>
+                              <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#1E40AF", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.75rem" }}>Edit Name & Email</p>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                                <div>
+                                  <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>Full Name</label>
+                                  <input
+                                    value={editingCustomer.name}
+                                    onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                                    style={{ width: "100%", boxSizing: "border-box" }}
+                                  />
+                                </div>
+                                <div>
+                                  <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", display: "block", marginBottom: "0.25rem" }}>Email Address</label>
+                                  <input
+                                    type="email"
+                                    value={editingCustomer.email}
+                                    onChange={(e) => setEditingCustomer({ ...editingCustomer, email: e.target.value })}
+                                    style={{ width: "100%", boxSizing: "border-box" }}
+                                  />
+                                </div>
+                                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.25rem" }}>
+                                  <button
+                                    onClick={async () => {
+                                      setCustomerSaving(true);
+                                      try {
+                                        await updateAdminCustomer(c.id, { name: editingCustomer.name, email: editingCustomer.email });
+                                        toast.success("Customer updated");
+                                        setEditingCustomer(null);
+                                        loadCustomers();
+                                      } catch (err) {
+                                        toast.error(err.response?.data?.detail || "Failed to update");
+                                      } finally {
+                                        setCustomerSaving(false);
+                                      }
+                                    }}
+                                    disabled={customerSaving}
+                                    style={{ padding: "0.4rem 1rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700, opacity: customerSaving ? 0.7 : 1 }}
+                                  >
+                                    {customerSaving ? "Saving…" : "Save"}
+                                  </button>
+                                  <button
+                                    onClick={() => setEditingCustomer(null)}
+                                    style={{ padding: "0.4rem 0.9rem", background: "#fff", color: "var(--text-muted)", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                          ))}
-                          {c.address && (
-                            <div style={{ gridColumn: "1 / -1", background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
-                              <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>Delivery Address</p>
-                              <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>{c.address}</p>
+                          ) : (
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.6rem", marginBottom: "0.75rem" }}>
+                              {[{ label: "Full Name", value: c.name }, { label: "Email Address", value: c.email }].map(({ label, value }) => (
+                                <div key={label} style={{ background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                                  <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
+                                  <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0, wordBreak: "break-all" }}>{value}</p>
+                                </div>
+                              ))}
+                              <div style={{ gridColumn: "1 / -1" }}>
+                                <button
+                                  onClick={() => setEditingCustomer({ id: c.id, name: c.name, email: c.email })}
+                                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.38rem 0.85rem", background: "#fff", border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, color: "var(--text-muted)" }}
+                                >
+                                  <Edit2 size={13} /> Edit Name & Email
+                                </button>
+                              </div>
                             </div>
                           )}
+
+                          {/* Read-only contact & address details */}
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.6rem" }}>
+                            {[
+                              { label: "Phone", value: c.phone || "—" },
+                              { label: "Secondary Phone", value: c.secondary_phone || "—" },
+                              { label: "City", value: c.city || "—" },
+                              { label: "State", value: c.state || "—" },
+                              { label: "PIN Code", value: c.pincode || "—" },
+                            ].map(({ label, value }) => (
+                              <div key={label} style={{ background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                                <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
+                                <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>{value}</p>
+                              </div>
+                            ))}
+                            {c.address && (
+                              <div style={{ gridColumn: "1 / -1", background: "var(--cream)", borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                                <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>Delivery Address</p>
+                                <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>{c.address}</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       )}
                     </div>
