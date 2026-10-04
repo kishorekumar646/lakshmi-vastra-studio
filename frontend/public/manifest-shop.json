@@ -1,0 +1,31 @@
+{
+  "name": "Shop Owner Portal — LV Studio",
+  "short_name": "LV Shop",
+  "description": "Manage your shop, products and orders",
+  "start_url": "/shop/dashboard",
+  "scope": "/shop/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FAFAF7",
+  "theme_color": "#7B1D45",
+  "icons": [
+    {
+      "src": "/icon-shop.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-shop.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
