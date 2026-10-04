@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 
 const isMobile = () => /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+const isIos = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 const isStandalone = () =>
   window.matchMedia("(display-mode: standalone)").matches ||
   window.navigator.standalone === true;
@@ -31,11 +33,16 @@ export function usePwaInstall() {
       if (outcome === "accepted") setInstalled(true);
       setPrompt(null);
       window.__pwaPrompt = null;
+      return;
     }
-    // If no prompt yet, Chrome will show its own install banner when ready
+    // Prompt not ready — guide with a toast
+    if (isIos()) {
+      toast("Tap Share ⎋ → Add to Home Screen", { icon: "📲", duration: 4000 });
+    } else {
+      toast("Tap Chrome menu ⋮ → Install app", { icon: "📲", duration: 4000 });
+    }
   };
 
-  // Always show on mobile (unless already installed), show on desktop only when prompt is ready
   const canInstall = !installed && (isMobile() || !!prompt);
 
   return { canInstall, install };
