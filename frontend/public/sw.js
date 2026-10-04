@@ -25,8 +25,8 @@ self.addEventListener("notificationclick", (e) => {
 });
 
 // ── PWA Cache ─────────────────────────────────────────────────────────────────
-const CACHE = "lv-studio-v1";
-const SHELL = ["/", "/catalog", "/contact", "/manifest.json", "/icon-192.svg", "/icon-512.svg"];
+const CACHE = "lv-studio-v2";
+const SHELL = ["/", "/catalog", "/contact", "/manifest.json", "/icon-192.png", "/icon-512.png", "/icon-192.svg", "/icon-512.svg"];
 
 // Install: cache the app shell
 self.addEventListener("install", (e) => {

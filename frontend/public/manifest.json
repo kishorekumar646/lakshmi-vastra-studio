@@ -11,6 +11,18 @@
   "categories": ["shopping", "lifestyle"],
   "icons": [
     {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icon-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
@@ -28,27 +40,27 @@
       "name": "Browse Collection",
       "short_name": "Collection",
       "url": "/catalog",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Shop Owner Portal",
       "short_name": "My Shop",
       "description": "Manage your shop, products and orders",
       "url": "/shop/dashboard",
-      "icons": [{ "src": "/icon-shop.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon-shop.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Delivery Portal",
       "short_name": "Deliveries",
       "description": "View and manage your assigned deliveries",
       "url": "/delivery/dashboard",
-      "icons": [{ "src": "/icon-delivery.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon-delivery.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Contact Us",
       "short_name": "Contact",
       "url": "/contact",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }
