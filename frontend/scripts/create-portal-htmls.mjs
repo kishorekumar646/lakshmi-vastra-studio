@@ -17,7 +17,8 @@ if (portal === "shop" || portal === "delivery" || portal === "admin") {
   const shopHtml = base
     .replace('href="/manifest.json"', 'href="/manifest-shop.json"')
     .replace(/content="#7B1D45"/, 'content="#7B1D45"')
-    .replace(/<title>[^<]*<\/title>/, '<title>Shop Owner Portal — LV Studio</title>');
+    .replace(/<title>[^<]*<\/title>/, '<title>Shop Owner Portal — LV Studio</title>')
+    .replace('href="/icon-192.svg"', 'href="/icon-shop.png"');
 
   writeFileSync(`${distDir}/shop.html`, shopHtml);
   console.log("✅ Created dist/shop.html");
@@ -25,7 +26,8 @@ if (portal === "shop" || portal === "delivery" || portal === "admin") {
   const deliveryHtml = base
     .replace('href="/manifest.json"', 'href="/manifest-delivery.json"')
     .replace(/content="#7B1D45"/, 'content="#1a4080"')
-    .replace(/<title>[^<]*<\/title>/, '<title>Delivery Portal — LV Studio</title>');
+    .replace(/<title>[^<]*<\/title>/, '<title>Delivery Portal — LV Studio</title>')
+    .replace('href="/icon-192.svg"', 'href="/icon-delivery.png"');
 
   writeFileSync(`${distDir}/delivery.html`, deliveryHtml);
   console.log("✅ Created dist/delivery.html");
