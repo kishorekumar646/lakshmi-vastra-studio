@@ -133,6 +133,8 @@ export const shopScanQr = (qr_token) => api.post("/api/shops/orders/scan", { qr_
 export const deliveryLogin = (data) => api.post("/api/delivery/login", data);
 export const getDeliveryMe = () => api.get("/api/delivery/me");
 export const getDeliveryOrders = () => api.get("/api/delivery/orders");
+export const getDeliveryStats = () => api.get("/api/delivery/stats");
+export const getCompletedDeliveries = () => api.get("/api/delivery/orders/completed");
 export const deliveryScanQr = (qr_token) => api.post("/api/delivery/orders/scan", { qr_token });
 export const markDelivered = (orderId, otp) => api.post(`/api/delivery/orders/${orderId}/delivered`, { otp });
 

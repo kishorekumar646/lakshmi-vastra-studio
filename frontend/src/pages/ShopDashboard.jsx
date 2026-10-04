@@ -5,9 +5,10 @@ import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   getShopOrders, getShopOrderQr, shopScanQr,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, Download } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
+import { usePwaInstall } from "../hooks/usePwaInstall";
 
 const EMPTY = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 
@@ -22,8 +23,10 @@ const STATUS_COLOR = {
 
 export default function ShopDashboard() {
   const [tab, setTab] = useState("products");
+  const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
   const [owner] = useState(() => JSON.parse(localStorage.getItem("shop_owner") || "{}"));
   const navigate = useNavigate();
+  const { canInstall, install } = usePwaInstall();
   usePushNotifications("shop_owner", owner.id, localStorage.getItem("shop_token"));
 
   // Products
@@ -148,26 +151,40 @@ export default function ShopDashboard() {
           <p style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: "1.1rem", fontWeight: 700 }}>{owner.shop_name || "My Shop"}</p>
           <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.75 }}>Shop Owner Portal</p>
         </div>
-        <button onClick={logout} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "0.4rem 0.8rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
-          <LogOut size={14} /> Logout
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {canInstall && (
+            <button onClick={install} title="Install Shop Portal App" style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 6, padding: "0.4rem 0.8rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem", fontWeight: 600 }}>
+              <span style={{ fontSize: "1rem" }}>🏪</span> Install App
+            </button>
+          )}
+          <button onClick={logout} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "0.4rem 0.8rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
+            <LogOut size={14} /> Logout
+          </button>
+        </div>
       </header>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", borderBottom: "2px solid #e5e5e5", background: "#fff" }}>
+      {/* Bottom tab bar */}
+      <div style={{
+        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
+        display: "flex", background: "#fff",
+        borderTop: "1px solid #E2E8F0",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
+        paddingBottom: "env(safe-area-inset-bottom)",
+      }}>
         {[{ key: "products", icon: Package, label: "Products" }, { key: "orders", icon: ShoppingBag, label: "Orders" }].map(({ key, icon: Icon, label }) => (
-          <button key={key} onClick={() => setTab(key)} style={{
-            padding: "0.8rem 1.5rem", background: "none", border: "none", cursor: "pointer",
-            fontWeight: 600, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.4rem",
-            borderBottom: tab === key ? "2px solid var(--primary)" : "2px solid transparent",
-            color: tab === key ? "var(--primary)" : "#888", marginBottom: -2,
+          <button key={key} onClick={() => switchTab(key)} style={{
+            flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            gap: "0.25rem", padding: "0.7rem 0.5rem", border: "none", background: "none", cursor: "pointer",
+            color: tab === key ? "var(--primary)" : "#94A3B8",
+            transition: "color 0.18s",
           }}>
-            <Icon size={15} /> {label}
+            <Icon size={20} strokeWidth={tab === key ? 2.5 : 1.8} />
+            <span style={{ fontSize: "0.65rem", fontWeight: tab === key ? 800 : 500 }}>{label}</span>
           </button>
         ))}
       </div>
 
-      <div style={{ flex: 1, padding: "1.25rem", maxWidth: 900, margin: "0 auto", width: "100%" }}>
+      <div style={{ flex: 1, padding: "1.25rem 1.25rem 6rem", width: "100%", boxSizing: "border-box" }}>
 
         {/* Products Tab */}
         {tab === "products" && (

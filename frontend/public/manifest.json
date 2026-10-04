@@ -28,13 +28,27 @@
       "name": "Browse Collection",
       "short_name": "Collection",
       "url": "/catalog",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Shop Owner Portal",
+      "short_name": "My Shop",
+      "description": "Manage your shop, products and orders",
+      "url": "/shop/dashboard",
+      "icons": [{ "src": "/icon-shop.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Delivery Portal",
+      "short_name": "Deliveries",
+      "description": "View and manage your assigned deliveries",
+      "url": "/delivery/dashboard",
+      "icons": [{ "src": "/icon-delivery.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     },
     {
       "name": "Contact Us",
       "short_name": "Contact",
       "url": "/contact",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
     }
   ]
 }

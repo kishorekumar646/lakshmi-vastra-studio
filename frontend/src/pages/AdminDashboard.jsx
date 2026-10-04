@@ -1189,14 +1189,24 @@ export default function AdminDashboard() {
                           <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>{dp.email}</p>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: "0.6rem", alignItems: "center", flexShrink: 0 }}>
+                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexShrink: 0 }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingDelivery({ id: dp.id, name: dp.name, email: dp.email, phone: dp.phone || "" });
+                            setExpandedDelivery(dp.id);
+                          }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.3rem 0.75rem", background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", borderRadius: 6, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}
+                        >
+                          <Edit2 size={12} /> Edit
+                        </button>
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
                             try { await toggleDeliveryPerson(dp.id); toast.success("Status updated"); loadDeliveryPersons(); }
                             catch { toast.error("Failed"); }
                           }}
-                          style={{ padding: "0.3rem 0.85rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}
+                          style={{ padding: "0.3rem 0.75rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}
                         >
                           {dp.is_active ? "Deactivate" : "Activate"}
                         </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { shopLogin, shopRegister } from "../api";
 import toast from "react-hot-toast";
@@ -10,6 +10,12 @@ export default function ShopLogin() {
   const [form, setForm] = useState({ name: "", shop_name: "", email: "", phone: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (localStorage.getItem("shop_token")) {
+      navigate("/shop/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 

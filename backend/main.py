@@ -38,6 +38,7 @@ def _run_migrations():
         ("orders", "delivery_person_id", "INTEGER REFERENCES delivery_persons(id)"),
         ("orders", "qr_token", "TEXT"),
         ("orders", "delivery_otp", "TEXT"),
+        ("delivery_persons", "earning_per_delivery", "REAL DEFAULT 50.0"),
         ("customers", "secondary_phone", "TEXT"),
         ("customers", "address", "TEXT"),
         ("customers", "city", "TEXT"),

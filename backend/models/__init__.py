@@ -38,6 +38,7 @@ class DeliveryPerson(Base):
     phone = Column(String(20))
     hashed_password = Column(String(200), nullable=False)
     is_active = Column(Boolean, default=True)
+    earning_per_delivery = Column(Float, default=50.0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     assigned_orders = relationship("Order", back_populates="delivery_person")

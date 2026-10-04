@@ -1,4 +1,5 @@
 import random
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
@@ -35,7 +36,7 @@ def me(person: DeliveryPerson = Depends(get_current_delivery_person)):
 
 
 def _person_dict(p: DeliveryPerson) -> dict:
-    return {"id": p.id, "name": p.name, "email": p.email, "phone": p.phone}
+    return {"id": p.id, "name": p.name, "email": p.email, "phone": p.phone, "earning_per_delivery": p.earning_per_delivery or 50.0}
 
 
 def _order_dict(order: Order) -> dict:
@@ -68,6 +69,67 @@ def _order_dict(order: Order) -> dict:
     }
 
 
+def _earning_rate(person: DeliveryPerson) -> float:
+    return person.earning_per_delivery or 50.0
+
+
+@router.get("/stats")
+def get_stats(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=6)
+
+    all_delivered = (
+        db.query(Order)
+        .filter(Order.delivery_person_id == person.id, Order.status == "delivered")
+        .all()
+    )
+
+    # Build a date → count map using status_history "delivered" timestamps
+    day_map = {(today_start - timedelta(days=i)).date(): 0 for i in range(6, -1, -1)}
+    today_count = 0
+    week_count = 0
+    total_value = 0.0
+
+    for order in all_delivered:
+        delivered_entry = next(
+            (h for h in order.status_history if h.status == "delivered"), None
+        )
+        ts = delivered_entry.created_at if delivered_entry else order.created_at
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+        total_value += order.total
+        if ts >= week_start:
+            week_count += 1
+            day = ts.date()
+            if day in day_map:
+                day_map[day] += 1
+        if ts >= today_start:
+            today_count += 1
+
+    active = (
+        db.query(Order)
+        .filter(Order.delivery_person_id == person.id, Order.status.in_(["ready_for_delivery", "picked_up"]))
+        .count()
+    )
+
+    rate = _earning_rate(person)
+    total_count = len(all_delivered)
+
+    return {
+        "total_delivered": total_count,
+        "today": today_count,
+        "this_week": week_count,
+        "active": active,
+        "total_value": round(total_value, 2),
+        "total_earned": round(total_count * rate, 2),
+        "today_earned": round(today_count * rate, 2),
+        "week_earned": round(week_count * rate, 2),
+        "earning_per_delivery": rate,
+        "daily": [{"date": str(d), "count": c, "earned": round(c * rate, 2)} for d, c in day_map.items()],
+    }
+
+
 @router.get("/orders")
 def list_assigned_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
     orders = (
@@ -80,6 +142,24 @@ def list_assigned_orders(person: DeliveryPerson = Depends(get_current_delivery_p
             joinedload(Order.status_history),
         )
         .order_by(Order.created_at.desc())
+        .all()
+    )
+    return [_order_dict(o) for o in orders]
+
+
+@router.get("/orders/completed")
+def list_completed_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    orders = (
+        db.query(Order)
+        .filter(Order.delivery_person_id == person.id)
+        .filter(Order.status == "delivered")
+        .options(
+            joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.customer),
+            joinedload(Order.status_history),
+        )
+        .order_by(Order.created_at.desc())
+        .limit(50)
         .all()
     )
     return [_order_dict(o) for o in orders]

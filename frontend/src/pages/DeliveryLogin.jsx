@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { deliveryLogin } from "../api";
 import toast from "react-hot-toast";
@@ -8,6 +8,12 @@ export default function DeliveryLogin() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (localStorage.getItem("delivery_token")) {
+      navigate("/delivery/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
