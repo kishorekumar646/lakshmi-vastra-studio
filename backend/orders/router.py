@@ -218,3 +218,16 @@ def get_order_qr(order_id: int, customer: Customer = Depends(get_current_custome
     if not order.qr_token:
         raise HTTPException(status_code=400, detail="QR code not available")
     return {"qr_image": generate_qr_base64(order.qr_token)}
+
+
+@router.put("/{order_id}/cancel")
+def cancel_order(order_id: int, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id, Order.customer_id == customer.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status not in ("pending", "confirmed"):
+        raise HTTPException(status_code=400, detail="Order cannot be cancelled after it has been packed")
+    order.status = "cancelled"
+    db.add(OrderStatusHistory(order_id=order.id, status="cancelled", note="Cancelled by customer"))
+    db.commit()
+    return {"order_id": order.id, "status": "cancelled"}

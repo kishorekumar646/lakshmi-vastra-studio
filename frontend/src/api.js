@@ -110,6 +110,7 @@ export const createOrder = (delivery_address, payment_method = "razorpay") =>
   api.post("/api/orders/create", { delivery_address, payment_method });
 export const verifyPayment = (data) => api.post("/api/orders/verify", data);
 export const trackOrder = (orderId) => api.get(`/api/orders/${orderId}/track`);
+export const cancelOrder = (orderId) => api.put(`/api/orders/${orderId}/cancel`);
 
 // ── Shop Owner ────────────────────────────────────────────────────────────────
 export const shopRegister = (data) => api.post("/api/shops/register", data);

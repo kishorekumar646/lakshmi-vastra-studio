@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X } from "lucide-react";
+import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { getOrders, updateProfile } from "../api";
+import { getOrders, cancelOrder, updateProfile } from "../api";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 
 /* ── Shared styles ─────────────────────────────────────── */
@@ -206,16 +206,45 @@ function RegisterForm({ onSwitch, onGoogleSuccess }) {
 }
 
 /* ── Order history ───────────────────────────────────────── */
+const STATUS_STYLE = {
+  pending:            { bg: "#FEF9C3", color: "#854D0E", label: "Pending" },
+  confirmed:          { bg: "#DBEAFE", color: "#1E40AF", label: "Confirmed" },
+  ready_for_delivery: { bg: "#D1FAE5", color: "#065F46", label: "Packed & Ready" },
+  picked_up:          { bg: "#EDE9FE", color: "#5B21B6", label: "Out for Delivery" },
+  delivered:          { bg: "#D1FAE5", color: "#065F46", label: "Delivered" },
+  cancelled:          { bg: "#FEE2E2", color: "#991B1B", label: "Cancelled" },
+};
+
+const CANCELLABLE = ["pending", "confirmed"];
+
 function OrderHistory() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     getOrders()
       .then((r) => setOrders(r.data))
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleCancel = async (orderId) => {
+    if (!window.confirm("Are you sure you want to cancel this order?")) return;
+    setCancelling(orderId);
+    try {
+      await cancelOrder(orderId);
+      toast.success("Order cancelled");
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Cannot cancel this order");
+    } finally {
+      setCancelling(null);
+    }
+  };
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -242,55 +271,76 @@ function OrderHistory() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      {orders.map((order, idx) => (
-        <div
-          key={order.id}
-          style={{
-            background: "#fff",
-            borderRadius: 10,
-            padding: "1.5rem",
-            border: "1px solid var(--border-light)",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
-            animation: `slideUp 0.3s ease ${idx * 0.06}s both`,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--cream)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <Package size={17} color="var(--primary)" />
+      {orders.map((order, idx) => {
+        const st = STATUS_STYLE[order.status] || { bg: "#F1F5F9", color: "#64748B", label: order.status };
+        const canCancel = CANCELLABLE.includes(order.status);
+        const canTrack = order.status !== "cancelled";
+        return (
+          <div
+            key={order.id}
+            style={{
+              background: "#fff", borderRadius: 10, padding: "1.5rem",
+              border: "1px solid var(--border-light)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+              animation: `slideUp 0.3s ease ${idx * 0.06}s both`,
+            }}
+          >
+            {/* Top row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: "var(--cream)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Package size={17} color="var(--primary)" />
+                </div>
+                <div>
+                  <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.92rem", margin: 0 }}>Order #{order.id}</p>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.76rem", marginTop: "0.1rem", margin: 0 }}>
+                    {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                    {" · "}{order.payment_method === "cod" ? "Cash on Delivery" : "Paid Online"}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.92rem" }}>Order #{order.id}</p>
-                <p style={{ color: "var(--text-muted)", fontSize: "0.76rem", marginTop: "0.1rem" }}>
-                  {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+              <div style={{ textAlign: "right" }}>
+                <span style={{ display: "inline-block", padding: "0.22rem 0.8rem", borderRadius: 20, background: st.bg, color: st.color, fontSize: "0.72rem", fontWeight: 700 }}>
+                  {st.label}
+                </span>
+                <p style={{ fontWeight: 700, color: "var(--text)", marginTop: "0.35rem", fontSize: "1.05rem", margin: "0.35rem 0 0" }}>
+                  ₹{order.total.toLocaleString("en-IN")}
                 </p>
               </div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <span style={{
-                display: "inline-block", padding: "0.25rem 0.85rem", borderRadius: 20,
-                background: order.status === "paid" ? "#d4edda" : order.status === "failed" ? "#f8d7da" : "#fff8e1",
-                color: order.status === "paid" ? "#155724" : order.status === "failed" ? "#721c24" : "#856404",
-                fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em",
-              }}>
-                {order.status}
-              </span>
-              <p style={{ fontWeight: 700, color: "var(--text)", marginTop: "0.35rem", fontSize: "1.05rem" }}>
-                ₹{order.total.toLocaleString("en-IN")}
-              </p>
+
+            {/* Items */}
+            <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+              {order.items?.map((item, i) => (
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.83rem", color: "var(--text-muted)" }}>
+                  <span>{item.name} × {item.quantity}</span>
+                  <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--border-light)", flexWrap: "wrap" }}>
+              {canTrack && (
+                <button
+                  onClick={() => navigate(`/track/${order.id}`)}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 1rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700 }}
+                >
+                  <Truck size={14} /> Track Order
+                </button>
+              )}
+              {canCancel && (
+                <button
+                  onClick={() => handleCancel(order.id)}
+                  disabled={cancelling === order.id}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 1rem", background: "#fff", color: "#c0392b", border: "1px solid #fca5a5", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700, opacity: cancelling === order.id ? 0.6 : 1 }}
+                >
+                  <XCircle size={14} /> {cancelling === order.id ? "Cancelling…" : "Cancel Order"}
+                </button>
+              )}
             </div>
           </div>
-
-          <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
-            {order.items?.map((item, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.83rem", color: "var(--text-muted)" }}>
-                <span>{item.name} × {item.quantity}</span>
-                <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
