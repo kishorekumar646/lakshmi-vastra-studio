@@ -1145,27 +1145,43 @@ export default function AdminDashboard() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 {deliveryPersons.map((dp) => (
-                  <div key={dp.id} style={{ background: "#fff", borderRadius: 10, padding: "1.1rem 1.25rem", border: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-                    <div>
-                      <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "0.95rem" }}>{dp.name}</p>
-                      <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--text-muted)" }}>{dp.email} · {dp.phone}</p>
-                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                        Added {new Date(dp.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
-                    </div>
-                    <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                      <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: dp.is_active ? "#D1FAE5" : "#F1F5F9", color: dp.is_active ? "#065F46" : "#64748B" }}>
-                        {dp.is_active ? "Active" : "Inactive"}
-                      </span>
+                  <div key={dp.id} style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", border: "1px solid var(--border-light)" }}>
+                    {/* Top row: identity + status + action */}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
+                      <div style={{ display: "flex", gap: "0.85rem", alignItems: "center" }}>
+                        <div style={{ width: 42, height: 42, borderRadius: "50%", background: dp.is_active ? "var(--primary)" : "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <span style={{ color: "#fff", fontWeight: 700, fontSize: "1rem" }}>{dp.name?.[0]?.toUpperCase() || "?"}</span>
+                        </div>
+                        <div>
+                          <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "1rem" }}>{dp.name}</p>
+                          <span style={{ padding: "0.15rem 0.6rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: dp.is_active ? "#D1FAE5" : "#F1F5F9", color: dp.is_active ? "#065F46" : "#64748B" }}>
+                            {dp.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
                       <button
                         onClick={async () => {
                           try { await toggleDeliveryPerson(dp.id); toast.success("Status updated"); loadDeliveryPersons(); }
                           catch { toast.error("Failed"); }
                         }}
-                        style={{ padding: "0.35rem 0.8rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700 }}
+                        style={{ padding: "0.4rem 0.9rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700 }}
                       >
                         {dp.is_active ? "Deactivate" : "Activate"}
                       </button>
+                    </div>
+                    {/* Detail row */}
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem", marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--border-light)" }}>
+                      {[
+                        { label: "Email", value: dp.email },
+                        { label: "Phone", value: dp.phone || "—" },
+                        { label: "Total Deliveries", value: dp.total_deliveries ?? "—" },
+                        { label: "Added On", value: dp.created_at ? new Date(dp.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—" },
+                      ].map(({ label, value }) => (
+                        <div key={label} style={{ background: "var(--cream)", borderRadius: 8, padding: "0.55rem 0.85rem" }}>
+                          <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
+                          <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0, wordBreak: "break-all" }}>{value}</p>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}

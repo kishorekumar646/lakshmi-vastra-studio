@@ -199,7 +199,18 @@ def create_delivery_person(body: CreateDeliveryPersonBody, db: Session = Depends
 @router.get("/delivery-persons")
 def list_delivery_persons(db: Session = Depends(get_db), _: str = Depends(verify_token)):
     persons = db.query(DeliveryPerson).order_by(DeliveryPerson.created_at.desc()).all()
-    return [{"id": p.id, "name": p.name, "email": p.email, "phone": p.phone, "is_active": p.is_active} for p in persons]
+    return [
+        {
+            "id": p.id,
+            "name": p.name,
+            "email": p.email,
+            "phone": p.phone or "",
+            "is_active": p.is_active,
+            "total_deliveries": len(p.assigned_orders),
+            "created_at": p.created_at,
+        }
+        for p in persons
+    ]
 
 
 @router.put("/delivery-persons/{person_id}/toggle-active")
