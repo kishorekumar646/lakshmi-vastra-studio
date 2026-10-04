@@ -6,7 +6,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const distDir = resolve(__dirname, "../dist");
 const portal = process.env.VITE_PORTAL;
 
-if (portal === "shop" || portal === "delivery") {
+if (portal === "shop" || portal === "delivery" || portal === "admin") {
   // Standalone portal build — just needs a simple catch-all redirect
   writeFileSync(`${distDir}/_redirects`, "/* /index.html 200\n");
   console.log(`✅ Portal build (${portal}): wrote simple _redirects`);

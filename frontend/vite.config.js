@@ -16,6 +16,13 @@ const PORTAL_META = {
     appleTitle: "LV Delivery",
     description: "View and manage your assigned deliveries",
   },
+  admin: {
+    title: "Admin — LV Studio",
+    manifest: "/manifest-admin-standalone.json",
+    themeColor: "#1E293B",
+    appleTitle: "LV Admin",
+    description: "Admin dashboard for Lakshmi Vastra Studio",
+  },
 };
 
 export default defineConfig(() => {

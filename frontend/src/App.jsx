@@ -72,10 +72,25 @@ function DeliveryApp() {
   );
 }
 
+// ── Admin-only standalone build ──────────────────────────────────────
+function AdminApp() {
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/dashboard/*" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
+    </>
+  );
+}
+
 export default function App() {
   // Portal-specific standalone builds — minimal, no customer shell
   if (PORTAL === "shop") return <ShopApp />;
   if (PORTAL === "delivery") return <DeliveryApp />;
+  if (PORTAL === "admin") return <AdminApp />;
 
   const [showSplash, setShowSplash] = useState(() => sessionStorage.getItem(splashKey) !== "1");
   const onSplashDone = useCallback(() => {
