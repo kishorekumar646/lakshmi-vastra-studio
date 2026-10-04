@@ -10,19 +10,13 @@
   "theme_color": "#7B1D45",
   "icons": [
     {
-      "src": "/icon-shop.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-shop.png",
+      "src": "/icon-shop-v2.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-shop-512.png",
+      "src": "/icon-shop-512-v2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
