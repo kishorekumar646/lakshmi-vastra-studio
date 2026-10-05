@@ -61,13 +61,16 @@ export default function AdminDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [newImages, setNewImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+  const [primaryFile, setPrimaryFile] = useState(null);
+  const [primaryPreview, setPrimaryPreview] = useState(null);
+  const [additionalFiles, setAdditionalFiles] = useState([]);
+  const [additionalPreviews, setAdditionalPreviews] = useState([]);
   const [savedProductName, setSavedProductName] = useState(null);
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
-  const fileInputRef = useRef();
+  const primaryFileRef = useRef();
+  const additionalFileRef = useRef();
   const productFormRef = useRef();
   const navigate = useNavigate();
 
@@ -221,11 +224,19 @@ export default function AdminDashboard() {
 
   const logout = () => { localStorage.removeItem("admin_token"); navigate("/admin"); };
 
+  const clearImageState = () => {
+    if (primaryPreview) URL.revokeObjectURL(primaryPreview);
+    additionalPreviews.forEach((u) => URL.revokeObjectURL(u));
+    setPrimaryFile(null);
+    setPrimaryPreview(null);
+    setAdditionalFiles([]);
+    setAdditionalPreviews([]);
+  };
+
   const openAddForm = () => {
     setEditingProduct(null);
     setForm(EMPTY_FORM);
-    setNewImages([]);
-    setImagePreviews([]);
+    clearImageState();
     setSavedProductName(null);
     setShowForm(true);
   };
@@ -234,34 +245,46 @@ export default function AdminDashboard() {
     setShowForm(false);
     setEditingProduct(null);
     setForm(EMPTY_FORM);
-    setNewImages([]);
-    setImagePreviews([]);
+    clearImageState();
     setSavedProductName(null);
   };
 
   const handleEdit = (p) => {
     setEditingProduct(p);
     setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured, is_handloom: p.is_handloom || false, has_multiple_colours: p.has_multiple_colours || false, custom_orders: p.custom_orders || false });
-    setNewImages([]);
-    setImagePreviews([]);
+    clearImageState();
     setSavedProductName(null);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    const previews = files.map((f) => ({ url: URL.createObjectURL(f), file: f }));
-    setNewImages((prev) => [...prev, ...files]);
-    setImagePreviews((prev) => [...prev, ...previews]);
+  const handlePrimarySelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (primaryPreview) URL.revokeObjectURL(primaryPreview);
+    setPrimaryFile(file);
+    setPrimaryPreview(URL.createObjectURL(file));
     e.target.value = "";
   };
 
-  const removeNewImage = (index) => {
-    URL.revokeObjectURL(imagePreviews[index].url);
-    setNewImages((prev) => prev.filter((_, i) => i !== index));
-    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  const removePrimary = () => {
+    if (primaryPreview) URL.revokeObjectURL(primaryPreview);
+    setPrimaryFile(null);
+    setPrimaryPreview(null);
+  };
+
+  const handleAdditionalSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setAdditionalFiles((prev) => [...prev, ...files]);
+    setAdditionalPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+    e.target.value = "";
+  };
+
+  const removeAdditional = (index) => {
+    URL.revokeObjectURL(additionalPreviews[index]);
+    setAdditionalFiles((prev) => prev.filter((_, i) => i !== index));
+    setAdditionalPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteExistingImage = async (productId, imageId) => {
@@ -291,8 +314,9 @@ export default function AdminDashboard() {
     fd.append("is_handloom", form.is_handloom);
     fd.append("has_multiple_colours", form.has_multiple_colours);
     fd.append("custom_orders", form.custom_orders);
-    newImages.forEach((img) => fd.append("images", img));
-    if (newImages.length > 0) fd.append("image", newImages[0]); // compat: old backend expects "image" (singular)
+    // Primary image first (sort_order=0), then additional images
+    if (primaryFile) fd.append("images", primaryFile);
+    additionalFiles.forEach((img) => fd.append("images", img));
 
     try {
       if (editingProduct) {
@@ -302,16 +326,14 @@ export default function AdminDashboard() {
         setShowForm(false);
         setEditingProduct(null);
         setForm(EMPTY_FORM);
-        setNewImages([]);
-        setImagePreviews([]);
+        clearImageState();
       } else {
         await createProduct(fd);
         const addedName = form.name;
         loadProducts(1);
         setSavedProductName(addedName);
         setForm(EMPTY_FORM);
-        setNewImages([]);
-        setImagePreviews([]);
+        clearImageState();
       }
     } catch {
       toast.error("Failed to save product.");
@@ -587,27 +609,24 @@ export default function AdminDashboard() {
         {tab === "products" && showForm && (
           <div>
             {/* Page header bar */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.75rem", flexWrap: "wrap", gap: "0.75rem" }}>
-              <button
-                type="button"
-                onClick={closeForm}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "1px solid var(--border)", borderRadius: 6, padding: "0.5rem 1rem", cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: 500 }}
-              >
+            <div className="form-top-bar">
+              <button type="button" onClick={closeForm} className="form-back-btn">
                 <ChevronLeft size={15} /> Back to Products
               </button>
-              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: "1.3rem", color: "var(--text)", flex: 1, textAlign: "center" }}>
-                {editingProduct ? "Edit Product" : "Add New Product"}
-              </h2>
-              <button
-                type="button"
-                onClick={() => productFormRef.current?.requestSubmit()}
-                className="btn-primary"
-                disabled={submitting}
-                style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: submitting ? 0.7 : 1 }}
-              >
-                <Check size={15} />
-                {submitting ? "Saving…" : (editingProduct ? "Update Product" : "Save Product")}
-              </button>
+              <h2>{editingProduct ? "Edit Product" : "Add New Product"}</h2>
+              <div className="form-top-actions">
+                <button type="button" className="admin-cancel-btn" onClick={closeForm}>Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => productFormRef.current?.requestSubmit()}
+                  className="btn-primary"
+                  disabled={submitting}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: submitting ? 0.7 : 1 }}
+                >
+                  <Check size={15} />
+                  {submitting ? "Saving…" : (editingProduct ? "Update Product" : "Save Product")}
+                </button>
+              </div>
             </div>
 
             {/* Success banner — shown after adding a product */}
@@ -654,7 +673,7 @@ export default function AdminDashboard() {
                         <label>Product Name *</label>
                         <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required />
                       </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                      <div className="form-field-row">
                         <div>
                           <label>Price (₹) *</label>
                           <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 5500" required />
@@ -706,68 +725,126 @@ export default function AdminDashboard() {
 
                 {/* ── Right column — Images ── */}
                 <div className="admin-card" style={{ position: "sticky", top: "1rem" }}>
-                  <h3 className="admin-card-title" style={{ marginBottom: "1.1rem" }}>Product Images</h3>
+                  <h3 className="admin-card-title" style={{ marginBottom: "1.25rem" }}>Product Images</h3>
 
-                  {/* Existing images (edit mode) */}
-                  {editingProduct?.images?.length > 0 && (
-                    <div style={{ marginBottom: "1rem" }}>
-                      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Current</p>
-                      <div className="img-preview-grid">
-                        {editingProduct.images.map((img, i) => (
+                  {/* ── Primary Image (one only) ── */}
+                  <div style={{ marginBottom: "1.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Primary Image</span>
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>· 1 image only</span>
+                    </div>
+                    <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>Main product photo shown in listings and search results.</p>
+
+                    {/* Existing primary (edit mode) */}
+                    {editingProduct?.images?.[0] && (
+                      <div className="img-preview-item" style={{ marginBottom: "0.6rem" }}>
+                        <img src={editingProduct.images[0].url} alt="" />
+                        <span className="img-preview-label">Primary</span>
+                        <button type="button" className="img-preview-remove" onClick={() => handleDeleteExistingImage(editingProduct.id, editingProduct.images[0].id)} title="Remove primary image">×</button>
+                      </div>
+                    )}
+
+                    {/* New primary preview */}
+                    {primaryPreview && (
+                      <div className="img-preview-item" style={{ marginBottom: "0.6rem" }}>
+                        <img src={primaryPreview} alt="" />
+                        <span className="img-preview-label">New Primary</span>
+                        <button type="button" className="img-preview-remove" onClick={removePrimary}>×</button>
+                      </div>
+                    )}
+
+                    {/* Upload primary button — hidden when one is already set */}
+                    {!editingProduct?.images?.[0] && !primaryPreview && (
+                      <>
+                        <input ref={primaryFileRef} type="file" accept="image/*" onChange={handlePrimarySelect} style={{ display: "none" }} />
+                        <button
+                          type="button"
+                          onClick={() => primaryFileRef.current?.click()}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+                            width: "100%", padding: "1.5rem 1rem",
+                            border: "2px dashed var(--border)", borderRadius: 8,
+                            background: "#FAFAF8", color: "var(--text-muted)",
+                            cursor: "pointer", fontSize: "0.85rem", fontWeight: 500,
+                            transition: "border-color 0.2s, color 0.2s, background 0.2s",
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.background = "#FDF8F0"; }}
+                          onMouseOut={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "#FAFAF8"; }}
+                        >
+                          <ImagePlus size={18} /> Upload Primary Image
+                        </button>
+                      </>
+                    )}
+                    {/* Replace button when primary exists */}
+                    {(editingProduct?.images?.[0] || primaryPreview) && !primaryPreview && (
+                      <>
+                        <input ref={primaryFileRef} type="file" accept="image/*" onChange={handlePrimarySelect} style={{ display: "none" }} />
+                        <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ fontSize: "0.78rem", color: "var(--primary)", background: "none", border: "1px solid var(--border)", borderRadius: 6, padding: "0.3rem 0.75rem", cursor: "pointer", marginTop: "0.4rem" }}>
+                          Replace Primary
+                        </button>
+                      </>
+                    )}
+                  </div>
+
+                  <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "0 0 1.25rem" }} />
+
+                  {/* ── Additional Images (multiple) ── */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748B" }}>Additional Images</span>
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>· multiple allowed</span>
+                    </div>
+                    <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginBottom: "0.75rem" }}>Extra photos shown in the product gallery.</p>
+
+                    {/* Existing secondary images */}
+                    {editingProduct?.images?.length > 1 && (
+                      <div className="img-preview-grid" style={{ marginBottom: "0.75rem" }}>
+                        {editingProduct.images.slice(1).map((img) => (
                           <div key={img.id} className="img-preview-item">
                             <img src={img.url} alt="" />
-                            {i === 0 && <span className="img-preview-label">Primary</span>}
-                            <button type="button" className="img-preview-remove" onClick={() => handleDeleteExistingImage(editingProduct.id, img.id)} title="Delete image">×</button>
+                            <button type="button" className="img-preview-remove" onClick={() => handleDeleteExistingImage(editingProduct.id, img.id)}>×</button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* New image previews */}
-                  {imagePreviews.length > 0 && (
-                    <div style={{ marginBottom: "1rem" }}>
-                      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>To Upload</p>
-                      <div className="img-preview-grid">
-                        {imagePreviews.map((prev, i) => (
+                    {/* New additional previews */}
+                    {additionalPreviews.length > 0 && (
+                      <div className="img-preview-grid" style={{ marginBottom: "0.75rem" }}>
+                        {additionalPreviews.map((url, i) => (
                           <div key={i} className="img-preview-item">
-                            <img src={prev.url} alt="" />
-                            {i === 0 && !editingProduct?.images?.length && <span className="img-preview-label">Primary</span>}
-                            <button type="button" className="img-preview-remove" onClick={() => removeNewImage(i)}>×</button>
+                            <img src={url} alt="" />
+                            <button type="button" className="img-preview-remove" onClick={() => removeAdditional(i)}>×</button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Upload button */}
-                  <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: "none" }} />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem",
-                      width: "100%", padding: "2rem 1rem",
-                      border: "2px dashed var(--border)", borderRadius: 8,
-                      background: "#FAFAF8", color: "var(--text-muted)",
-                      cursor: "pointer", fontSize: "0.875rem", fontWeight: 500,
-                      transition: "border-color 0.2s, color 0.2s, background 0.2s",
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.background = "#FDF8F0"; }}
-                    onMouseOut={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "#FAFAF8"; }}
-                  >
-                    <ImagePlus size={20} />
-                    <span>{imagePreviews.length > 0 ? "Add More Images" : "Click to Select Images"}</span>
-                  </button>
-                  <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "0.6rem", textAlign: "center" }}>
-                    Select multiple images at once. First image becomes the primary photo.
-                  </p>
+                    <input ref={additionalFileRef} type="file" accept="image/*" multiple onChange={handleAdditionalSelect} style={{ display: "none" }} />
+                    <button
+                      type="button"
+                      onClick={() => additionalFileRef.current?.click()}
+                      style={{
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+                        width: "100%", padding: "1rem",
+                        border: "1.5px dashed var(--border)", borderRadius: 8,
+                        background: "#FAFAF8", color: "var(--text-muted)",
+                        cursor: "pointer", fontSize: "0.85rem", fontWeight: 500,
+                        transition: "border-color 0.2s, color 0.2s",
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.borderColor = "#64748B"; e.currentTarget.style.color = "#64748B"; }}
+                      onMouseOut={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+                    >
+                      <ImagePlus size={16} />
+                      <span>{additionalPreviews.length > 0 ? "Add More" : "Add Additional Images"}</span>
+                    </button>
+                  </div>
                 </div>
 
               </div>
 
               {/* Bottom action bar */}
-              <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+              <div className="form-bottom-bar">
                 <button type="button" className="admin-cancel-btn" onClick={closeForm}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={submitting} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: submitting ? 0.7 : 1 }}>
                   <Check size={15} />

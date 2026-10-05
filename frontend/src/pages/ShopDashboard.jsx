@@ -37,11 +37,14 @@ export default function ShopDashboard() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY);
-  const [newImages, setNewImages] = useState([]);
-  const [previews, setPreviews] = useState([]);
+  const [primaryFile, setPrimaryFile] = useState(null);
+  const [primaryPreview, setPrimaryPreview] = useState(null);
+  const [additionalFiles, setAdditionalFiles] = useState([]);
+  const [additionalPreviews, setAdditionalPreviews] = useState([]);
   const [savedProductName, setSavedProductName] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const fileRef = useRef();
+  const primaryFileRef = useRef();
+  const additionalFileRef = useRef();
   const shopFormRef = useRef();
 
   // Orders
@@ -75,26 +78,46 @@ export default function ShopDashboard() {
 
   // ── Products ─────────────────────────────────────────────────────────────────
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setNewImages([]); setPreviews([]); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" }); };
-  const closeForm = () => { setShowForm(false); setEditing(null); setForm(EMPTY); setNewImages([]); setPreviews([]); setSavedProductName(null); };
+  const clearImageState = () => {
+    if (primaryPreview) URL.revokeObjectURL(primaryPreview);
+    additionalPreviews.forEach((u) => URL.revokeObjectURL(u));
+    setPrimaryFile(null); setPrimaryPreview(null);
+    setAdditionalFiles([]); setAdditionalPreviews([]);
+  };
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY); clearImageState(); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const closeForm = () => { setShowForm(false); setEditing(null); setForm(EMPTY); clearImageState(); setSavedProductName(null); };
   const openEdit = (p) => {
     setEditing(p);
     setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured, is_handloom: p.is_handloom, has_multiple_colours: p.has_multiple_colours, custom_orders: p.custom_orders });
-    setNewImages([]); setPreviews([]); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" });
+    clearImageState(); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" });
   };
 
-  const handleImages = (e) => {
-    const files = Array.from(e.target.files);
-    if (!files.length) return;
-    setNewImages((prev) => [...prev, ...files]);
-    setPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+  const handlePrimarySelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (primaryPreview) URL.revokeObjectURL(primaryPreview);
+    setPrimaryFile(file); setPrimaryPreview(URL.createObjectURL(file));
     e.target.value = "";
   };
 
-  const removeNewImage = (index) => {
-    URL.revokeObjectURL(previews[index]);
-    setNewImages((prev) => prev.filter((_, i) => i !== index));
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  const removePrimary = () => {
+    if (primaryPreview) URL.revokeObjectURL(primaryPreview);
+    setPrimaryFile(null); setPrimaryPreview(null);
+  };
+
+  const handleAdditionalSelect = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    setAdditionalFiles((prev) => [...prev, ...files]);
+    setAdditionalPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+    e.target.value = "";
+  };
+
+  const removeAdditional = (index) => {
+    URL.revokeObjectURL(additionalPreviews[index]);
+    setAdditionalFiles((prev) => prev.filter((_, i) => i !== index));
+    setAdditionalPreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleDeleteExistingImage = async (imageId) => {
@@ -114,7 +137,8 @@ export default function ShopDashboard() {
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      newImages.forEach((img) => fd.append("images", img));
+      if (primaryFile) fd.append("images", primaryFile);
+      additionalFiles.forEach((img) => fd.append("images", img));
       if (editing) {
         await updateShopProduct(editing.id, fd);
         toast.success("Product updated");
@@ -126,8 +150,7 @@ export default function ShopDashboard() {
         loadProducts();
         setSavedProductName(addedName);
         setForm(EMPTY);
-        setNewImages([]);
-        setPreviews([]);
+        clearImageState();
         window.scrollTo({ top: 0, behavior: "instant" });
       }
     } catch (err) {
@@ -254,30 +277,21 @@ export default function ShopDashboard() {
           </>
         )}
 
-        {/* Products Tab — add / edit page */}
+        {/* Products Tab — add / edit page (same layout as admin) */}
         {tab === "products" && showForm && (
           <>
             {/* Page action bar */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", gap: "0.5rem" }}>
-              <button
-                type="button"
-                onClick={closeForm}
-                style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "none", border: "1px solid #ddd", borderRadius: 8, padding: "0.45rem 0.9rem", cursor: "pointer", color: "#555", fontSize: "0.82rem", fontWeight: 500 }}
-              >
+            <div className="form-top-bar">
+              <button type="button" onClick={closeForm} className="form-back-btn">
                 <ChevronLeft size={14} /> Back
               </button>
-              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.1rem", flex: 1, textAlign: "center" }}>
-                {editing ? "Edit Product" : "Add Product"}
-              </h2>
-              <button
-                type="button"
-                onClick={() => shopFormRef.current?.requestSubmit()}
-                className="btn-primary"
-                disabled={submitting}
-                style={{ fontSize: "0.82rem", padding: "0.45rem 1rem", display: "flex", alignItems: "center", gap: "0.35rem", opacity: submitting ? 0.7 : 1 }}
-              >
-                <Check size={13} /> {submitting ? "Saving…" : (editing ? "Update" : "Save")}
-              </button>
+              <h2 style={{ color: "var(--primary)" }}>{editing ? "Edit Product" : "Add Product"}</h2>
+              <div className="form-top-actions">
+                <button type="button" className="admin-cancel-btn" onClick={closeForm}>Cancel</button>
+                <button type="button" onClick={() => shopFormRef.current?.requestSubmit()} className="btn-primary" disabled={submitting} style={{ display: "flex", alignItems: "center", gap: "0.35rem", opacity: submitting ? 0.7 : 1 }}>
+                  <Check size={13} /> {submitting ? "Saving…" : (editing ? "Update Product" : "Save Product")}
+                </button>
+              </div>
             </div>
 
             {/* Success banner */}
@@ -288,123 +302,166 @@ export default function ShopDashboard() {
                   <span style={{ fontSize: "0.85rem", color: "#166534", fontWeight: 600 }}>"{savedProductName}" added!</span>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <button
-                    type="button"
-                    onClick={() => setSavedProductName(null)}
-                    className="btn-primary"
-                    style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
-                  >
+                  <button type="button" onClick={() => setSavedProductName(null)} className="btn-primary" style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}>
                     <Plus size={12} /> Add Another
                   </button>
-                  <button
-                    type="button"
-                    onClick={closeForm}
-                    style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, background: "none", border: "1px solid #BBF7D0", borderRadius: 6, color: "#166534", cursor: "pointer", fontWeight: 500 }}
-                  >
+                  <button type="button" onClick={closeForm} style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, background: "none", border: "1px solid #BBF7D0", borderRadius: 6, color: "#166534", cursor: "pointer", fontWeight: 500 }}>
                     Back to List
                   </button>
                 </div>
               </div>
             )}
 
-            <form ref={shopFormRef} onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <form ref={shopFormRef} onSubmit={handleSubmit}>
+              <div className="product-form-cols">
 
-              {/* Product Details card */}
-              <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)", opacity: 0.7 }}>Product Details</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-                  <div>
-                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Product Name *</label>
-                    <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
-                  </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                    <div>
-                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Price (₹) *</label>
-                      <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="5500" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Category *</label>
-                      <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", background: "#fff" }}>
-                        <option value="">Select…</option>
-                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Description</label>
-                    <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Fabric, weave, occasion, care instructions…" style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical" }} />
-                  </div>
-                </div>
-              </div>
+                {/* ── Left column ── */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 
-              {/* Attributes card */}
-              <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <p style={{ margin: "0 0 0.85rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)", opacity: 0.7 }}>Attributes</p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                  {[
-                    ["is_featured", "Featured Product", "Shows in featured section"],
-                    ["is_handloom", "Genuine Handloom", "Displays handloom badge"],
-                    ["has_multiple_colours", "Multiple Colours Available", "Customer can request other colours"],
-                    ["custom_orders", "Accepts Custom Orders", "Shows 'Contact Us' badge"],
-                  ].map(([k, label, hint]) => (
-                    <label key={k} style={{ display: "flex", alignItems: "flex-start", gap: "0.65rem", padding: "0.7rem 0.85rem", borderRadius: 8, border: "1px solid #e2e8f0", background: form[k] ? "#FDF8F0" : "#fafaf8", cursor: "pointer", transition: "background 0.15s" }}>
-                      <input type="checkbox" checked={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.checked })} style={{ marginTop: 2, flexShrink: 0, accentColor: "var(--primary)" }} />
+                  {/* Product Details */}
+                  <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                    <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Product Details</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                       <div>
-                        <span style={{ display: "block", fontWeight: 600, fontSize: "0.85rem", color: "#222" }}>{label}</span>
-                        <span style={{ display: "block", fontSize: "0.72rem", color: "#888" }}>{hint}</span>
+                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Product Name *</label>
+                        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
                       </div>
-                    </label>
-                  ))}
+                      <div className="form-field-row">
+                        <div>
+                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Price (₹) *</label>
+                          <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="5500" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Category *</label>
+                          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", background: "#fff" }}>
+                            <option value="">Select…</option>
+                            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Description</label>
+                        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Fabric, weave, occasion, care instructions…" style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical" }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Attributes & Visibility */}
+                  <div className="admin-card">
+                    <h3 className="admin-card-title" style={{ marginBottom: "0.25rem" }}>Attributes &amp; Visibility</h3>
+                    <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1.1rem" }}>Checked attributes appear as trust badges on the product page.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {[
+                        { id: "is_featured", label: "Mark as Featured", hint: "Shows in featured section on home page" },
+                        { id: "is_handloom", label: "Genuine Handloom Product", hint: "Displays handloom trust badge" },
+                        { id: "has_multiple_colours", label: "Available in Multiple Colours", hint: "Customer can contact for colour options" },
+                        { id: "custom_orders", label: "Accepts Custom Orders", hint: "Displays 'Contact Us' badge on product" },
+                      ].map(({ id, label, hint }) => (
+                        <div key={id} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.65rem 0.85rem", borderRadius: 6, border: "1px solid var(--border)", background: form[id] ? "#FDF8F0" : "transparent", transition: "background 0.15s" }}>
+                          <input
+                            type="checkbox"
+                            id={`shop-${id}`}
+                            checked={form[id]}
+                            onChange={(e) => setForm({ ...form, [id]: e.target.checked })}
+                            style={{ width: 16, height: 16, accentColor: "var(--primary)", flexShrink: 0, marginTop: 2 }}
+                          />
+                          <div>
+                            <label htmlFor={`shop-${id}`} style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: "0.74rem", color: "var(--text-muted)" }}>{hint}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                 </div>
+
+                {/* ── Right column — Images ── */}
+                <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                  <p style={{ margin: "0 0 1.1rem", fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Product Images</p>
+
+                  {/* Primary Image */}
+                  <div style={{ marginBottom: "1.25rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Primary Image</span>
+                      <span style={{ fontSize: "0.69rem", color: "#aaa" }}>· 1 only</span>
+                    </div>
+                    <p style={{ fontSize: "0.72rem", color: "#aaa", marginBottom: "0.65rem" }}>Main photo shown in listings</p>
+
+                    {editing?.images?.[0] && (
+                      <div style={{ position: "relative", display: "inline-block", marginBottom: "0.5rem" }}>
+                        <img src={editing.images[0].url} alt="" style={{ width: 90, height: 90, objectFit: "cover", borderRadius: 8, display: "block" }} />
+                        <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: "0.58rem", textAlign: "center", borderRadius: "0 0 8px 8px", padding: "2px 0" }}>Primary</span>
+                        <button type="button" onClick={() => handleDeleteExistingImage(editing.images[0].id)} style={{ position: "absolute", top: -6, right: -6, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 13 }}>×</button>
+                      </div>
+                    )}
+                    {primaryPreview && (
+                      <div style={{ position: "relative", display: "inline-block", marginBottom: "0.5rem" }}>
+                        <img src={primaryPreview} alt="" style={{ width: 90, height: 90, objectFit: "cover", borderRadius: 8, display: "block" }} />
+                        <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(123,29,69,0.8)", color: "#fff", fontSize: "0.58rem", textAlign: "center", borderRadius: "0 0 8px 8px", padding: "2px 0" }}>New</span>
+                        <button type="button" onClick={removePrimary} style={{ position: "absolute", top: -6, right: -6, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 13 }}>×</button>
+                      </div>
+                    )}
+                    {!editing?.images?.[0] && !primaryPreview && (
+                      <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", width: "100%", padding: "1.25rem 1rem", border: "2px dashed #e2e8f0", borderRadius: 10, background: "#fafaf8", color: "#aaa", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500 }}>
+                        <ImagePlus size={16} /> Upload Primary Photo
+                      </button>
+                    )}
+                    {(editing?.images?.[0] || primaryPreview) && !primaryPreview && (
+                      <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ display: "block", fontSize: "0.75rem", color: "var(--primary)", background: "none", border: "1px solid #e2e8f0", borderRadius: 6, padding: "0.3rem 0.75rem", cursor: "pointer", marginTop: "0.4rem" }}>
+                        Replace Primary
+                      </button>
+                    )}
+                    <input ref={primaryFileRef} type="file" accept="image/*" onChange={handlePrimarySelect} style={{ display: "none" }} />
+                  </div>
+
+                  <hr style={{ border: "none", borderTop: "1px solid #f0f0f0", margin: "0 0 1.1rem" }} />
+
+                  {/* Additional Images */}
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748B" }}>Additional Images</span>
+                      <span style={{ fontSize: "0.69rem", color: "#aaa" }}>· multiple allowed</span>
+                    </div>
+                    <p style={{ fontSize: "0.72rem", color: "#aaa", marginBottom: "0.65rem" }}>Gallery photos on product detail page</p>
+
+                    {editing?.images?.length > 1 && (
+                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.65rem" }}>
+                        {editing.images.slice(1).map((img) => (
+                          <div key={img.id} style={{ position: "relative" }}>
+                            <img src={img.url} alt="" style={{ width: 66, height: 66, objectFit: "cover", borderRadius: 8 }} />
+                            <button type="button" onClick={() => handleDeleteExistingImage(img.id)} style={{ position: "absolute", top: -5, right: -5, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 12 }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {additionalPreviews.length > 0 && (
+                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.65rem" }}>
+                        {additionalPreviews.map((url, i) => (
+                          <div key={i} style={{ position: "relative" }}>
+                            <img src={url} alt="" style={{ width: 66, height: 66, objectFit: "cover", borderRadius: 8 }} />
+                            <button type="button" onClick={() => removeAdditional(i)} style={{ position: "absolute", top: -5, right: -5, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 12 }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" onClick={() => additionalFileRef.current?.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", width: "100%", padding: "1rem", border: "1.5px dashed #e2e8f0", borderRadius: 10, background: "#fafaf8", color: "#aaa", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500 }}>
+                      <ImagePlus size={15} /> {additionalPreviews.length > 0 ? "Add More" : "Add Additional Photos"}
+                    </button>
+                    <input ref={additionalFileRef} type="file" accept="image/*" multiple onChange={handleAdditionalSelect} style={{ display: "none" }} />
+                  </div>
+                </div>
+
               </div>
 
-              {/* Images card */}
-              <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                <p style={{ margin: "0 0 0.85rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)", opacity: 0.7 }}>Product Images</p>
-
-                {/* Existing images */}
-                {editing && editing.images?.length > 0 && (
-                  <div style={{ marginBottom: "0.85rem" }}>
-                    <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "#888", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Photos</p>
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      {editing.images.map((img, i) => (
-                        <div key={img.id} style={{ position: "relative" }}>
-                          <img src={img.url} alt="" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
-                          {i === 0 && <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: "0.6rem", textAlign: "center", borderRadius: "0 0 8px 8px", padding: "2px 0" }}>Primary</span>}
-                          <button type="button" onClick={() => handleDeleteExistingImage(img.id)} style={{ position: "absolute", top: -5, right: -5, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1 }}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* New image previews */}
-                {previews.length > 0 && (
-                  <div style={{ marginBottom: "0.85rem" }}>
-                    <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "#888", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>New Photos</p>
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      {previews.map((p, i) => (
-                        <div key={i} style={{ position: "relative" }}>
-                          <img src={p} alt="" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
-                          {i === 0 && !editing?.images?.length && <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: "0.6rem", textAlign: "center", borderRadius: "0 0 8px 8px", padding: "2px 0" }}>Primary</span>}
-                          <button type="button" onClick={() => removeNewImage(i)} style={{ position: "absolute", top: -5, right: -5, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1 }}>×</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", width: "100%", padding: "1.5rem 1rem", border: "2px dashed #ddd", borderRadius: 10, background: "#fafaf8", color: "#888", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}
-                >
-                  <ImagePlus size={18} /> {previews.length > 0 ? "Add More Photos" : "Select Photos"}
+              {/* Bottom action bar */}
+              <div className="form-bottom-bar">
+                <button type="button" className="admin-cancel-btn" onClick={closeForm}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={submitting} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: submitting ? 0.7 : 1 }}>
+                  <Check size={15} />
+                  {submitting ? "Saving…" : (editing ? "Update Product" : "Save Product")}
                 </button>
-                <p style={{ fontSize: "0.72rem", color: "#aaa", textAlign: "center", marginTop: "0.5rem" }}>First photo becomes the main product image</p>
-                <input type="file" multiple accept="image/*" ref={fileRef} onChange={handleImages} style={{ display: "none" }} />
               </div>
-
             </form>
           </>
         )}

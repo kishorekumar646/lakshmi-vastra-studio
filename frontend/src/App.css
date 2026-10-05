@@ -1286,6 +1286,104 @@ img {
   .product-form-cols { grid-template-columns: 1fr; }
 }
 
+/* ── Product form action bars ─────────────── */
+.form-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.75rem;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.form-top-bar h2 {
+  margin: 0;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.25rem;
+  color: var(--text);
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+.form-top-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-shrink: 0;
+}
+/* Compact btn-primary inside the top bar */
+.form-top-actions .btn-primary,
+.form-top-bar > .btn-primary {
+  padding: 0.55rem 1.1rem;
+  font-size: 0.8rem;
+  min-height: 38px;
+  letter-spacing: 0.04em;
+}
+.form-top-actions .admin-cancel-btn {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.8rem;
+}
+.form-top-bar .form-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.form-bottom-bar {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Price/Category 2-col field row — collapses on small screens */
+.form-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+@media (max-width: 420px) {
+  .form-field-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 520px) {
+  .form-top-bar { margin-bottom: 1rem; }
+  .form-top-bar h2 { font-size: 1rem; }
+  /* Hide cancel from top bar on mobile — it's at the bottom bar too */
+  .form-top-actions .admin-cancel-btn { display: none; }
+  .form-top-actions .btn-primary,
+  .form-top-bar > .btn-primary {
+    padding: 0.5rem 0.85rem;
+    font-size: 0.75rem;
+  }
+  .form-back-btn { font-size: 0.75rem; padding: 0.45rem 0.65rem; }
+  /* admin-card padding tighter on mobile */
+  .admin-card { padding: 1rem; }
+  /* Bottom bar stacks full-width */
+  .form-bottom-bar {
+    flex-direction: column-reverse;
+    gap: 0.6rem;
+  }
+  .form-bottom-bar .btn-primary,
+  .form-bottom-bar .admin-cancel-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
 /* ── Pagination ─────────────── */
 .pagination {
   display: flex;
