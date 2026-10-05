@@ -6,7 +6,7 @@ import {
   deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, Download } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -39,8 +39,10 @@ export default function ShopDashboard() {
   const [form, setForm] = useState(EMPTY);
   const [newImages, setNewImages] = useState([]);
   const [previews, setPreviews] = useState([]);
+  const [savedProductName, setSavedProductName] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef();
+  const shopFormRef = useRef();
 
   // Orders
   const [orders, setOrders] = useState([]);
@@ -73,11 +75,12 @@ export default function ShopDashboard() {
 
   // ── Products ─────────────────────────────────────────────────────────────────
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setNewImages([]); setPreviews([]); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setNewImages([]); setPreviews([]); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const closeForm = () => { setShowForm(false); setEditing(null); setForm(EMPTY); setNewImages([]); setPreviews([]); setSavedProductName(null); };
   const openEdit = (p) => {
     setEditing(p);
     setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured, is_handloom: p.is_handloom, has_multiple_colours: p.has_multiple_colours, custom_orders: p.custom_orders });
-    setNewImages([]); setPreviews([]); setShowForm(true);
+    setNewImages([]); setPreviews([]); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   const handleImages = (e) => {
@@ -115,12 +118,18 @@ export default function ShopDashboard() {
       if (editing) {
         await updateShopProduct(editing.id, fd);
         toast.success("Product updated");
+        loadProducts();
+        closeForm();
       } else {
         await createShopProduct(fd);
-        toast.success("Product added");
+        const addedName = form.name;
+        loadProducts();
+        setSavedProductName(addedName);
+        setForm(EMPTY);
+        setNewImages([]);
+        setPreviews([]);
+        window.scrollTo({ top: 0, behavior: "instant" });
       }
-      setShowForm(false);
-      loadProducts();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed");
     } finally {
@@ -207,8 +216,8 @@ export default function ShopDashboard() {
 
       <div style={{ flex: 1, padding: "1.25rem 1.25rem 6rem", width: "100%", boxSizing: "border-box" }}>
 
-        {/* Products Tab */}
-        {tab === "products" && (
+        {/* Products Tab — list */}
+        {tab === "products" && !showForm && (
           <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>My Products</h2>
@@ -216,71 +225,6 @@ export default function ShopDashboard() {
                 <Plus size={15} /> Add Product
               </button>
             </div>
-
-            {/* Product form modal */}
-            {showForm && (
-              <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-                <div style={{ background: "#fff", borderRadius: 10, padding: "1.75rem", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.25rem" }}>
-                    <h3 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)" }}>{editing ? "Edit Product" : "Add Product"}</h3>
-                    <button onClick={() => setShowForm(false)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={20} /></button>
-                  </div>
-                  <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <div><label style={{ fontSize: "0.8rem" }}>Product Name *</label><input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
-                    <div><label style={{ fontSize: "0.8rem" }}>Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} style={{ width: "100%", borderRadius: 6, border: "1px solid #ddd", padding: "0.5rem" }} /></div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                      <div><label style={{ fontSize: "0.8rem" }}>Price (₹) *</label><input type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} required /></div>
-                      <div>
-                        <label style={{ fontSize: "0.8rem" }}>Category *</label>
-                        <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required style={{ width: "100%", padding: "0.5rem", borderRadius: 6, border: "1px solid #ddd" }}>
-                          <option value="">Select...</option>
-                          {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                      {[["is_featured", "Featured"], ["is_handloom", "Handloom"], ["has_multiple_colours", "Multi-colour"], ["custom_orders", "Custom Orders"]].map(([k, label]) => (
-                        <label key={k} style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", cursor: "pointer" }}>
-                          <input type="checkbox" checked={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.checked })} />
-                          {label}
-                        </label>
-                      ))}
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}>Images</label>
-                      {editing && editing.images?.length > 0 && (
-                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
-                          {editing.images.map((img) => (
-                            <div key={img.id} style={{ position: "relative" }}>
-                              <img src={img.url} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6 }} />
-                              <button type="button" onClick={() => handleDeleteExistingImage(img.id)} style={{ position: "absolute", top: -6, right: -6, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {previews.length > 0 && (
-                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
-                          {previews.map((p, i) => (
-                            <div key={i} style={{ position: "relative" }}>
-                              <img src={p} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6 }} />
-                              <button type="button" onClick={() => removeNewImage(i)} style={{ position: "absolute", top: -6, right: -6, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <button type="button" onClick={() => fileRef.current?.click()} style={{ fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", padding: "0.6rem", border: "1px dashed #ccc", borderRadius: 6, background: "none", width: "100%", justifyContent: "center" }}>
-                        <ImagePlus size={15} /> Add Images
-                      </button>
-                      <input type="file" multiple accept="image/*" ref={fileRef} onChange={handleImages} style={{ display: "none" }} />
-                    </div>
-                    <button type="submit" className="btn-primary" disabled={submitting} style={{ opacity: submitting ? 0.7 : 1 }}>
-                      {submitting ? "Saving..." : editing ? "Update Product" : "Add Product"}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
-
             {products.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem", color: "#888" }}>
                 <Package size={40} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
@@ -290,10 +234,14 @@ export default function ShopDashboard() {
               <div style={{ display: "grid", gap: "0.75rem" }}>
                 {products.map((p) => (
                   <div key={p.id} style={{ ...S.card, display: "flex", gap: "1rem", alignItems: "center" }}>
-                    {p.image_url && <img src={p.image_url} alt={p.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />}
+                    {p.image_url
+                      ? <img src={p.image_url} alt={p.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                      : <div style={{ width: 60, height: 60, borderRadius: 6, background: "#f0f0f0", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} style={{ opacity: 0.3 }} /></div>
+                    }
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ margin: 0, fontWeight: 600, fontSize: "0.95rem" }}>{p.name}</p>
                       <p style={{ margin: 0, fontSize: "0.8rem", color: "#888" }}>{p.category_name} · ₹{p.price.toLocaleString("en-IN")}</p>
+                      {p.images?.length > 0 && <p style={{ margin: 0, fontSize: "0.72rem", color: "#aaa" }}>{p.images.length} photo{p.images.length !== 1 ? "s" : ""}</p>}
                     </div>
                     <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
                       <button onClick={() => openEdit(p)} style={{ background: "#f0f0f0", border: "none", borderRadius: 6, padding: "0.4rem", cursor: "pointer" }}><Edit2 size={14} /></button>
@@ -303,6 +251,161 @@ export default function ShopDashboard() {
                 ))}
               </div>
             )}
+          </>
+        )}
+
+        {/* Products Tab — add / edit page */}
+        {tab === "products" && showForm && (
+          <>
+            {/* Page action bar */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={closeForm}
+                style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "none", border: "1px solid #ddd", borderRadius: 8, padding: "0.45rem 0.9rem", cursor: "pointer", color: "#555", fontSize: "0.82rem", fontWeight: 500 }}
+              >
+                <ChevronLeft size={14} /> Back
+              </button>
+              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.1rem", flex: 1, textAlign: "center" }}>
+                {editing ? "Edit Product" : "Add Product"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => shopFormRef.current?.requestSubmit()}
+                className="btn-primary"
+                disabled={submitting}
+                style={{ fontSize: "0.82rem", padding: "0.45rem 1rem", display: "flex", alignItems: "center", gap: "0.35rem", opacity: submitting ? 0.7 : 1 }}
+              >
+                <Check size={13} /> {submitting ? "Saving…" : (editing ? "Update" : "Save")}
+              </button>
+            </div>
+
+            {/* Success banner */}
+            {savedProductName && (
+              <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "0.9rem 1rem", marginBottom: "1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem" }}>
+                  <Check size={15} style={{ color: "#16a34a", flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.85rem", color: "#166534", fontWeight: 600 }}>"{savedProductName}" added!</span>
+                </div>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <button
+                    type="button"
+                    onClick={() => setSavedProductName(null)}
+                    className="btn-primary"
+                    style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}
+                  >
+                    <Plus size={12} /> Add Another
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, background: "none", border: "1px solid #BBF7D0", borderRadius: 6, color: "#166534", cursor: "pointer", fontWeight: 500 }}
+                  >
+                    Back to List
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <form ref={shopFormRef} onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+              {/* Product Details card */}
+              <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)", opacity: 0.7 }}>Product Details</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                  <div>
+                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Product Name *</label>
+                    <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+                    <div>
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Price (₹) *</label>
+                      <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="5500" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Category *</label>
+                      <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", background: "#fff" }}>
+                        <option value="">Select…</option>
+                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Description</label>
+                    <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Fabric, weave, occasion, care instructions…" style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical" }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Attributes card */}
+              <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                <p style={{ margin: "0 0 0.85rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)", opacity: 0.7 }}>Attributes</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+                  {[
+                    ["is_featured", "Featured Product", "Shows in featured section"],
+                    ["is_handloom", "Genuine Handloom", "Displays handloom badge"],
+                    ["has_multiple_colours", "Multiple Colours Available", "Customer can request other colours"],
+                    ["custom_orders", "Accepts Custom Orders", "Shows 'Contact Us' badge"],
+                  ].map(([k, label, hint]) => (
+                    <label key={k} style={{ display: "flex", alignItems: "flex-start", gap: "0.65rem", padding: "0.7rem 0.85rem", borderRadius: 8, border: "1px solid #e2e8f0", background: form[k] ? "#FDF8F0" : "#fafaf8", cursor: "pointer", transition: "background 0.15s" }}>
+                      <input type="checkbox" checked={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.checked })} style={{ marginTop: 2, flexShrink: 0, accentColor: "var(--primary)" }} />
+                      <div>
+                        <span style={{ display: "block", fontWeight: 600, fontSize: "0.85rem", color: "#222" }}>{label}</span>
+                        <span style={{ display: "block", fontSize: "0.72rem", color: "#888" }}>{hint}</span>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Images card */}
+              <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                <p style={{ margin: "0 0 0.85rem", fontWeight: 700, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)", opacity: 0.7 }}>Product Images</p>
+
+                {/* Existing images */}
+                {editing && editing.images?.length > 0 && (
+                  <div style={{ marginBottom: "0.85rem" }}>
+                    <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "#888", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Current Photos</p>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                      {editing.images.map((img, i) => (
+                        <div key={img.id} style={{ position: "relative" }}>
+                          <img src={img.url} alt="" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
+                          {i === 0 && <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: "0.6rem", textAlign: "center", borderRadius: "0 0 8px 8px", padding: "2px 0" }}>Primary</span>}
+                          <button type="button" onClick={() => handleDeleteExistingImage(img.id)} style={{ position: "absolute", top: -5, right: -5, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1 }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* New image previews */}
+                {previews.length > 0 && (
+                  <div style={{ marginBottom: "0.85rem" }}>
+                    <p style={{ fontSize: "0.72rem", fontWeight: 600, color: "#888", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>New Photos</p>
+                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                      {previews.map((p, i) => (
+                        <div key={i} style={{ position: "relative" }}>
+                          <img src={p} alt="" style={{ width: 70, height: 70, objectFit: "cover", borderRadius: 8 }} />
+                          {i === 0 && !editing?.images?.length && <span style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: "0.6rem", textAlign: "center", borderRadius: "0 0 8px 8px", padding: "2px 0" }}>Primary</span>}
+                          <button type="button" onClick={() => removeNewImage(i)} style={{ position: "absolute", top: -5, right: -5, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 13, lineHeight: 1 }}>×</button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem", width: "100%", padding: "1.5rem 1rem", border: "2px dashed #ddd", borderRadius: 10, background: "#fafaf8", color: "#888", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}
+                >
+                  <ImagePlus size={18} /> {previews.length > 0 ? "Add More Photos" : "Select Photos"}
+                </button>
+                <p style={{ fontSize: "0.72rem", color: "#aaa", textAlign: "center", marginTop: "0.5rem" }}>First photo becomes the main product image</p>
+                <input type="file" multiple accept="image/*" ref={fileRef} onChange={handleImages} style={{ display: "none" }} />
+              </div>
+
+            </form>
           </>
         )}
 

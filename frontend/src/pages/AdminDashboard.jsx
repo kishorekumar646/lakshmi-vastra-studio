@@ -63,10 +63,12 @@ export default function AdminDashboard() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [newImages, setNewImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  const [savedProductName, setSavedProductName] = useState(null);
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
   const fileInputRef = useRef();
+  const productFormRef = useRef();
   const navigate = useNavigate();
 
   // Orders tab
@@ -224,7 +226,17 @@ export default function AdminDashboard() {
     setForm(EMPTY_FORM);
     setNewImages([]);
     setImagePreviews([]);
+    setSavedProductName(null);
     setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingProduct(null);
+    setForm(EMPTY_FORM);
+    setNewImages([]);
+    setImagePreviews([]);
+    setSavedProductName(null);
   };
 
   const handleEdit = (p) => {
@@ -232,6 +244,7 @@ export default function AdminDashboard() {
     setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured, is_handloom: p.is_handloom || false, has_multiple_colours: p.has_multiple_colours || false, custom_orders: p.custom_orders || false });
     setNewImages([]);
     setImagePreviews([]);
+    setSavedProductName(null);
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -286,16 +299,20 @@ export default function AdminDashboard() {
         await updateProduct(editingProduct.id, fd);
         toast.success("Product updated!");
         loadProducts(productPage);
+        setShowForm(false);
+        setEditingProduct(null);
+        setForm(EMPTY_FORM);
+        setNewImages([]);
+        setImagePreviews([]);
       } else {
         await createProduct(fd);
-        toast.success("Product added!");
-        loadProducts(1); // go to first page to see the new product
+        const addedName = form.name;
+        loadProducts(1);
+        setSavedProductName(addedName);
+        setForm(EMPTY_FORM);
+        setNewImages([]);
+        setImagePreviews([]);
       }
-      setShowForm(false);
-      setEditingProduct(null);
-      setForm(EMPTY_FORM);
-      setNewImages([]);
-      setImagePreviews([]);
     } catch {
       toast.error("Failed to save product.");
     } finally {
@@ -454,182 +471,16 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ── Products Tab ───────────────── */}
-        {tab === "products" && (
+        {/* ── Products Tab — list view ───── */}
+        {tab === "products" && !showForm && (
           <div>
             <div className="admin-section-header">
               <h2 className="admin-section-title">Products</h2>
-              {!showForm && (
-                <button onClick={openAddForm} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <Plus size={16} /> Add Product
-                </button>
-              )}
+              <button onClick={openAddForm} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <Plus size={16} /> Add Product
+              </button>
             </div>
 
-            {/* Product form */}
-            {showForm && (
-              <div className="admin-card">
-                <h3 className="admin-card-title">{editingProduct ? "Edit Product" : "Add New Product"}</h3>
-                <form onSubmit={handleProductSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-                  <div className="admin-form-grid">
-                    <div>
-                      <label>Product Name *</label>
-                      <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required />
-                    </div>
-                    <div>
-                      <label>Price (₹) *</label>
-                      <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 5500" required />
-                    </div>
-                    <div>
-                      <label>Category *</label>
-                      <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
-                        <option value="">Select category</option>
-                        {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", paddingTop: "1.5rem" }}>
-                      <input
-                        type="checkbox"
-                        id="featured"
-                        checked={form.is_featured}
-                        onChange={(e) => setForm({ ...form, is_featured: e.target.checked })}
-                        style={{ width: "auto", minHeight: "auto", height: 18, width: 18, accentColor: "var(--primary)" }}
-                      />
-                      <label htmlFor="featured" style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 500, color: "var(--text)" }}>
-                        Mark as Featured
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Product attributes */}
-                  <div>
-                    <label style={{ marginBottom: "0.65rem", display: "block" }}>Product Attributes</label>
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                      {[
-                        { id: "is_handloom", label: "Genuine Handloom Product" },
-                        { id: "has_multiple_colours", label: "Available in Multiple Colours" },
-                        { id: "custom_orders", label: "Contact Us for Custom Orders" },
-                      ].map(({ id, label }) => (
-                        <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                          <input
-                            type="checkbox"
-                            id={id}
-                            checked={form[id]}
-                            onChange={(e) => setForm({ ...form, [id]: e.target.checked })}
-                            style={{ width: "auto", minHeight: "auto", height: 17, width: 17, accentColor: "var(--primary)", flexShrink: 0 }}
-                          />
-                          <label htmlFor={id} style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 500, color: "var(--text)" }}>
-                            {label}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                    <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
-                      Checked attributes appear as trust badges on the product page.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label>Description</label>
-                    <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Describe the saree — fabric, weave, occasion, etc." />
-                  </div>
-
-                  {/* Image Upload Section */}
-                  <div>
-                    <label>Product Images</label>
-
-                    {/* Existing images (edit mode) */}
-                    {editingProduct && editingProduct.images && editingProduct.images.length > 0 && (
-                      <div style={{ marginBottom: "0.75rem" }}>
-                        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>Current images:</p>
-                        <div className="img-preview-grid">
-                          {editingProduct.images.map((img, i) => (
-                            <div key={img.id} className="img-preview-item">
-                              <img src={img.url} alt="" />
-                              {i === 0 && <span className="img-preview-label">Primary</span>}
-                              <button
-                                type="button"
-                                className="img-preview-remove"
-                                onClick={() => handleDeleteExistingImage(editingProduct.id, img.id)}
-                                title="Delete image"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* New image previews */}
-                    {imagePreviews.length > 0 && (
-                      <div style={{ marginBottom: "0.75rem" }}>
-                        <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>New images to upload:</p>
-                        <div className="img-preview-grid">
-                          {imagePreviews.map((prev, i) => (
-                            <div key={i} className="img-preview-item">
-                              <img src={prev.url} alt="" />
-                              {i === 0 && !editingProduct?.images?.length && (
-                                <span className="img-preview-label">Primary</span>
-                              )}
-                              <button type="button" className="img-preview-remove" onClick={() => removeNewImage(i)}>×</button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Upload button */}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      style={{ display: "none" }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        padding: "0.65rem 1.25rem",
-                        border: "1.5px dashed var(--border)",
-                        borderRadius: 4,
-                        background: "var(--cream)",
-                        color: "var(--text-muted)",
-                        cursor: "pointer",
-                        fontSize: "0.875rem",
-                        fontWeight: 500,
-                        transition: "border-color 0.2s, color 0.2s",
-                      }}
-                      onMouseOver={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; }}
-                      onMouseOut={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-                    >
-                      <ImagePlus size={16} />
-                      {imagePreviews.length > 0 ? "Add More Images" : "Select Images"}
-                    </button>
-                    <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
-                      Select multiple images. First image will be the primary display photo.
-                    </p>
-                  </div>
-
-                  <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                    <button type="submit" className="btn-primary" disabled={submitting} style={{ opacity: submitting ? 0.7 : 1, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                      <Check size={15} />
-                      {submitting ? "Saving..." : (editingProduct ? "Update Product" : "Add Product")}
-                    </button>
-                    <button type="button" className="admin-cancel-btn" onClick={() => { setShowForm(false); setEditingProduct(null); setNewImages([]); setImagePreviews([]); }}>
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
-
-            {/* Products table */}
             <div className="admin-table-wrap" style={{ opacity: productsLoading ? 0.5 : 1, transition: "opacity 0.2s" }}>
               <table className="admin-table">
                 <thead>
@@ -637,6 +488,7 @@ export default function AdminDashboard() {
                     <th>Image</th>
                     <th>Name</th>
                     <th>Category</th>
+                    <th>Shop Owner</th>
                     <th>Price</th>
                     <th>Photos</th>
                     <th>Status</th>
@@ -656,6 +508,12 @@ export default function AdminDashboard() {
                       </td>
                       <td><strong style={{ color: "var(--text)" }}>{p.name}</strong></td>
                       <td style={{ color: "var(--text-muted)" }}>{p.category_name}</td>
+                      <td style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
+                        {p.shop_owner_name
+                          ? <span style={{ background: "#F0F4FF", color: "#3B4F9E", borderRadius: 100, padding: "2px 8px", fontSize: "0.72rem", fontWeight: 600 }}>{p.shop_owner_name}</span>
+                          : <span style={{ color: "var(--border)" }}>—</span>
+                        }
+                      </td>
                       <td style={{ fontWeight: 600, color: "var(--primary)", fontFamily: "'Playfair Display', serif" }}>
                         ₹{p.price.toLocaleString("en-IN")}
                       </td>
@@ -669,14 +527,9 @@ export default function AdminDashboard() {
                           style={{
                             background: p.is_available ? "#DCFCE7" : "#F1F5F9",
                             color: p.is_available ? "#166534" : "#64748B",
-                            border: "none",
-                            borderRadius: 100,
-                            padding: "3px 10px",
-                            fontSize: "0.72rem",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                            letterSpacing: "0.03em",
-                            transition: "opacity 0.15s",
+                            border: "none", borderRadius: 100, padding: "3px 10px",
+                            fontSize: "0.72rem", fontWeight: 700, cursor: "pointer",
+                            letterSpacing: "0.03em", transition: "opacity 0.15s",
                           }}
                           onMouseOver={(e) => e.currentTarget.style.opacity = "0.75"}
                           onMouseOut={(e) => e.currentTarget.style.opacity = "1"}
@@ -704,58 +557,224 @@ export default function AdminDashboard() {
                 </tbody>
               </table>
               {productsLoading && products.length === 0 && (
-                <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
-                  Loading products…
-                </div>
+                <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>Loading products…</div>
               )}
               {!productsLoading && products.length === 0 && (
-                <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
-                  No products yet. Add your first product above.
-                </div>
+                <div style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>No products yet. Add your first product.</div>
               )}
             </div>
 
-            {/* Pagination */}
             {productTotal > 0 && (
               <div className="pagination">
                 <p className="pagination-info">
                   Showing {(productPage - 1) * PER_PAGE + 1}–{Math.min(productPage * PER_PAGE, productTotal)} of {productTotal} product{productTotal !== 1 ? "s" : ""}
                 </p>
                 <div className="pagination-controls">
-                  <button
-                    className="page-btn"
-                    onClick={() => goToPage(productPage - 1)}
-                    disabled={productPage === 1}
-                    title="Previous page"
-                  >
-                    <ChevronLeft size={15} />
-                  </button>
-
+                  <button className="page-btn" onClick={() => goToPage(productPage - 1)} disabled={productPage === 1} title="Previous page"><ChevronLeft size={15} /></button>
                   {getPageNumbers(productPage, productPages).map((p, i) =>
-                    p === "…" ? (
-                      <span key={`ellipsis-${i}`} style={{ padding: "0 0.25rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>…</span>
-                    ) : (
-                      <button
-                        key={p}
-                        className={`page-btn ${p === productPage ? "active" : ""}`}
-                        onClick={() => goToPage(p)}
-                      >
-                        {p}
-                      </button>
-                    )
+                    p === "…"
+                      ? <span key={`ellipsis-${i}`} style={{ padding: "0 0.25rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>…</span>
+                      : <button key={p} className={`page-btn ${p === productPage ? "active" : ""}`} onClick={() => goToPage(p)}>{p}</button>
                   )}
+                  <button className="page-btn" onClick={() => goToPage(productPage + 1)} disabled={productPage === productPages} title="Next page"><ChevronRight size={15} /></button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
+        {/* ── Products Tab — add / edit page ── */}
+        {tab === "products" && showForm && (
+          <div>
+            {/* Page header bar */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.75rem", flexWrap: "wrap", gap: "0.75rem" }}>
+              <button
+                type="button"
+                onClick={closeForm}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "1px solid var(--border)", borderRadius: 6, padding: "0.5rem 1rem", cursor: "pointer", color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: 500 }}
+              >
+                <ChevronLeft size={15} /> Back to Products
+              </button>
+              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: "1.3rem", color: "var(--text)", flex: 1, textAlign: "center" }}>
+                {editingProduct ? "Edit Product" : "Add New Product"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => productFormRef.current?.requestSubmit()}
+                className="btn-primary"
+                disabled={submitting}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: submitting ? 0.7 : 1 }}
+              >
+                <Check size={15} />
+                {submitting ? "Saving…" : (editingProduct ? "Update Product" : "Save Product")}
+              </button>
+            </div>
+
+            {/* Success banner — shown after adding a product */}
+            {savedProductName && (
+              <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 8, padding: "1rem 1.25rem", marginBottom: "1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                  <Check size={16} style={{ color: "#16a34a", flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.9rem", color: "#166534", fontWeight: 500 }}>
+                    <strong>"{savedProductName}"</strong> added successfully!
+                  </span>
+                </div>
+                <div style={{ display: "flex", gap: "0.6rem" }}>
                   <button
-                    className="page-btn"
-                    onClick={() => goToPage(productPage + 1)}
-                    disabled={productPage === productPages}
-                    title="Next page"
+                    type="button"
+                    onClick={() => setSavedProductName(null)}
+                    className="btn-primary"
+                    style={{ fontSize: "0.82rem", padding: "0.4rem 0.9rem", display: "flex", alignItems: "center", gap: "0.35rem" }}
                   >
-                    <ChevronRight size={15} />
+                    <Plus size={13} /> Add Another
+                  </button>
+                  <button
+                    type="button"
+                    onClick={closeForm}
+                    style={{ fontSize: "0.82rem", padding: "0.4rem 0.9rem", background: "none", border: "1px solid #BBF7D0", borderRadius: 6, color: "#166534", cursor: "pointer", fontWeight: 500 }}
+                  >
+                    Back to List
                   </button>
                 </div>
               </div>
             )}
+
+            {/* Two-column form */}
+            <form ref={productFormRef} onSubmit={handleProductSubmit}>
+              <div className="product-form-cols">
+
+                {/* ── Left column ── */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+                  {/* Product Details card */}
+                  <div className="admin-card">
+                    <h3 className="admin-card-title" style={{ marginBottom: "1.25rem" }}>Product Details</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
+                      <div>
+                        <label>Product Name *</label>
+                        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required />
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                        <div>
+                          <label>Price (₹) *</label>
+                          <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="e.g. 5500" required />
+                        </div>
+                        <div>
+                          <label>Category *</label>
+                          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required>
+                            <option value="">Select category</option>
+                            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label>Description</label>
+                        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={4} placeholder="Describe the saree — fabric, weave, occasion, care instructions…" style={{ resize: "vertical" }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Attributes card */}
+                  <div className="admin-card">
+                    <h3 className="admin-card-title" style={{ marginBottom: "0.25rem" }}>Attributes & Visibility</h3>
+                    <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1.1rem" }}>Checked attributes appear as trust badges on the product page.</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {[
+                        { id: "is_featured", label: "Mark as Featured", hint: "Shows in featured section on home page" },
+                        { id: "is_handloom", label: "Genuine Handloom Product", hint: "Displays handloom trust badge" },
+                        { id: "has_multiple_colours", label: "Available in Multiple Colours", hint: "Customer can contact for colour options" },
+                        { id: "custom_orders", label: "Accepts Custom Orders", hint: "Displays 'Contact Us' badge on product" },
+                      ].map(({ id, label, hint }) => (
+                        <div key={id} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.65rem 0.85rem", borderRadius: 6, border: "1px solid var(--border)", background: form[id] ? "#FDF8F0" : "transparent", transition: "background 0.15s" }}>
+                          <input
+                            type="checkbox"
+                            id={id}
+                            checked={form[id]}
+                            onChange={(e) => setForm({ ...form, [id]: e.target.checked })}
+                            style={{ width: "auto", minHeight: "auto", height: 16, width: 16, accentColor: "var(--primary)", flexShrink: 0, marginTop: 2 }}
+                          />
+                          <div>
+                            <label htmlFor={id} style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: "0.74rem", color: "var(--text-muted)" }}>{hint}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* ── Right column — Images ── */}
+                <div className="admin-card" style={{ position: "sticky", top: "1rem" }}>
+                  <h3 className="admin-card-title" style={{ marginBottom: "1.1rem" }}>Product Images</h3>
+
+                  {/* Existing images (edit mode) */}
+                  {editingProduct?.images?.length > 0 && (
+                    <div style={{ marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Current</p>
+                      <div className="img-preview-grid">
+                        {editingProduct.images.map((img, i) => (
+                          <div key={img.id} className="img-preview-item">
+                            <img src={img.url} alt="" />
+                            {i === 0 && <span className="img-preview-label">Primary</span>}
+                            <button type="button" className="img-preview-remove" onClick={() => handleDeleteExistingImage(editingProduct.id, img.id)} title="Delete image">×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* New image previews */}
+                  {imagePreviews.length > 0 && (
+                    <div style={{ marginBottom: "1rem" }}>
+                      <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>To Upload</p>
+                      <div className="img-preview-grid">
+                        {imagePreviews.map((prev, i) => (
+                          <div key={i} className="img-preview-item">
+                            <img src={prev.url} alt="" />
+                            {i === 0 && !editingProduct?.images?.length && <span className="img-preview-label">Primary</span>}
+                            <button type="button" className="img-preview-remove" onClick={() => removeNewImage(i)}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload button */}
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} style={{ display: "none" }} />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: "0.6rem",
+                      width: "100%", padding: "2rem 1rem",
+                      border: "2px dashed var(--border)", borderRadius: 8,
+                      background: "#FAFAF8", color: "var(--text-muted)",
+                      cursor: "pointer", fontSize: "0.875rem", fontWeight: 500,
+                      transition: "border-color 0.2s, color 0.2s, background 0.2s",
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.borderColor = "var(--primary)"; e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.background = "#FDF8F0"; }}
+                    onMouseOut={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "#FAFAF8"; }}
+                  >
+                    <ImagePlus size={20} />
+                    <span>{imagePreviews.length > 0 ? "Add More Images" : "Click to Select Images"}</span>
+                  </button>
+                  <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", marginTop: "0.6rem", textAlign: "center" }}>
+                    Select multiple images at once. First image becomes the primary photo.
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Bottom action bar */}
+              <div style={{ display: "flex", gap: "1rem", marginTop: "1.5rem", justifyContent: "flex-end", flexWrap: "wrap" }}>
+                <button type="button" className="admin-cancel-btn" onClick={closeForm}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={submitting} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: submitting ? 0.7 : 1 }}>
+                  <Check size={15} />
+                  {submitting ? "Saving…" : (editingProduct ? "Update Product" : "Save Product")}
+                </button>
+              </div>
+            </form>
           </div>
         )}
 

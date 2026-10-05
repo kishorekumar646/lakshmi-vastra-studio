@@ -1275,6 +1275,17 @@ img {
   .admin-table { min-width: 520px; font-size: 0.78rem; }
 }
 
+/* Product add/edit two-column layout */
+.product-form-cols {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .product-form-cols { grid-template-columns: 1fr; }
+}
+
 /* ── Pagination ─────────────── */
 .pagination {
   display: flex;

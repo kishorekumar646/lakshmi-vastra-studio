@@ -29,6 +29,8 @@ def product_to_dict(p: Product):
         "images": db_images,
         "category_id": p.category_id,
         "category_name": p.category.name if p.category else None,
+        "shop_owner_id": p.shop_owner_id,
+        "shop_owner_name": p.shop_owner.shop_name if p.shop_owner else None,
         "is_featured": p.is_featured,
         "is_available": p.is_available,
         "is_handloom": p.is_handloom or False,

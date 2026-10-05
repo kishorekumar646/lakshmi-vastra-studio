@@ -55,7 +55,7 @@ def admin_list_products(
     offset = (page - 1) * per_page
     items = (
         base
-        .options(joinedload(Product.category), selectinload(Product.images))
+        .options(joinedload(Product.category), selectinload(Product.images), joinedload(Product.shop_owner))
         .order_by(Product.created_at.desc())
         .offset(offset)
         .limit(per_page)
