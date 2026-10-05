@@ -4,9 +4,9 @@ import toast from "react-hot-toast";
 import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   deleteShopProductImage,
-  getShopOrders, getShopOrderQr, shopScanQr,
+  getShopOrders, getShopOrderQr, shopScanQr, uploadShopAvatar, updateShopMe, changeShopPassword,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -26,7 +26,10 @@ const STATUS_COLOR = {
 export default function ShopDashboard() {
   const [tab, setTab] = useState("products");
   const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
-  const [owner] = useState(() => JSON.parse(localStorage.getItem("shop_owner") || "{}"));
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("shop_sidebar_collapsed") === "true");
+  const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("shop_sidebar_collapsed", !v); return !v; });
+  const [owner, setOwner] = useState(() => JSON.parse(localStorage.getItem("shop_owner") || "{}"));
   const navigate = useNavigate();
   const { canInstall, install, nativeInstall, hasNativePrompt, installing, installed: appInstalled, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("shop_owner", owner.id, localStorage.getItem("shop_token"));
@@ -46,12 +49,16 @@ export default function ShopDashboard() {
   const primaryFileRef = useRef();
   const additionalFileRef = useRef();
   const shopFormRef = useRef();
+  const shopAvatarRef = useRef();
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Orders
   const [orders, setOrders] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { orderId, qrImage }
   const [showScanner, setShowScanner] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
 
   useEffect(() => {
     getCategories().then((r) => setCategories(r.data)).catch(() => {});
@@ -74,6 +81,26 @@ export default function ShopDashboard() {
     localStorage.removeItem("shop_token");
     localStorage.removeItem("shop_owner");
     navigate("/shop/login");
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("profile_image", file);
+      const { data } = await uploadShopAvatar(fd);
+      const updated = { ...owner, ...data };
+      setOwner(updated);
+      localStorage.setItem("shop_owner", JSON.stringify(updated));
+      toast.success("Profile photo updated!");
+    } catch {
+      toast.error("Failed to upload photo");
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
   };
 
   // ── Products ─────────────────────────────────────────────────────────────────
@@ -196,48 +223,128 @@ export default function ShopDashboard() {
     badge: (status) => ({ display: "inline-block", padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, background: STATUS_COLOR[status] + "18", color: STATUS_COLOR[status] }),
   };
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#f8f7f5", display: "flex", flexDirection: "column" }}>
-      {/* Header */}
-      <header style={{ background: "var(--primary)", color: "#fff", padding: "1rem 1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <p style={{ margin: 0, fontFamily: "'Playfair Display', serif", fontSize: "1.1rem", fontWeight: 700 }}>{owner.shop_name || "My Shop"}</p>
-          <p style={{ margin: 0, fontSize: "0.75rem", opacity: 0.75 }}>Shop Owner Portal</p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          {canInstall && (
-            <button onClick={install} title="Install Shop Portal App" style={{ background: "rgba(255,255,255,0.18)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: 6, padding: "0.4rem 0.8rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.82rem", fontWeight: 600 }}>
-              <span style={{ fontSize: "1rem" }}>🏪</span> Install App
-            </button>
-          )}
-          <button onClick={logout} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "#fff", borderRadius: 6, padding: "0.4rem 0.8rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
-            <LogOut size={14} /> Logout
-          </button>
-        </div>
-      </header>
+  // Account form state
+  const [accountForm, setAccountForm] = useState({ name: owner.name || "", shop_name: owner.shop_name || "", phone: owner.phone || "", address: owner.address || "", city: owner.city || "", state: owner.state || "", pincode: owner.pincode || "", gst_number: owner.gst_number || "", bank_account_holder: owner.bank_account_holder || "", bank_name: owner.bank_name || "", bank_account_number: owner.bank_account_number || "", bank_ifsc: owner.bank_ifsc || "", bank_account_type: owner.bank_account_type || "" });
+  const [accountSaving, setAccountSaving] = useState(false);
+  const [pwForm, setPwForm] = useState({ old_password: "", new_password: "", confirm: "" });
+  const [pwSaving, setPwSaving] = useState(false);
 
-      {/* Bottom tab bar */}
-      <div style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
-        display: "flex", background: "#fff",
-        borderTop: "1px solid #E2E8F0",
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.08)",
-        paddingBottom: "env(safe-area-inset-bottom)",
-      }}>
-        {[{ key: "products", icon: Package, label: "Products" }, { key: "orders", icon: ShoppingBag, label: "Orders" }].map(({ key, icon: Icon, label }) => (
-          <button key={key} onClick={() => switchTab(key)} style={{
-            flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-            gap: "0.25rem", padding: "0.7rem 0.5rem", border: "none", background: "none", cursor: "pointer",
-            color: tab === key ? "var(--primary)" : "#94A3B8",
-            transition: "color 0.18s",
-          }}>
-            <Icon size={20} strokeWidth={tab === key ? 2.5 : 1.8} />
-            <span style={{ fontSize: "0.65rem", fontWeight: tab === key ? 800 : 500 }}>{label}</span>
-          </button>
-        ))}
+  const handlePasswordChange = async () => {
+    if (!pwForm.old_password || !pwForm.new_password) return toast.error("All password fields are required");
+    if (pwForm.new_password.length < 6) return toast.error("New password must be at least 6 characters");
+    if (pwForm.new_password !== pwForm.confirm) return toast.error("Passwords do not match");
+    setPwSaving(true);
+    try {
+      await changeShopPassword({ old_password: pwForm.old_password, new_password: pwForm.new_password });
+      toast.success("Password changed successfully!");
+      setPwForm({ old_password: "", new_password: "", confirm: "" });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to change password");
+    } finally {
+      setPwSaving(false);
+    }
+  };
+
+  const handleAccountSave = async () => {
+    setAccountSaving(true);
+    try {
+      const { data } = await updateShopMe(accountForm);
+      const updated = { ...owner, ...data };
+      setOwner(updated);
+      localStorage.setItem("shop_owner", JSON.stringify(updated));
+      toast.success("Shop details updated!");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to save");
+    } finally {
+      setAccountSaving(false);
+    }
+  };
+
+  const pendingCount = orders.filter((o) => o.status === "pending").length;
+  const SHOP_NAV = [
+    { key: "products", label: "Products", icon: <Package size={17} /> },
+    { key: "orders",   label: "Orders",   icon: <ShoppingBag size={17} />, badge: pendingCount || null },
+    { key: "account",  label: "Account",  icon: <UserCircle size={17} /> },
+  ];
+
+  return (
+    <div className="portal-page">
+      {/* Sidebar overlay (mobile) */}
+      <div className={`portal-overlay ${sidebarOpen ? "open" : ""}`} onClick={() => setSidebarOpen(false)} />
+
+      {/* Mobile top bar */}
+      <div className="portal-mobile-header" style={{ background: "var(--primary)" }}>
+        <span className="portal-mobile-title">{owner.shop_name || "My Shop"}</span>
+        <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
+          {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </div>
 
-      <div style={{ flex: 1, padding: "1.25rem 1.25rem 6rem", width: "100%", boxSizing: "border-box" }}>
+      {/* Sidebar */}
+      <div className="sidebar-wrap">
+      <aside className={`portal-sidebar ${sidebarOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""}`} style={{ background: "#1A0812" }}>
+        <div className="portal-sidebar-logo">
+          {/* Clickable avatar */}
+          <div style={{ position: "relative", display: "inline-block", marginBottom: "0.6rem" }}>
+            <div
+              onClick={() => shopAvatarRef.current?.click()}
+              style={{ width: 52, height: 52, borderRadius: "50%", overflow: "hidden", cursor: "pointer", border: "2px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.1)" }}
+            >
+              {owner.profile_image_url ? (
+                <img src={owner.profile_image_url} alt="Shop" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              ) : (
+                <span style={{ fontWeight: 900, fontSize: "1.2rem", color: "rgba(255,255,255,0.7)" }}>{(owner.shop_name || "S")[0].toUpperCase()}</span>
+              )}
+              {avatarUploading && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%" }}><span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} /></div>}
+            </div>
+            <div onClick={() => shopAvatarRef.current?.click()} style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "2px solid #1A0812" }}>
+              <Camera size={10} color="#fff" />
+            </div>
+            <input ref={shopAvatarRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarUpload} />
+          </div>
+          <p className="portal-sidebar-title">{owner.shop_name || "My Shop"}</p>
+          <p className="portal-sidebar-sub">Shop Owner Portal · Lakshmi Vastra Studio</p>
+        </div>
+        <nav className="portal-nav">
+          {SHOP_NAV.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => { switchTab(item.key); setShowForm(false); setSidebarOpen(false); }}
+              className={`portal-nav-btn ${tab === item.key ? "active" : ""}`}
+              title={sidebarCollapsed ? item.label : undefined}
+            >
+              {item.icon}
+              <span className="pnb-label" style={{ flex: 1 }}>{item.label}</span>
+              {item.badge ? <span className="portal-nav-badge">{item.badge}</span> : null}
+            </button>
+          ))}
+        </nav>
+        {canInstall && (
+          <button onClick={install} className="portal-install-btn">
+            <span style={{ fontSize: "1rem" }}>🏪</span> Install App
+          </button>
+        )}
+        <a href="/help?app=shop" className="portal-nav-btn" title={sidebarCollapsed ? "Help Center" : undefined} style={{ textDecoration: "none" }}>
+          <HelpCircle size={17} /><span className="pnb-label"> Help Center</span>
+        </a>
+        <button onClick={logout} className="portal-logout-btn" title={sidebarCollapsed ? "Logout" : undefined}>
+          <LogOut size={14} /><span className="pnb-label"> Logout</span>
+        </button>
+        {/* Sidebar footer branding */}
+        <div className="sidebar-footer">
+          <p className="sidebar-footer-product">Lakshmi Vastra Studio</p>
+          <p className="sidebar-footer-cloud">Shop Owner Portal</p>
+          <p className="sidebar-footer-copy">© Copyright 2026 Lakshmi Vastra Studio</p>
+        </div>
+      </aside>
+      {/* External collapse tab */}
+      <button onClick={toggleCollapse} className="sidebar-toggle-tab" style={{ background: "#1A0812" }} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+        <span className={`sidebar-tri ${sidebarCollapsed ? "right" : "left"}`} />
+      </button>
+      </div>
+
+      {/* Main content */}
+      <main className="portal-main">
 
         {/* Products Tab — list */}
         {tab === "products" && !showForm && (
@@ -467,25 +574,66 @@ export default function ShopDashboard() {
         )}
 
         {/* Orders Tab */}
-        {tab === "orders" && (
+        {tab === "orders" && (() => {
+          const filtered = orders.filter((o) => {
+            const matchStatus = orderStatusFilter === "all" || o.status === orderStatusFilter;
+            const q = orderSearch.trim().toLowerCase();
+            const matchSearch = !q || String(o.id).includes(q) || (o.customer?.name || "").toLowerCase().includes(q);
+            return matchStatus && matchSearch;
+          });
+          return (
           <>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            {/* Header row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
               <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>Orders</h2>
               <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.5rem 1rem", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>
                 <ScanLine size={15} /> Scan QR
               </button>
             </div>
 
+            {/* Search input */}
+            <div style={{ position: "relative", marginBottom: "0.65rem" }}>
+              <input
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                placeholder="Search by order ID or customer name…"
+                style={{ width: "100%", padding: "0.6rem 0.9rem 0.6rem 2.2rem", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: "0.83rem", outline: "none", background: "#fff", boxSizing: "border-box", color: "#0F172A" }}
+              />
+              <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none", fontSize: "0.85rem" }}>🔍</span>
+            </div>
+
+            {/* Status filter pills */}
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+              {[["all", "All"], ...Object.entries(STATUS_LABEL)].map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setOrderStatusFilter(key)}
+                  style={{ padding: "0.3rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: orderStatusFilter === key ? "var(--primary)" : "#fff", color: orderStatusFilter === key ? "#fff" : "#64748B", borderColor: orderStatusFilter === key ? "var(--primary)" : "#E2E8F0", transition: "all 0.15s" }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
             {ordersLoading ? (
-              <p style={{ color: "#888", textAlign: "center", padding: "2rem" }}>Loading orders...</p>
+              <div style={{ textAlign: "center", padding: "3rem" }}>
+                <span style={{ width: 28, height: 28, border: "3px solid #E2E8F0", borderTopColor: "var(--primary)", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
+                <p style={{ color: "#94A3B8", marginTop: "0.75rem", fontSize: "0.88rem" }}>Checking for new orders…</p>
+              </div>
             ) : orders.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem", color: "#888" }}>
                 <ShoppingBag size={40} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
-                <p>No confirmed orders yet.</p>
+                <p style={{ fontWeight: 600, color: "#475569", margin: "0 0 0.3rem" }}>No orders received yet</p>
+                <p style={{ fontSize: "0.82rem", color: "#94A3B8", margin: 0 }}>When customers place orders from your shop, they'll appear here.</p>
+              </div>
+            ) : filtered.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#94A3B8" }}>
+                <p style={{ fontWeight: 600, margin: "0 0 0.25rem" }}>No orders match your filter</p>
+                <button onClick={() => { setOrderSearch(""); setOrderStatusFilter("all"); }} style={{ fontSize: "0.8rem", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear filters</button>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {orders.map((o) => (
+                {filtered.map((o) => (
                   <div key={o.id} style={S.card}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
                       <div>
@@ -510,8 +658,227 @@ export default function ShopDashboard() {
               </div>
             )}
           </>
-        )}
-      </div>
+          );
+        })()}
+        {/* ════ ACCOUNT TAB ════ */}
+        {tab === "account" && (() => {
+          const SL = ({ children }) => (
+            <p style={{ margin: "1.35rem 0 0.5rem", fontSize: "0.68rem", fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{children}</p>
+          );
+          const InfoRow = ({ label, value, last }) => (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.82rem 1.1rem", borderBottom: last ? "none" : "1px solid #F1F5F9" }}>
+              <span style={{ fontSize: "0.82rem", color: "#94A3B8", fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: "0.82rem", color: "#0F172A", fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{value || "—"}</span>
+            </div>
+          );
+          const totalProducts  = products.length;
+          const totalOrders    = orders.length;
+          const pendingOrders  = orders.filter((o) => o.status === "confirmed").length;
+          const totalRevenue   = orders.filter((o) => o.status === "delivered").reduce((s, o) => s + (o.total || 0), 0);
+          return (
+            <div style={{ paddingBottom: "1.5rem" }}>
+
+              {/* ── Profile banner ── */}
+              <div style={{ background: "linear-gradient(145deg, #1A0812 0%, #4a0d27 100%)", borderRadius: 16, padding: "1.5rem 1.25rem", boxShadow: "0 6px 24px rgba(26,8,18,0.2)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  {/* Clickable avatar */}
+                  <div style={{ position: "relative", flexShrink: 0 }}>
+                    <div onClick={() => shopAvatarRef.current?.click()} style={{ width: 58, height: 58, borderRadius: "50%", overflow: "hidden", cursor: "pointer", border: "2.5px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.1)", position: "relative" }}>
+                      {owner.profile_image_url
+                        ? <img src={owner.profile_image_url} alt="Shop" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        : <span style={{ fontWeight: 900, fontSize: "1.4rem", color: "rgba(255,255,255,0.7)" }}>{(owner.shop_name || "S")[0].toUpperCase()}</span>}
+                      {avatarUploading && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}><span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} /></div>}
+                    </div>
+                    <div onClick={() => shopAvatarRef.current?.click()} style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, borderRadius: "50%", background: "#7B1D45", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "2px solid #1A0812" }}>
+                      <Camera size={10} color="#fff" />
+                    </div>
+                  </div>
+                  {/* Name + role */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{owner.shop_name || "My Shop"}</p>
+                    <p style={{ margin: "0.15rem 0 0", fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>{owner.name || "Shop Owner"}</p>
+                  </div>
+                  {/* Status badge */}
+                  <div style={{ flexShrink: 0, padding: "0.3rem 0.65rem", borderRadius: 20, background: owner.is_approved ? "rgba(22,163,74,0.2)" : "rgba(217,119,6,0.2)", border: `1px solid ${owner.is_approved ? "rgba(74,222,128,0.4)" : "rgba(252,211,77,0.4)"}`, fontSize: "0.67rem", fontWeight: 800, color: owner.is_approved ? "#4ade80" : "#fcd34d", display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                    {owner.is_approved ? <><Check size={9} /> Approved</> : "⏳ Pending"}
+                  </div>
+                </div>
+
+                {/* Stats strip */}
+                <div className="stats-grid-4" style={{ marginTop: "1.1rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+                  {[
+                    { label: "Products", value: totalProducts },
+                    { label: "Orders",   value: totalOrders },
+                    { label: "Pending",  value: pendingOrders },
+                    { label: "Revenue",  value: `₹${totalRevenue.toLocaleString("en-IN")}`, small: true },
+                  ].map(({ label, value, small }) => (
+                    <div key={label}>
+                      <p style={{ margin: 0, fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{label}</p>
+                      <p style={{ margin: "0.15rem 0 0", fontSize: small ? "0.8rem" : "1.1rem", fontWeight: 900, color: "#fff" }}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ═══ SECTION: PERSONAL INFORMATION ═══ */}
+              <SL>Personal Information</SL>
+              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+                <InfoRow label="Owner Name"   value={owner.name} />
+                <InfoRow label="Email"        value={owner.email} />
+                <InfoRow label="Phone"        value={owner.phone} />
+                <InfoRow label="Member Since" value={owner.created_at ? new Date(owner.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.82rem 1.1rem" }}>
+                  <span style={{ fontSize: "0.82rem", color: "#94A3B8", fontWeight: 500 }}>Account Status</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 12, background: owner.is_active !== false ? "rgba(22,163,74,0.1)" : "rgba(239,68,68,0.1)", color: owner.is_active !== false ? "#16a34a" : "#ef4444" }}>
+                    {owner.is_active !== false ? "Active" : "Inactive"}
+                  </span>
+                </div>
+              </div>
+
+              {/* ═══ SECTION: SHOP DETAILS (editable) ═══ */}
+              <SL>Shop Details</SL>
+              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+                {[
+                  { label: "Shop Name",  key: "shop_name",  placeholder: "Your shop name" },
+                  { label: "Owner Name", key: "name",       placeholder: "Your full name" },
+                  { label: "Phone",      key: "phone",      placeholder: "+91 XXXXX XXXXX" },
+                ].map(({ label, key, placeholder }, i, arr) => (
+                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                    <input type="text" value={accountForm[key]} onChange={(e) => setAccountForm((p) => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  </div>
+                ))}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Shop Address</p>
+                  <input type="text" value={accountForm.address} onChange={(e) => setAccountForm((p) => ({ ...p, address: e.target.value }))} placeholder="Street / Area" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+                  <div style={{ padding: "0.85rem 0.9rem 0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9", borderRight: "1px solid #F1F5F9" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>City</p>
+                    <input type="text" value={accountForm.city} onChange={(e) => setAccountForm((p) => ({ ...p, city: e.target.value }))} placeholder="e.g. Gooty RS" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ padding: "0.85rem 1.1rem 0.85rem 0.9rem", borderBottom: "1px solid #F1F5F9" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>State</p>
+                    <input type="text" value={accountForm.state} onChange={(e) => setAccountForm((p) => ({ ...p, state: e.target.value }))} placeholder="e.g. Andhra Pradesh" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+                  <div style={{ padding: "0.85rem 0.9rem 0.85rem 1.1rem", borderRight: "1px solid #F1F5F9" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>PIN Code</p>
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={accountForm.pincode} onChange={(e) => setAccountForm((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, "") }))} placeholder="e.g. 515402" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  </div>
+                  <div style={{ padding: "0.85rem 1.1rem 0.85rem 0.9rem" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>GST Number</p>
+                    <input type="text" value={accountForm.gst_number} onChange={(e) => setAccountForm((p) => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="e.g. 37AAAAA0000A1Z5" maxLength={15} style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ SECTION: BANK DETAILS (editable) ═══ */}
+              <SL>Bank Details</SL>
+              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+                {[
+                  { label: "Account Holder Name", key: "bank_account_holder", placeholder: "As per bank records" },
+                  { label: "Bank Name",            key: "bank_name",           placeholder: "e.g. State Bank of India" },
+                  { label: "Account Number",       key: "bank_account_number", placeholder: "XXXXXXXXXXXX" },
+                  { label: "IFSC Code",            key: "bank_ifsc",           placeholder: "e.g. SBIN0001234", upper: true },
+                ].map(({ label, key, placeholder, upper }, i) => (
+                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                    <input
+                      type={key === "bank_account_number" ? "text" : "text"}
+                      inputMode={key === "bank_account_number" ? "numeric" : undefined}
+                      value={accountForm[key]}
+                      onChange={(e) => setAccountForm((p) => ({ ...p, [key]: upper ? e.target.value.toUpperCase() : e.target.value }))}
+                      placeholder={placeholder}
+                      style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                    />
+                  </div>
+                ))}
+                <div style={{ padding: "0.85rem 1.1rem" }}>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Type</p>
+                  <div style={{ display: "flex", gap: "0.65rem" }}>
+                    {["Savings", "Current"].map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setAccountForm((p) => ({ ...p, bank_account_type: type }))}
+                        style={{ padding: "0.35rem 1rem", borderRadius: 20, border: "1px solid", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", background: accountForm.bank_account_type === type ? "var(--primary)" : "#fff", color: accountForm.bank_account_type === type ? "#fff" : "#64748B", borderColor: accountForm.bank_account_type === type ? "var(--primary)" : "#E2E8F0", transition: "all 0.15s" }}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* ── Save button (after Bank Details) ── */}
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1.35rem" }}>
+                <button
+                  onClick={handleAccountSave}
+                  disabled={accountSaving}
+                  style={{ padding: "0.75rem 1.75rem", border: "none", borderRadius: 10, cursor: accountSaving ? "not-allowed" : "pointer", background: accountSaving ? "#D1D5DB" : "linear-gradient(135deg, #1A0812, #7B1D45)", color: "#fff", fontWeight: 700, fontSize: "0.88rem", boxShadow: accountSaving ? "none" : "0 4px 14px rgba(123,29,69,0.35)", display: "flex", alignItems: "center", gap: "0.45rem" }}
+                >
+                  <Check size={15} />
+                  {accountSaving ? "Saving…" : "Save Changes"}
+                </button>
+              </div>
+
+              {/* ═══ SECTION: CHANGE PASSWORD ═══ */}
+              <SL>Change Password</SL>
+              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+                {[
+                  { label: "Current Password", key: "old_password" },
+                  { label: "New Password",     key: "new_password" },
+                  { label: "Confirm New Password", key: "confirm" },
+                ].map(({ label, key }, i, arr) => (
+                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: i < arr.length - 1 ? "1px solid #F1F5F9" : "none" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                    <input
+                      type="password"
+                      value={pwForm[key]}
+                      onChange={(e) => setPwForm(p => ({ ...p, [key]: e.target.value }))}
+                      placeholder="••••••••"
+                      style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+                <button
+                  onClick={handlePasswordChange}
+                  disabled={pwSaving}
+                  style={{ padding: "0.75rem 1.75rem", border: "none", borderRadius: 10, cursor: pwSaving ? "not-allowed" : "pointer", background: pwSaving ? "#D1D5DB" : "linear-gradient(135deg, #1A0812, #7B1D45)", color: "#fff", fontWeight: 700, fontSize: "0.88rem", boxShadow: pwSaving ? "none" : "0 4px 14px rgba(123,29,69,0.35)", display: "flex", alignItems: "center", gap: "0.45rem" }}
+                >
+                  <Check size={15} />
+                  {pwSaving ? "Updating…" : "Update Password"}
+                </button>
+              </div>
+
+            </div>
+          );
+        })()}
+      </main>
+
+      {/* Bottom nav (mobile only) */}
+      <nav className="portal-bottom-nav">
+        {SHOP_NAV.map(({ key, icon, label, badge }) => (
+          <button
+            key={key}
+            onClick={() => { switchTab(key); setShowForm(false); }}
+            className={`portal-bottom-tab ${tab === key ? "active" : ""}`}
+            style={{ color: tab === key ? "var(--primary)" : "#94A3B8" }}
+          >
+            <div style={{ position: "relative" }}>
+              {icon}
+              {badge ? (
+                <span style={{ position: "absolute", top: -5, right: -8, background: "var(--primary)", color: "#fff", borderRadius: 20, fontSize: "0.55rem", fontWeight: 900, padding: "0.1rem 0.35rem", minWidth: 14, textAlign: "center" }}>{badge}</span>
+              ) : null}
+            </div>
+            <span className="pbt-label">{label}</span>
+          </button>
+        ))}
+      </nav>
 
       {/* QR Modal */}
       {qrModal && (

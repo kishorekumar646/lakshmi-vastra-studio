@@ -9,7 +9,7 @@ import {
   getAdminReviews, deleteReview, toggleReviewVisibility,
   getAdminOrders, confirmOrder, assignDelivery,
   getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson, updateDeliveryPerson,
-  getShopOwners, approveShopOwner, toggleShopOwner,
+  getShopOwners, approveShopOwner, toggleShopOwner, updateShopOwner, resetShopOwnerPassword, resetDeliveryPassword,
   getAdminShopProducts, assignProductToShop, unassignProductFromShop,
   getAdminPincodes, addPincode, deletePincode, togglePincode,
   getAdminCustomers,
@@ -21,7 +21,7 @@ import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
   ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp, MapPin,
-  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search,
+  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -48,6 +48,8 @@ function getPageNumbers(currentPage, totalPages) {
 export default function AdminDashboard() {
   const [tab, setTab] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("admin_sidebar_collapsed") === "true");
+  const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("admin_sidebar_collapsed", !v); return !v; });
 
   // Products — all fetched, paginated client-side
   const [allProducts, setAllProducts] = useState([]);
@@ -122,6 +124,15 @@ export default function AdminDashboard() {
   const [customerSaving, setCustomerSaving] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState(null); // { id, name, email, phone }
   const [deliverySaving, setDeliverySaving] = useState(false);
+  // Shop owner expand / edit
+  const [expandedShopOwner, setExpandedShopOwner] = useState(null);
+  const [editingShopOwner, setEditingShopOwner] = useState(null); // { id, name, shop_name, email, phone }
+  const [shopOwnerSaving, setShopOwnerSaving] = useState(false);
+  // Reset password modal: { type: "shop"|"delivery", id, name }
+  const [resetPwModal, setResetPwModal] = useState(null);
+  const [resetPwInput, setResetPwInput] = useState("");
+  const [resetPwShow, setResetPwShow] = useState(false);
+  const [resetPwLoading, setResetPwLoading] = useState(false);
 
   // Push notifications for admin
   usePushNotifications("admin", null, localStorage.getItem("admin_token"));
@@ -430,7 +441,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* Sidebar */}
-      <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""}`}>
+      <div className="sidebar-wrap">
+      <aside className={`admin-sidebar ${sidebarOpen ? "open" : ""} ${sidebarCollapsed ? "collapsed" : ""}`}>
         <div className="admin-sidebar-logo">
           <p className="admin-sidebar-title">Admin Panel</p>
           <p className="admin-sidebar-sub">Lakshmi Vastra Studio</p>
@@ -441,11 +453,12 @@ export default function AdminDashboard() {
               key={item.key}
               onClick={() => { setTab(item.key); setShowForm(false); setSidebarOpen(false); }}
               className={`admin-nav-btn ${tab === item.key ? "active" : ""}`}
+              title={sidebarCollapsed ? item.label : undefined}
             >
               {item.icon}
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <span className="anb-label" style={{ flex: 1 }}>{item.label}</span>
               {item.badge != null && (
-                <span style={{
+                <span className="anb-label" style={{
                   background: item.badgeRed ? "var(--primary)" : "rgba(255,255,255,0.1)",
                   color: "#fff",
                   borderRadius: 100,
@@ -461,7 +474,7 @@ export default function AdminDashboard() {
             </button>
           ))}
         </nav>
-        {canInstall && (
+        {canInstall && !sidebarCollapsed && (
           <button
             onClick={install}
             style={{
@@ -475,10 +488,24 @@ export default function AdminDashboard() {
             <span style={{ fontSize: "1rem" }}>📲</span> Install App
           </button>
         )}
-        <button onClick={logout} className="admin-logout-btn">
-          <LogOut size={14} /> Logout
+        <a href="/help?app=admin" className="admin-nav-btn" title={sidebarCollapsed ? "Help Center" : undefined} style={{ textDecoration: "none" }}>
+          <HelpCircle size={17} /><span className="anb-label"> Help Center</span>
+        </a>
+        <button onClick={logout} className="admin-logout-btn" title={sidebarCollapsed ? "Logout" : undefined}>
+          <LogOut size={14} /><span className="anb-label"> Logout</span>
         </button>
+        {/* Sidebar footer branding */}
+        <div className="sidebar-footer">
+          <p className="sidebar-footer-product">Lakshmi Vastra Studio</p>
+          <p className="sidebar-footer-cloud">Admin Portal</p>
+          <p className="sidebar-footer-copy">© Copyright 2026 Lakshmi Vastra Studio</p>
+        </div>
       </aside>
+      {/* External collapse tab */}
+      <button onClick={toggleCollapse} className="sidebar-toggle-tab" style={{ background: "#0F080D" }} title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+        <span className={`sidebar-tri ${sidebarCollapsed ? "right" : "left"}`} />
+      </button>
+      </div>
 
       {/* Main content */}
       <main className="admin-main">
@@ -1436,7 +1463,7 @@ export default function AdminDashboard() {
           <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
             {/* Stats row */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" }}>
+            <div className="stats-grid-4" style={{ gap: "0.75rem" }}>
               {[
                 { label: "Total Shops", value: shopOwners.length, color: "#1E293B", bg: "#F1F5F9", icon: <Store size={18} /> },
                 { label: "Approved", value: shopOwners.filter(s => s.is_approved).length, color: "#065F46", bg: "#D1FAE5", icon: <CheckCircle size={18} /> },
@@ -1487,79 +1514,152 @@ export default function AdminDashboard() {
                   No results for "<strong>{shopSearch}</strong>"
                 </div>
               ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                   {filtered.map((s) => {
                     const initials = s.shop_name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
                     const statusColor = s.is_approved ? "#065F46" : "#92400E";
                     const statusBg   = s.is_approved ? "#D1FAE5" : "#FEF3C7";
+                    const isExpanded = expandedShopOwner === s.id;
                     return (
-                      <div key={s.id} style={{ background: "#fff", borderRadius: 14, border: "1px solid var(--border-light)", overflow: "hidden", display: "flex", flexDirection: "column", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-                        {/* Card top accent */}
-                        <div style={{ height: 4, background: s.is_approved ? "#16a34a" : "#D97706" }} />
-
-                        <div style={{ padding: "1.25rem" }}>
-                          {/* Avatar + names */}
-                          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.9rem", marginBottom: "1rem" }}>
-                            <div style={{ width: 48, height: 48, borderRadius: 12, background: "linear-gradient(135deg, #7B1D45, #1a4080)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                              <span style={{ color: "#fff", fontWeight: 800, fontSize: "1rem", fontFamily: "'Playfair Display', serif" }}>{initials}</span>
+                      <div key={s.id} style={{ background: "#fff", borderRadius: 10, border: "1px solid var(--border-light)", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
+                        {/* Clickable header row */}
+                        <div
+                          onClick={() => setExpandedShopOwner(isExpanded ? null : s.id)}
+                          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", cursor: "pointer", gap: "0.75rem" }}
+                        >
+                          <div style={{ display: "flex", gap: "0.85rem", alignItems: "center", flex: 1, minWidth: 0 }}>
+                            <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, #7B1D45, #1a4080)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <span style={{ color: "#fff", fontWeight: 800, fontSize: "0.95rem", fontFamily: "'Playfair Display', serif" }}>{initials}</span>
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.shop_name}</p>
-                              <p style={{ margin: "0.15rem 0 0", fontSize: "0.82rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name}</p>
+                            <div style={{ minWidth: 0 }}>
+                              <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "0.97rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.shop_name}</p>
+                              <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.name} · {s.email}</p>
                             </div>
-                            <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: statusBg, color: statusColor, flexShrink: 0 }}>
+                          </div>
+                          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexShrink: 0 }}>
+                            <span style={{ padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: statusBg, color: statusColor }}>
                               {s.is_approved ? "Approved" : "Pending"}
                             </span>
-                          </div>
-
-                          {/* Contact details */}
-                          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", marginBottom: "1rem" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                              <Mail size={13} style={{ flexShrink: 0 }} />
-                              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.email}</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
-                              <Phone size={13} style={{ flexShrink: 0 }} />
-                              <span>+91 {s.phone}</span>
-                            </div>
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                              <Calendar size={13} style={{ flexShrink: 0 }} />
-                              <span>Joined {new Date(s.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
-                            </div>
-                          </div>
-
-                          {/* Active status pill */}
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "1rem" }}>
-                            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.72rem", fontWeight: 600, color: s.is_active ? "#065F46" : "#94a3b8", background: s.is_active ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.is_active ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 20, padding: "0.2rem 0.6rem" }}>
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: s.is_active ? "#16a34a" : "#CBD5E1", display: "inline-block" }} />
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.7rem", fontWeight: 600, color: s.is_active ? "#065F46" : "#94a3b8", background: s.is_active ? "#F0FDF4" : "#F8FAFC", border: `1px solid ${s.is_active ? "#BBF7D0" : "#E2E8F0"}`, borderRadius: 20, padding: "0.2rem 0.55rem" }}>
+                              <span style={{ width: 5, height: 5, borderRadius: "50%", background: s.is_active ? "#16a34a" : "#CBD5E1", display: "inline-block" }} />
                               {s.is_active ? "Active" : "Inactive"}
                             </span>
-                          </div>
-
-                          {/* Actions */}
-                          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                            {!s.is_approved && (
-                              <button
-                                onClick={async () => {
-                                  try { await approveShopOwner(s.id); toast.success(`${s.shop_name} approved!`); loadShopOwners(); }
-                                  catch { toast.error("Failed"); }
-                                }}
-                                style={{ flex: 1, padding: "0.5rem 0.75rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.35rem" }}
-                              >
-                                <Check size={13} /> Approve
-                              </button>
-                            )}
-                            <button
-                              onClick={async () => {
-                                try { await toggleShopOwner(s.id); toast.success("Status updated"); loadShopOwners(); }
-                                catch { toast.error("Failed"); }
-                              }}
-                              style={{ flex: 1, padding: "0.5rem 0.75rem", background: s.is_active ? "#FEF2F2" : "#F0FDF4", color: s.is_active ? "#DC2626" : "#16a34a", border: `1px solid ${s.is_active ? "#FECACA" : "#BBF7D0"}`, borderRadius: 8, cursor: "pointer", fontSize: "0.8rem", fontWeight: 700 }}
-                            >
-                              {s.is_active ? "Deactivate" : "Activate"}
-                            </button>
+                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{isExpanded ? "▲" : "▼"}</span>
                           </div>
                         </div>
+
+                        {/* Expandable panel */}
+                        {isExpanded && (
+                          <div style={{ borderTop: "1px solid var(--border-light)", padding: "1rem 1.25rem", background: "var(--cream)" }}>
+                            {editingShopOwner?.id === s.id ? (
+                              /* ── Edit form ── */
+                              <form
+                                onSubmit={async (e) => {
+                                  e.preventDefault();
+                                  setShopOwnerSaving(true);
+                                  try {
+                                    await updateShopOwner(s.id, {
+                                      name: editingShopOwner.name,
+                                      shop_name: editingShopOwner.shop_name,
+                                      email: editingShopOwner.email,
+                                      phone: editingShopOwner.phone,
+                                    });
+                                    toast.success("Shop owner updated!");
+                                    setEditingShopOwner(null);
+                                    loadShopOwners();
+                                  } catch (err) {
+                                    toast.error(err.response?.data?.detail || "Failed to update");
+                                  } finally {
+                                    setShopOwnerSaving(false);
+                                  }
+                                }}
+                                style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}
+                              >
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+                                  <div>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Owner Name *</label>
+                                    <input value={editingShopOwner.name} onChange={(e) => setEditingShopOwner({ ...editingShopOwner, name: e.target.value })} required style={{ width: "100%", boxSizing: "border-box" }} />
+                                  </div>
+                                  <div>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Shop Name *</label>
+                                    <input value={editingShopOwner.shop_name} onChange={(e) => setEditingShopOwner({ ...editingShopOwner, shop_name: e.target.value })} required style={{ width: "100%", boxSizing: "border-box" }} />
+                                  </div>
+                                  <div>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Email *</label>
+                                    <input type="email" value={editingShopOwner.email} onChange={(e) => setEditingShopOwner({ ...editingShopOwner, email: e.target.value })} required style={{ width: "100%", boxSizing: "border-box" }} />
+                                  </div>
+                                  <div>
+                                    <label style={{ fontSize: "0.72rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.3rem", display: "block" }}>Phone</label>
+                                    <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 8, overflow: "hidden", background: "#fff" }}>
+                                      <span style={{ padding: "0.55rem 0.75rem", background: "var(--cream)", borderRight: "1px solid var(--border-light)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-muted)", whiteSpace: "nowrap" }}>+91</span>
+                                      <input type="tel" value={editingShopOwner.phone} onChange={(e) => setEditingShopOwner({ ...editingShopOwner, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} placeholder="XXXXX XXXXX" maxLength={10} style={{ border: "none", borderRadius: 0, flex: 1, minWidth: 0 }} />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div style={{ display: "flex", gap: "0.6rem" }}>
+                                  <button type="submit" className="btn-primary" disabled={shopOwnerSaving} style={{ padding: "0.45rem 1.1rem", fontSize: "0.82rem", opacity: shopOwnerSaving ? 0.7 : 1, display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                                    <Check size={13} /> {shopOwnerSaving ? "Saving…" : "Save Changes"}
+                                  </button>
+                                  <button type="button" onClick={() => setEditingShopOwner(null)} style={{ padding: "0.45rem 1rem", fontSize: "0.82rem", background: "#fff", border: "1px solid var(--border)", borderRadius: 8, cursor: "pointer", fontWeight: 600, color: "var(--text-muted)" }}>
+                                    Cancel
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              /* ── Read-only + actions ── */
+                              <>
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.6rem", marginBottom: "0.85rem" }}>
+                                  {[
+                                    { label: "Owner Name", value: s.name },
+                                    { label: "Shop Name", value: s.shop_name },
+                                    { label: "Email", value: s.email },
+                                    { label: "Phone", value: s.phone ? `+91 ${s.phone}` : "—" },
+                                    { label: "Joined", value: s.created_at ? new Date(s.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—" },
+                                  ].map(({ label, value }) => (
+                                    <div key={label} style={{ background: "#fff", borderRadius: 8, padding: "0.55rem 0.85rem" }}>
+                                      <p style={{ fontSize: "0.68rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 0.2rem" }}>{label}</p>
+                                      <p style={{ fontSize: "0.88rem", fontWeight: 600, color: "var(--text)", margin: 0, wordBreak: "break-all" }}>{value}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                                  <button
+                                    onClick={() => setEditingShopOwner({ id: s.id, name: s.name, shop_name: s.shop_name, email: s.email, phone: s.phone || "" })}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem", fontWeight: 700, padding: "0.4rem 0.9rem", background: "#EFF6FF", color: "#1D4ED8", border: "1px solid #BFDBFE", borderRadius: 7, cursor: "pointer" }}
+                                  >
+                                    <Edit2 size={12} /> Edit Details
+                                  </button>
+                                  {!s.is_approved && (
+                                    <button
+                                      onClick={async () => {
+                                        try { await approveShopOwner(s.id); toast.success(`${s.shop_name} approved!`); loadShopOwners(); }
+                                        catch { toast.error("Failed"); }
+                                      }}
+                                      style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem", fontWeight: 700, padding: "0.4rem 0.9rem", background: "#16a34a", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer" }}
+                                    >
+                                      <Check size={12} /> Approve
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={async () => {
+                                      try { await toggleShopOwner(s.id); toast.success("Status updated"); loadShopOwners(); }
+                                      catch { toast.error("Failed"); }
+                                    }}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem", fontWeight: 700, padding: "0.4rem 0.9rem", background: s.is_active ? "#FEF2F2" : "#F0FDF4", color: s.is_active ? "#DC2626" : "#16a34a", border: `1px solid ${s.is_active ? "#FECACA" : "#BBF7D0"}`, borderRadius: 7, cursor: "pointer" }}
+                                  >
+                                    {s.is_active ? "Deactivate" : "Activate"}
+                                  </button>
+                                  <button
+                                    onClick={() => { setResetPwModal({ type: "shop", id: s.id, name: s.shop_name }); setResetPwInput(""); setResetPwShow(false); }}
+                                    style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem", fontWeight: 700, padding: "0.4rem 0.9rem", background: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE", borderRadius: 7, cursor: "pointer" }}
+                                  >
+                                    🔑 Reset Password
+                                  </button>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1678,6 +1778,12 @@ export default function AdminDashboard() {
                           style={{ padding: "0.3rem 0.75rem", background: dp.is_active ? "#fee2e2" : "#D1FAE5", color: dp.is_active ? "#c0392b" : "#065F46", border: "none", borderRadius: 6, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}
                         >
                           {dp.is_active ? "Deactivate" : "Activate"}
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setResetPwModal({ type: "delivery", id: dp.id, name: dp.name }); setResetPwInput(""); setResetPwShow(false); }}
+                          style={{ padding: "0.3rem 0.75rem", background: "#F5F3FF", color: "#6D28D9", border: "1px solid #DDD6FE", borderRadius: 6, cursor: "pointer", fontSize: "0.78rem", fontWeight: 700 }}
+                        >
+                          🔑 Reset
                         </button>
                         <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{expandedDelivery === dp.id ? "▲" : "▼"}</span>
                       </div>
@@ -2115,7 +2221,7 @@ export default function AdminDashboard() {
                   </div>
 
                   {/* Charts row */}
-                  <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem", marginBottom: "1.5rem" }}>
+                  <div className="chart-grid">
 
                     {/* Monthly bar chart */}
                     <div style={{ background: "#fff", borderRadius: 10, padding: "1.25rem", border: "1px solid var(--border-light)" }}>
@@ -2179,7 +2285,7 @@ export default function AdminDashboard() {
                   <div style={{ background: "#fff", borderRadius: 10, border: "1px solid var(--border-light)", overflow: "hidden" }}>
                     <div style={{ padding: "1rem 1.25rem", borderBottom: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
                       <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text)", margin: 0 }}>Recent Transactions (Last 50)</p>
-                      <input value={paymentSearch} onChange={(e) => setPaymentSearch(e.target.value)} placeholder="Search customer or order ID…" style={{ width: 240, fontSize: "0.82rem" }} />
+                      <input value={paymentSearch} onChange={(e) => setPaymentSearch(e.target.value)} placeholder="Search customer or order ID…" style={{ width: "100%", maxWidth: 240, fontSize: "0.82rem" }} />
                     </div>
                     <div style={{ overflowX: "auto" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.83rem" }}>
@@ -2237,6 +2343,76 @@ export default function AdminDashboard() {
         )}
 
       </main>
+
+      {/* ── Reset Password Modal ────────────────────── */}
+      {resetPwModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: "1.75rem", width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.25rem", flexShrink: 0 }}>🔑</div>
+              <div>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: "1rem", color: "#1E293B" }}>Reset Password</p>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "#64748B" }}>{resetPwModal.name}</p>
+              </div>
+            </div>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>New Password</label>
+              <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #E2E8F0", borderRadius: 8, overflow: "hidden" }}>
+                <input
+                  type={resetPwShow ? "text" : "password"}
+                  value={resetPwInput}
+                  onChange={(e) => setResetPwInput(e.target.value)}
+                  placeholder="Min. 6 characters"
+                  minLength={6}
+                  autoFocus
+                  style={{ flex: 1, padding: "0.65rem 0.85rem", border: "none", fontSize: "0.95rem", outline: "none", background: "#F8FAFC" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setResetPwShow(v => !v)}
+                  style={{ padding: "0.65rem 0.85rem", background: "none", border: "none", cursor: "pointer", color: "#64748B", fontSize: "0.8rem", fontWeight: 600, whiteSpace: "nowrap" }}
+                >
+                  {resetPwShow ? "Hide" : "Show"}
+                </button>
+              </div>
+              <p style={{ margin: "0.4rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>This replaces the current password immediately.</p>
+            </div>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button
+                type="button"
+                onClick={() => setResetPwModal(null)}
+                style={{ flex: 1, padding: "0.65rem", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: "0.875rem" }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={resetPwLoading || resetPwInput.length < 6}
+                onClick={async () => {
+                  setResetPwLoading(true);
+                  try {
+                    if (resetPwModal.type === "shop") {
+                      await resetShopOwnerPassword(resetPwModal.id, resetPwInput);
+                    } else {
+                      await resetDeliveryPassword(resetPwModal.id, resetPwInput);
+                    }
+                    toast.success(`Password reset for ${resetPwModal.name}`);
+                    setResetPwModal(null);
+                    setResetPwInput("");
+                  } catch (err) {
+                    toast.error(err.response?.data?.detail || "Failed to reset password");
+                  } finally {
+                    setResetPwLoading(false);
+                  }
+                }}
+                style={{ flex: 1, padding: "0.65rem", background: resetPwInput.length < 6 ? "#E2E8F0" : "#6D28D9", color: resetPwInput.length < 6 ? "#94A3B8" : "#fff", border: "none", borderRadius: 8, cursor: resetPwInput.length < 6 ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.875rem", opacity: resetPwLoading ? 0.7 : 1, transition: "background 0.2s" }}
+              >
+                {resetPwLoading ? "Resetting…" : "Reset Password"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <InstallGuideSheet
         open={guideOpen}

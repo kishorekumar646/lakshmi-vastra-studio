@@ -73,6 +73,92 @@ def me(owner: ShopOwner = Depends(get_current_shop_owner)):
     return _owner_dict(owner)
 
 
+@router.put("/me/avatar")
+async def update_shop_avatar(
+    profile_image: UploadFile = File(...),
+    owner: ShopOwner = Depends(get_current_shop_owner),
+    db: Session = Depends(get_db),
+):
+    result = cloudinary.uploader.upload(profile_image.file, folder="lakshmi-vastra/avatars")
+    owner.profile_image_url = result["secure_url"]
+    db.commit()
+    db.refresh(owner)
+    return _owner_dict(owner)
+
+
+class UpdateMeBody(BaseModel):
+    name: Optional[str] = None
+    shop_name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
+    gst_number: Optional[str] = None
+    bank_account_holder: Optional[str] = None
+    bank_name: Optional[str] = None
+    bank_account_number: Optional[str] = None
+    bank_ifsc: Optional[str] = None
+    bank_account_type: Optional[str] = None
+
+class ChangePasswordBody(BaseModel):
+    old_password: str
+    new_password: str
+
+@router.put("/me/password")
+def change_password(
+    body: ChangePasswordBody,
+    owner: ShopOwner = Depends(get_current_shop_owner),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(body.old_password, owner.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=422, detail="New password must be at least 6 characters")
+    owner.hashed_password = hash_password(body.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
+@router.put("/me")
+def update_me(
+    body: UpdateMeBody,
+    owner: ShopOwner = Depends(get_current_shop_owner),
+    db: Session = Depends(get_db),
+):
+    if body.name is not None:
+        owner.name = body.name.strip() or owner.name
+    if body.shop_name is not None:
+        owner.shop_name = body.shop_name.strip() or owner.shop_name
+    if body.phone is not None:
+        owner.phone = body.phone.strip() or None
+    if body.address is not None:
+        owner.address = body.address.strip() or None
+    if body.city is not None:
+        owner.city = body.city.strip() or None
+    if body.state is not None:
+        owner.state = body.state.strip() or None
+    if body.pincode is not None:
+        p = body.pincode.strip()
+        if p and (not p.isdigit() or len(p) != 6):
+            raise HTTPException(status_code=422, detail="PIN code must be exactly 6 digits")
+        owner.pincode = p or None
+    if body.gst_number is not None:
+        owner.gst_number = body.gst_number.strip().upper() or None
+    if body.bank_account_holder is not None:
+        owner.bank_account_holder = body.bank_account_holder.strip() or None
+    if body.bank_name is not None:
+        owner.bank_name = body.bank_name.strip() or None
+    if body.bank_account_number is not None:
+        owner.bank_account_number = body.bank_account_number.strip() or None
+    if body.bank_ifsc is not None:
+        owner.bank_ifsc = body.bank_ifsc.strip().upper() or None
+    if body.bank_account_type is not None:
+        owner.bank_account_type = body.bank_account_type.strip() or None
+    db.commit()
+    db.refresh(owner)
+    return _owner_dict(owner)
+
+
 def _owner_dict(o: ShopOwner) -> dict:
     return {
         "id": o.id,
@@ -81,7 +167,19 @@ def _owner_dict(o: ShopOwner) -> dict:
         "email": o.email,
         "phone": o.phone,
         "is_approved": o.is_approved,
+        "is_active": o.is_active,
         "created_at": o.created_at,
+        "profile_image_url": o.profile_image_url or None,
+        "address": o.address or None,
+        "city": o.city or None,
+        "state": o.state or None,
+        "pincode": o.pincode or None,
+        "gst_number": o.gst_number or None,
+        "bank_account_holder": o.bank_account_holder or None,
+        "bank_name": o.bank_name or None,
+        "bank_account_number": o.bank_account_number or None,
+        "bank_ifsc": o.bank_ifsc or None,
+        "bank_account_type": o.bank_account_type or None,
     }
 
 

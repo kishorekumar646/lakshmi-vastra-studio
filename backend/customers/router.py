@@ -1,13 +1,20 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Customer
 from customers.auth import hash_password, verify_password, create_customer_token, get_current_customer
+import cloudinary
+import cloudinary.uploader
+import os
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+)
 import urllib.request
 import urllib.parse
-import json
-import os
+import json as _json
 
 router = APIRouter(prefix="/api/auth", tags=["customer-auth"])
 
@@ -63,11 +70,19 @@ def google_auth(body: GoogleAuthBody, db: Session = Depends(get_db)):
         raise HTTPException(status_code=503, detail="Google login is not configured")
 
     try:
-        url = f"https://oauth2.googleapis.com/tokeninfo?id_token={urllib.parse.quote(body.credential)}"
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            info = json.loads(resp.read().decode())
-    except Exception:
-        raise HTTPException(status_code=401, detail="Google token verification failed")
+        qs = urllib.parse.urlencode({"id_token": body.credential})
+        url = f"https://oauth2.googleapis.com/tokeninfo?{qs}"
+        req = urllib.request.Request(url, headers={"User-Agent": "LVS-Backend/1.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status != 200:
+                raise HTTPException(status_code=401, detail="Google token invalid or expired")
+            info = _json.loads(resp.read().decode())
+    except HTTPException:
+        raise
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=401, detail="Google token invalid or expired")
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Google verification error: {str(e)}")
 
     if info.get("aud") != GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=401, detail="Token audience mismatch")
@@ -105,6 +120,7 @@ def _customer_dict(c: Customer):
         "state": c.state or "",
         "pincode": c.pincode or "",
         "created_at": c.created_at,
+        "profile_image_url": c.profile_image_url or None,
     }
 
 
@@ -121,15 +137,34 @@ class UpdateProfileBody(BaseModel):
     state: str = ""
     pincode: str = ""
 
+    def validate(self):
+        if self.pincode and (not self.pincode.isdigit() or len(self.pincode) != 6):
+            raise ValueError("PIN code must be exactly 6 digits")
+
 
 @router.put("/me")
 def update_me(body: UpdateProfileBody, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+    if body.pincode and (not body.pincode.isdigit() or len(body.pincode) != 6):
+        raise HTTPException(status_code=422, detail="PIN code must be exactly 6 digits")
     customer.phone = body.phone
     customer.secondary_phone = body.secondary_phone or None
     customer.address = body.address or None
     customer.city = body.city or None
     customer.state = body.state or None
     customer.pincode = body.pincode or None
+    db.commit()
+    db.refresh(customer)
+    return _customer_dict(customer)
+
+
+@router.put("/me/avatar")
+async def update_avatar(
+    profile_image: UploadFile = File(...),
+    customer: Customer = Depends(get_current_customer),
+    db: Session = Depends(get_db),
+):
+    result = cloudinary.uploader.upload(profile_image.file, folder="lakshmi-vastra/avatars")
+    customer.profile_image_url = result["secure_url"]
     db.commit()
     db.refresh(customer)
     return _customer_dict(customer)

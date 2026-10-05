@@ -25,6 +25,17 @@ class ShopOwner(Base):
     is_active = Column(Boolean, default=True)
     is_approved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    profile_image_url = Column(String(500), nullable=True)
+    address = Column(Text, nullable=True)
+    city = Column(String(100), nullable=True)
+    state = Column(String(100), nullable=True)
+    pincode = Column(String(10), nullable=True)
+    gst_number = Column(String(20), nullable=True)
+    bank_account_holder = Column(String(200), nullable=True)
+    bank_name = Column(String(200), nullable=True)
+    bank_account_number = Column(String(30), nullable=True)
+    bank_ifsc = Column(String(20), nullable=True)
+    bank_account_type = Column(String(20), nullable=True)  # Savings / Current
 
     products = relationship("Product", back_populates="shop_owner")
 
@@ -46,7 +57,13 @@ class DeliveryPerson(Base):
     licence_image_url = Column(String(500))
     pan_image_url = Column(String(500))
     profile_complete = Column(Boolean, default=False)
+    profile_image_url = Column(String(500), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    bank_account_holder = Column(String(200), nullable=True)
+    bank_name = Column(String(200), nullable=True)
+    bank_account_number = Column(String(30), nullable=True)
+    bank_ifsc = Column(String(20), nullable=True)
+    bank_account_type = Column(String(20), nullable=True)  # Savings / Current
 
     assigned_orders = relationship("Order", back_populates="delivery_person")
 
@@ -130,6 +147,7 @@ class Customer(Base):
     city = Column(String(100), nullable=True)
     state = Column(String(100), nullable=True)
     pincode = Column(String(10), nullable=True)
+    profile_image_url = Column(String(500), nullable=True)
     hashed_password = Column(String(200), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

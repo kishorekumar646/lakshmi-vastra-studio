@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 function useIsMobile(breakpoint = 640) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
@@ -10,10 +10,10 @@ function useIsMobile(breakpoint = 640) {
   return isMobile;
 }
 import { Link, useNavigate } from "react-router-dom";
-import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle } from "lucide-react";
+import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle, Camera } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { getOrders, cancelOrder, updateProfile } from "../api";
+import { getOrders, cancelOrder, updateProfile, uploadCustomerAvatar } from "../api";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { stripPhone, formatPhone, phoneError } from "../utils/phone";
 
@@ -369,6 +369,8 @@ function ProfileSection({ customer }) {
   const { setCustomer } = useAuth();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const avatarInputRef = useRef(null);
   const [form, setForm] = useState({
     phone: customer.phone || "",
     secondary_phone: customer.secondary_phone || "",
@@ -404,6 +406,24 @@ function ProfileSection({ customer }) {
     setEditing(false);
   };
 
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("profile_image", file);
+      const { data } = await uploadCustomerAvatar(fd);
+      setCustomer(data);
+      toast.success("Profile photo updated!");
+    } catch {
+      toast.error("Failed to upload photo");
+    } finally {
+      setAvatarUploading(false);
+      e.target.value = "";
+    }
+  };
+
   const ReadonlyField = ({ label, value, Icon }) => (
     <div style={{ background: "var(--cream)", borderRadius: 10, padding: "1.1rem 1.25rem", display: "flex", alignItems: "flex-start", gap: "0.75rem" }}>
       <div style={{ width: 34, height: 34, borderRadius: 8, background: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -418,12 +438,42 @@ function ProfileSection({ customer }) {
 
   return (
     <div style={{ background: "#fff", borderRadius: 12, padding: "2rem 2.25rem", border: "1px solid var(--border-light)", boxShadow: "0 2px 16px rgba(0,0,0,0.05)" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem", paddingBottom: "1rem", borderBottom: "1px solid var(--border-light)" }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", color: "var(--text)", margin: 0 }}>Profile Details</h2>
+      {/* Avatar upload */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1.25rem", marginBottom: "1.75rem", paddingBottom: "1.5rem", borderBottom: "1px solid var(--border-light)" }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <div
+            onClick={() => avatarInputRef.current?.click()}
+            style={{ width: 64, height: 64, borderRadius: "50%", overflow: "hidden", cursor: "pointer", border: "2px solid var(--border-light)", position: "relative" }}
+          >
+            {customer.profile_image_url ? (
+              <img src={customer.profile_image_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            ) : (
+              <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #0D0611, #7B1D45)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold)", fontWeight: 700, fontSize: "1.4rem" }}>
+                {customer.name.charAt(0).toUpperCase()}
+              </div>
+            )}
+            {avatarUploading && (
+              <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <span style={{ width: 18, height: 18, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
+              </div>
+            )}
+          </div>
+          <div
+            onClick={() => avatarInputRef.current?.click()}
+            style={{ position: "absolute", bottom: 0, right: 0, width: 22, height: 22, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "2px solid #fff" }}
+          >
+            <Camera size={11} color="#fff" />
+          </div>
+          <input ref={avatarInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarUpload} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.15rem", color: "var(--text)", margin: "0 0 0.2rem" }}>{customer.name}</h2>
+          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>Tap the photo to change your profile picture</p>
+        </div>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.9rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-muted)" }}
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--cream)", border: "1px solid var(--border)", borderRadius: 8, padding: "0.45rem 0.9rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, color: "var(--text-muted)", flexShrink: 0 }}
           >
             <Edit2 size={13} /> Edit
           </button>
@@ -470,15 +520,15 @@ function ProfileSection({ customer }) {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
             <div style={inputWrap}>
               <label style={labelSt}>City</label>
-              <input value={form.city} onChange={set("city")} placeholder="Chennai" />
+              <input value={form.city} onChange={set("city")} placeholder="e.g. Gooty RS" />
             </div>
             <div style={inputWrap}>
               <label style={labelSt}>State</label>
-              <input value={form.state} onChange={set("state")} placeholder="Tamil Nadu" />
+              <input value={form.state} onChange={set("state")} placeholder="e.g. Andhra Pradesh" />
             </div>
             <div style={{ ...inputWrap, minWidth: 120 }}>
               <label style={labelSt}>PIN Code</label>
-              <input value={form.pincode} onChange={set("pincode")} placeholder="600001" maxLength={6} />
+              <input value={form.pincode} onChange={(e) => { const v = e.target.value.replace(/\D/g, ""); setForm(p => ({ ...p, pincode: v })); }} placeholder="e.g. 515402" maxLength={6} inputMode="numeric" pattern="[0-9]*" />
             </div>
           </div>
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
@@ -657,11 +707,16 @@ export default function Account() {
             }}>
               <div style={{
                 width: 46, height: 46, borderRadius: "50%", flexShrink: 0,
-                background: "rgba(201,168,76,0.25)", border: "2px solid var(--gold)",
+                border: "2px solid var(--gold)", overflow: "hidden",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                color: "var(--gold)", fontWeight: 700, fontSize: "1.2rem",
               }}>
-                {customer.name.charAt(0).toUpperCase()}
+                {customer.profile_image_url ? (
+                  <img src={customer.profile_image_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                ) : (
+                  <div style={{ width: "100%", height: "100%", background: "rgba(201,168,76,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold)", fontWeight: 700, fontSize: "1.2rem" }}>
+                    {customer.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.92rem", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{customer.name}</p>
@@ -717,11 +772,17 @@ export default function Account() {
               <div style={{ background: "linear-gradient(135deg, #0D0611, #7B1D45)", padding: "1.75rem 1.5rem" }}>
                 <div style={{
                   width: 52, height: 52, borderRadius: "50%",
-                  background: "rgba(201,168,76,0.25)", border: "2px solid var(--gold)",
+                  border: "2px solid var(--gold)", overflow: "hidden",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "var(--gold)", fontWeight: 700, fontSize: "1.3rem", marginBottom: "0.75rem",
+                  marginBottom: "0.75rem",
                 }}>
-                  {customer.name.charAt(0).toUpperCase()}
+                  {customer.profile_image_url ? (
+                    <img src={customer.profile_image_url} alt="Profile" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ width: "100%", height: "100%", background: "rgba(201,168,76,0.25)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--gold)", fontWeight: 700, fontSize: "1.3rem" }}>
+                      {customer.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                 </div>
                 <p style={{ fontWeight: 700, color: "#fff", fontSize: "0.95rem" }}>{customer.name}</p>
                 <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.78rem", marginTop: "0.15rem" }}>{customer.email}</p>

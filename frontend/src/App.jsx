@@ -21,12 +21,17 @@ import Wishlist from "./pages/Wishlist";
 import Cart from "./pages/Cart";
 import Account from "./pages/Account";
 import ApiDocs from "./pages/ApiDocs";
+import HelpCenter from "./pages/HelpCenter";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfUse from "./pages/TermsOfUse";
+import CookiePolicy from "./pages/CookiePolicy";
 import About from "./pages/About";
 import ScrollToTop from "./components/ScrollToTop";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SplashScreen from "./components/SplashScreen";
 import BackToTop from "./components/BackToTop";
 import BottomNav from "./components/BottomNav";
+import CookieBanner from "./components/CookieBanner";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { WishlistProvider } from "./context/WishlistContext";
@@ -52,8 +57,13 @@ function ShopApp() {
       <Routes>
         <Route path="/shop/login" element={<ShopLogin />} />
         <Route path="/shop/dashboard/*" element={<ShopProtectedRoute><ShopDashboard /></ShopProtectedRoute>} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="*" element={<Navigate to="/shop/login" replace />} />
       </Routes>
+      <CookieBanner />
     </>
   );
 }
@@ -66,8 +76,13 @@ function DeliveryApp() {
       <Routes>
         <Route path="/delivery/login" element={<DeliveryLogin />} />
         <Route path="/delivery/dashboard" element={<DeliveryProtectedRoute><DeliveryDashboard /></DeliveryProtectedRoute>} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="*" element={<Navigate to="/delivery/login" replace />} />
       </Routes>
+      <CookieBanner />
     </>
   );
 }
@@ -80,10 +95,14 @@ function AdminApp() {
       <Routes>
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard/*" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-        {/* Track page must work in admin portal so Track links open correctly */}
         <Route path="/track/:orderId" element={<OrderTracking />} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfUse />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
+      <CookieBanner />
     </>
   );
 }
@@ -117,6 +136,10 @@ export default function App() {
               {/* Standalone portals — no Navbar/Footer */}
               <Route path="/api-docs" element={<ApiDocs />} />
               <Route path="/install" element={<Install />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfUse />} />
+              <Route path="/cookies" element={<CookiePolicy />} />
               <Route path="/admin" element={<AdminLogin />} />
               <Route path="/admin/dashboard/*" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
               <Route path="/shop/login" element={<ShopLogin />} />
@@ -146,6 +169,7 @@ export default function App() {
                   <Footer />
                   <BackToTop />
                   <BottomNav />
+                  <CookieBanner />
                 </>
               } />
             </Routes>

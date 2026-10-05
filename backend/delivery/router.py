@@ -7,9 +7,14 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload
 import cloudinary
 import cloudinary.uploader
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET"),
+)
 from database import get_db
 from models import DeliveryPerson, Order, OrderItem, OrderStatusHistory, Product
-from delivery.auth import verify_password, create_delivery_token, get_current_delivery_person
+from delivery.auth import hash_password, verify_password, create_delivery_token, get_current_delivery_person
 
 router = APIRouter(prefix="/api/delivery", tags=["delivery"])
 
@@ -52,7 +57,13 @@ def _person_dict(p: DeliveryPerson) -> dict:
         "pan_card": p.pan_card,
         "licence_image_url": p.licence_image_url,
         "pan_image_url": p.pan_image_url,
+        "profile_image_url": p.profile_image_url or None,
         "profile_complete": bool(p.profile_complete),
+        "bank_account_holder": p.bank_account_holder or None,
+        "bank_name": p.bank_name or None,
+        "bank_account_number": p.bank_account_number or None,
+        "bank_ifsc": p.bank_ifsc or None,
+        "bank_account_type": p.bank_account_type or None,
     }
 
 
@@ -61,14 +72,38 @@ def _upload_doc(file: UploadFile) -> str:
     return result["secure_url"]
 
 
+class ChangePasswordBody(BaseModel):
+    old_password: str
+    new_password: str
+
+@router.put("/me/password")
+def change_password(
+    body: ChangePasswordBody,
+    person: DeliveryPerson = Depends(get_current_delivery_person),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(body.old_password, person.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=422, detail="New password must be at least 6 characters")
+    person.hashed_password = hash_password(body.new_password)
+    db.commit()
+    return {"message": "Password updated successfully"}
+
 @router.put("/profile")
 async def update_profile(
     vehicle_type: Optional[str] = Form(None),
     vehicle_number: Optional[str] = Form(None),
     licence_number: Optional[str] = Form(None),
     pan_card: Optional[str] = Form(None),
+    bank_account_holder: Optional[str] = Form(None),
+    bank_name: Optional[str] = Form(None),
+    bank_account_number: Optional[str] = Form(None),
+    bank_ifsc: Optional[str] = Form(None),
+    bank_account_type: Optional[str] = Form(None),
     licence_image: Optional[UploadFile] = File(None),
     pan_image: Optional[UploadFile] = File(None),
+    profile_image: Optional[UploadFile] = File(None),
     person: DeliveryPerson = Depends(get_current_delivery_person),
     db: Session = Depends(get_db),
 ):
@@ -80,11 +115,23 @@ async def update_profile(
         person.licence_number = licence_number.strip().upper() or None
     if pan_card is not None:
         person.pan_card = pan_card.strip().upper() or None
+    if bank_account_holder is not None:
+        person.bank_account_holder = bank_account_holder.strip() or None
+    if bank_name is not None:
+        person.bank_name = bank_name.strip() or None
+    if bank_account_number is not None:
+        person.bank_account_number = bank_account_number.strip() or None
+    if bank_ifsc is not None:
+        person.bank_ifsc = bank_ifsc.strip().upper() or None
+    if bank_account_type is not None:
+        person.bank_account_type = bank_account_type.strip() or None
 
     if licence_image and licence_image.filename:
         person.licence_image_url = _upload_doc(licence_image)
     if pan_image and pan_image.filename:
         person.pan_image_url = _upload_doc(pan_image)
+    if profile_image and profile_image.filename:
+        person.profile_image_url = _upload_doc(profile_image)
 
     person.profile_complete = bool(
         person.vehicle_type and person.vehicle_number

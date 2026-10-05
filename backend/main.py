@@ -2,8 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
+import ssl
+import os
 
 load_dotenv(Path(__file__).parent / ".env")
+
+# On local dev (Infosys laptop) the corporate network does SSL inspection,
+# causing SSLCertVerificationError on Cloudinary/Google calls. Skip only locally.
+if not os.getenv("RENDER"):
+    ssl._create_default_https_context = ssl._create_unverified_context
 
 from sqlalchemy import text
 from database import engine, Base
@@ -51,6 +58,24 @@ def _run_migrations():
         ("customers", "city", "TEXT"),
         ("customers", "state", "TEXT"),
         ("customers", "pincode", "TEXT"),
+        ("customers", "profile_image_url", "TEXT"),
+        ("shop_owners", "profile_image_url", "TEXT"),
+        ("shop_owners", "address", "TEXT"),
+        ("shop_owners", "city", "TEXT"),
+        ("shop_owners", "state", "TEXT"),
+        ("shop_owners", "pincode", "TEXT"),
+        ("shop_owners", "gst_number", "TEXT"),
+        ("shop_owners", "bank_account_holder", "TEXT"),
+        ("shop_owners", "bank_name", "TEXT"),
+        ("shop_owners", "bank_account_number", "TEXT"),
+        ("shop_owners", "bank_ifsc", "TEXT"),
+        ("shop_owners", "bank_account_type", "TEXT"),
+        ("delivery_persons", "profile_image_url", "TEXT"),
+        ("delivery_persons", "bank_account_holder", "TEXT"),
+        ("delivery_persons", "bank_name", "TEXT"),
+        ("delivery_persons", "bank_account_number", "TEXT"),
+        ("delivery_persons", "bank_ifsc", "TEXT"),
+        ("delivery_persons", "bank_account_type", "TEXT"),
         ("order_items", "shop_owner_id", "INTEGER REFERENCES shop_owners(id)"),
     ]
     with engine.connect() as conn:

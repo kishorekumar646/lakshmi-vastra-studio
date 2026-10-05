@@ -16,6 +16,7 @@ from models import Product, ProductImage, Order, OrderItem, OrderStatusHistory, 
 from admins.auth import create_access_token, verify_token
 from products.router import product_to_dict, upload_image
 from delivery.auth import hash_password as delivery_hash_password
+from shops.auth import hash_password as shop_hash_password
 from datetime import datetime, timedelta
 
 cloudinary.config(
@@ -443,6 +444,22 @@ def toggle_delivery_person(person_id: int, db: Session = Depends(get_db), _: str
     return {"id": person.id, "is_active": person.is_active}
 
 
+class ResetPasswordBody(BaseModel):
+    new_password: str
+
+
+@router.put("/delivery-persons/{person_id}/reset-password")
+def reset_delivery_password(person_id: int, body: ResetPasswordBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    if not body.new_password or len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    person = db.query(DeliveryPerson).filter(DeliveryPerson.id == person_id).first()
+    if not person:
+        raise HTTPException(status_code=404, detail="Delivery person not found")
+    person.hashed_password = delivery_hash_password(body.new_password)
+    db.commit()
+    return {"message": "Password reset successfully"}
+
+
 # ── Shop Owners ───────────────────────────────────────────────────────────────
 
 @router.get("/shop-owners")
@@ -481,6 +498,45 @@ def toggle_shop_owner(owner_id: int, db: Session = Depends(get_db), _: str = Dep
     owner.is_active = not owner.is_active
     db.commit()
     return {"id": owner.id, "is_active": owner.is_active}
+
+
+@router.put("/shop-owners/{owner_id}/reset-password")
+def reset_shop_owner_password(owner_id: int, body: ResetPasswordBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    if not body.new_password or len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    owner = db.query(ShopOwner).filter(ShopOwner.id == owner_id).first()
+    if not owner:
+        raise HTTPException(status_code=404, detail="Shop owner not found")
+    owner.hashed_password = shop_hash_password(body.new_password)
+    db.commit()
+    return {"message": "Password reset successfully"}
+
+
+class UpdateShopOwnerBody(BaseModel):
+    name: Optional[str] = None
+    shop_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+@router.put("/shop-owners/{owner_id}")
+def update_shop_owner(owner_id: int, body: UpdateShopOwnerBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    owner = db.query(ShopOwner).filter(ShopOwner.id == owner_id).first()
+    if not owner:
+        raise HTTPException(status_code=404, detail="Shop owner not found")
+    if body.email and body.email != owner.email:
+        if db.query(ShopOwner).filter(ShopOwner.email == body.email, ShopOwner.id != owner_id).first():
+            raise HTTPException(status_code=400, detail="Email already in use by another shop owner")
+        owner.email = body.email
+    if body.name is not None:
+        owner.name = body.name
+    if body.shop_name is not None:
+        owner.shop_name = body.shop_name
+    if body.phone is not None:
+        owner.phone = body.phone
+    db.commit()
+    db.refresh(owner)
+    return {"id": owner.id, "name": owner.name, "shop_name": owner.shop_name, "email": owner.email, "phone": owner.phone}
 
 
 # ── Customers ─────────────────────────────────────────────────────────────────
