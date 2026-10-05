@@ -72,6 +72,14 @@ export default function ShopDashboard() {
 
   useEffect(() => {
     if (tab === "orders") loadOrders();
+    if (tab === "products") loadProducts();
+  }, [tab]);
+
+  // Re-fetch when user returns to this browser tab
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden) { if (tab === "products") loadProducts(); else if (tab === "orders") loadOrders(); } };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, [tab]);
 
   // Auto-refresh orders every 30s when on orders tab

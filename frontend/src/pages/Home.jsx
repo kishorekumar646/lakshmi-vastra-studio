@@ -33,6 +33,13 @@ export default function Home() {
       .then((r) => setTestimonials(r.data))
       .catch(() => {})
       .finally(() => setTestimonialsLoading(false));
+    const onVisible = () => {
+      if (!document.hidden) {
+        getProducts({ featured: true }).then((r) => setFeatured(r.data.slice(0, 6))).catch(() => {});
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   return (

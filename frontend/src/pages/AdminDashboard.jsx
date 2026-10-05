@@ -228,6 +228,26 @@ export default function AdminDashboard() {
 
   useEffect(() => { loadAll(); }, []);
 
+  // Re-fetch relevant data when switching tabs
+  useEffect(() => {
+    if (tab === "products") loadProducts(1);
+    else if (tab === "orders") loadOrders(orderStatusFilter);
+    else if (tab === "delivery") loadDeliveryPersons();
+    else if (tab === "shopowners") loadShopOwners();
+    else if (tab === "customers") loadCustomers();
+  }, [tab]);
+
+  // Re-fetch when user returns to this browser tab
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.hidden) return;
+      if (tab === "products") loadProducts(1);
+      else if (tab === "orders") loadOrders(orderStatusFilter);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [tab, orderStatusFilter]);
+
   // Auto-refresh orders every 30s
   useEffect(() => {
     const prev = { pending: 0 };

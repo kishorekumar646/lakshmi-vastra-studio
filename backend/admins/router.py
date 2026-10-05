@@ -220,9 +220,14 @@ def admin_delete_product(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    order_count = db.query(OrderItem).filter(OrderItem.product_id == product_id).count()
-    if order_count > 0:
-        raise HTTPException(status_code=409, detail=f"Cannot delete: this product appears in {order_count} order(s). Deactivate it instead.")
+    active_order_count = (
+        db.query(OrderItem)
+        .join(OrderItem.order)
+        .filter(OrderItem.product_id == product_id, Order.status != "delivered")
+        .count()
+    )
+    if active_order_count > 0:
+        raise HTTPException(status_code=409, detail=f"Cannot delete: this product has {active_order_count} active order(s) in progress. It can be deleted once all orders are delivered.")
 
     for img in product.images:
         if img.image_public_id:
