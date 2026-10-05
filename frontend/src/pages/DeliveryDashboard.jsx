@@ -24,6 +24,24 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
+/* ── Vehicle number formatter: AP 39 KB 8104 ─────────────── */
+function formatVehicleNumber(raw) {
+  const clean = raw.replace(/[^A-Z0-9]/gi, "").toUpperCase().slice(0, 10);
+  const parts = [clean.slice(0, 2), clean.slice(2, 4), clean.slice(4, 6), clean.slice(6, 10)];
+  return parts.filter(Boolean).join(" ");
+}
+
+const INDIAN_BANKS = [
+  "State Bank of India", "HDFC Bank", "ICICI Bank", "Axis Bank",
+  "Punjab National Bank", "Bank of Baroda", "Canara Bank", "Union Bank of India",
+  "Indian Bank", "Bank of India", "IDBI Bank", "Kotak Mahindra Bank",
+  "Yes Bank", "IndusInd Bank", "Federal Bank", "South Indian Bank",
+  "RBL Bank", "Bandhan Bank", "UCO Bank", "Central Bank of India",
+  "Indian Overseas Bank", "Punjab & Sind Bank", "Karnataka Bank",
+  "Karur Vysya Bank", "City Union Bank", "Tamilnad Mercantile Bank",
+  "Dhanlaxmi Bank", "Nainital Bank", "Saraswat Bank", "Other",
+];
+
 /* ── Profile helpers ─────────────────────────────────────── */
 const profileLabelStyle = {
   display: "block", fontSize: "0.75rem", fontWeight: 700, color: "#475569",
@@ -811,9 +829,9 @@ export default function DeliveryDashboard() {
                 <div style={{ padding: "0.85rem 1.1rem" }}>
                   <p style={{ margin: "0 0 0.4rem", fontSize: "0.72rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Registration Number</p>
                   <input
-                    type="text" placeholder="e.g. TN 01 AB 1234"
+                    type="text" placeholder="e.g. AP 39 KB 8104"
                     value={profileForm.vehicle_number}
-                    onChange={(e) => setProfileForm((p) => ({ ...p, vehicle_number: e.target.value }))}
+                    onChange={(e) => setProfileForm((p) => ({ ...p, vehicle_number: formatVehicleNumber(e.target.value) }))}
                     style={{ width: "100%", border: "none", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: 0, boxSizing: "border-box" }}
                   />
                 </div>
@@ -876,24 +894,52 @@ export default function DeliveryDashboard() {
                   <>
                     <SL2>Bank Details</SL2>
                     <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-                      {[
-                        { label: "Account Holder Name", key: "bank_account_holder", placeholder: "As per bank records" },
-                        { label: "Bank Name",            key: "bank_name",           placeholder: "e.g. State Bank of India" },
-                        { label: "Account Number",       key: "bank_account_number", placeholder: "XXXXXXXXXXXX", numeric: true },
-                        { label: "IFSC Code",            key: "bank_ifsc",           placeholder: "e.g. SBIN0001234", upper: true },
-                      ].map(({ label, key, placeholder, upper, numeric }, i) => (
-                        <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                          <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
-                          <input
-                            type="text"
-                            inputMode={numeric ? "numeric" : undefined}
-                            value={profileForm[key]}
-                            onChange={(e) => setProfileForm((p) => ({ ...p, [key]: upper ? e.target.value.toUpperCase() : e.target.value }))}
-                            placeholder={placeholder}
-                            style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
-                          />
-                        </div>
-                      ))}
+                      {/* Account Holder Name */}
+                      <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Holder Name</p>
+                        <input
+                          type="text"
+                          value={profileForm.bank_account_holder}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, bank_account_holder: e.target.value.toUpperCase() }))}
+                          placeholder="AS PER BANK RECORDS"
+                          style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      {/* Bank Name dropdown */}
+                      <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Bank Name</p>
+                        <select
+                          value={profileForm.bank_name}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, bank_name: e.target.value }))}
+                          style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: profileForm.bank_name ? "#0F172A" : "#94A3B8", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box", cursor: "pointer" }}
+                        >
+                          <option value="">Select bank…</option>
+                          {INDIAN_BANKS.map((b) => <option key={b} value={b}>{b}</option>)}
+                        </select>
+                      </div>
+                      {/* Account Number */}
+                      <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Number</p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={profileForm.bank_account_number}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, bank_account_number: e.target.value.replace(/\D/g, "") }))}
+                          placeholder="XXXXXXXXXXXX"
+                          style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                        />
+                      </div>
+                      {/* IFSC */}
+                      <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>IFSC Code</p>
+                        <input
+                          type="text"
+                          value={profileForm.bank_ifsc}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, bank_ifsc: e.target.value.toUpperCase() }))}
+                          placeholder="e.g. SBIN0001234"
+                          style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                        />
+                      </div>
                       <div style={{ padding: "0.85rem 1.1rem" }}>
                         <p style={{ margin: "0 0 0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Type</p>
                         <div style={{ display: "flex", gap: "0.65rem" }}>

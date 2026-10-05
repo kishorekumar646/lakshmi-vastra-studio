@@ -56,6 +56,7 @@ export default function ShopDashboard() {
   const [orders, setOrders] = useState([]);
   const [qrModal, setQrModal] = useState(null); // { orderId, qrImage }
   const [showScanner, setShowScanner] = useState(false);
+  const [scanSuccess, setScanSuccess] = useState(null); // { orderId }
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
@@ -198,10 +199,10 @@ export default function ShopDashboard() {
 
   // ── Orders ────────────────────────────────────────────────────────────────────
 
-  const showQr = async (orderId) => {
+  const showQr = async (orderId, orderStatus) => {
     try {
       const res = await getShopOrderQr(orderId);
-      setQrModal({ orderId, qrImage: res.data.qr_image });
+      setQrModal({ orderId, qrImage: res.data.qr_image, orderStatus });
     } catch (err) {
       toast.error(err.response?.data?.detail || "Could not load QR");
     }
@@ -210,8 +211,8 @@ export default function ShopDashboard() {
   const handleScan = async (token) => {
     setShowScanner(false);
     try {
-      await shopScanQr(token);
-      toast.success("Order marked as Ready for Delivery!");
+      const { data } = await shopScanQr(token);
+      setScanSuccess({ orderId: data.order_id });
       loadOrders();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Scan failed");
@@ -584,12 +585,15 @@ export default function ShopDashboard() {
           return (
           <>
             {/* Header row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
               <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>Orders</h2>
               <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.5rem 1rem", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>
                 <ScanLine size={15} /> Scan QR
               </button>
             </div>
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", color: "#94A3B8", textAlign: "right" }}>
+              Scan customer's QR from their Order Tracking page to mark order ready
+            </p>
 
             {/* Search input */}
             <div style={{ position: "relative", marginBottom: "0.65rem" }}>
@@ -671,9 +675,10 @@ export default function ShopDashboard() {
                     </div>
 
                     <p style={{ margin: 0, fontSize: "0.78rem", color: "#888" }}>📍 {o.delivery_address}</p>
-                    {o.status === "confirmed" && (
-                      <button onClick={() => showQr(o.id)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
-                        <QrCode size={14} /> View QR Code
+                    {(o.status === "confirmed" || o.status === "ready_for_delivery") && (
+                      <button onClick={() => showQr(o.id, o.status)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: o.status === "ready_for_delivery" ? "#0f2460" : "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
+                        <QrCode size={14} />
+                        {o.status === "ready_for_delivery" ? "Show QR for Pickup" : "View QR Code"}
                       </button>
                     )}
                   </div>
@@ -904,21 +909,77 @@ export default function ShopDashboard() {
       </nav>
 
       {/* QR Modal */}
-      {qrModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 12, padding: "1.75rem", maxWidth: 320, width: "100%", textAlign: "center" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem" }}>
-              <h3 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)" }}>Order #{qrModal.orderId}</h3>
-              <button onClick={() => setQrModal(null)} style={{ background: "none", border: "none", cursor: "pointer" }}><X size={20} /></button>
+      {qrModal && (() => {
+        const isReady = qrModal.orderStatus === "ready_for_delivery";
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+            <div style={{ background: "#fff", borderRadius: 14, padding: "1.75rem", maxWidth: 320, width: "100%", textAlign: "center" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+                <h3 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: isReady ? "#0f2460" : "var(--primary)", fontSize: "1rem" }}>
+                  Order #{qrModal.orderId}
+                </h3>
+                <button onClick={() => setQrModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={20} /></button>
+              </div>
+
+              {/* Context banner */}
+              <div style={{ background: isReady ? "#EFF6FF" : "#FFF7ED", border: `1.5px solid ${isReady ? "#BFDBFE" : "#FED7AA"}`, borderRadius: 10, padding: "0.65rem 0.85rem", marginBottom: "1rem", textAlign: "left" }}>
+                {isReady ? (
+                  <>
+                    <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700, color: "#1d4ed8" }}>🚚 For Delivery Partner</p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#1e40af", lineHeight: 1.5 }}>
+                      Show this QR to the delivery partner — they scan it from the <strong>LV Delivery app</strong> to confirm pickup.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700, color: "#c2410c" }}>📦 Mark Order as Ready</p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#9a3412", lineHeight: 1.5 }}>
+                      Tap <strong>Scan QR</strong> above and scan the customer's QR from their Order Tracking page — or scan this code directly.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "1rem", display: "inline-block" }}>
+                <img src={qrModal.qrImage} alt="QR Code" style={{ width: 180, height: 180, display: "block", borderRadius: 6 }} />
+              </div>
             </div>
-            <p style={{ fontSize: "0.8rem", color: "#666", marginBottom: "1rem" }}>Scan this QR code to mark order as Ready for Delivery</p>
-            <img src={qrModal.qrImage} alt="QR Code" style={{ width: "100%", maxWidth: 220, borderRadius: 8 }} />
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* QR Scanner */}
       {showScanner && <QrScanner onScan={handleScan} onClose={() => setShowScanner(false)} />}
+
+      {/* Scan Success Popup */}
+      {scanSuccess && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "2rem 1.75rem", maxWidth: 340, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }}>
+            {/* Success icon */}
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#D1FAE5", border: "2px solid #6EE7B7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", fontSize: "2rem" }}>
+              ✅
+            </div>
+            <h3 style={{ margin: "0 0 0.4rem", fontFamily: "'Playfair Display', serif", color: "#15803D", fontSize: "1.3rem" }}>
+              QR Scanned!
+            </h3>
+            <p style={{ margin: "0 0 0.5rem", fontWeight: 700, color: "#0F172A", fontSize: "0.95rem" }}>
+              Order #{scanSuccess.orderId} is Ready for Delivery
+            </p>
+            <div style={{ background: "#F0FDF4", border: "1.5px solid #86EFAC", borderRadius: 10, padding: "0.85rem 1rem", margin: "1rem 0 1.5rem", textAlign: "left" }}>
+              <p style={{ margin: "0 0 0.4rem", fontSize: "0.8rem", fontWeight: 700, color: "#15803D" }}>Next Step</p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "#166534", lineHeight: 1.55 }}>
+                🚚 The delivery partner will come to your shop to pick up this order. They will scan the QR code to confirm pickup.
+              </p>
+            </div>
+            <button
+              onClick={() => setScanSuccess(null)}
+              style={{ width: "100%", padding: "0.8rem", background: "linear-gradient(135deg, var(--primary), #a83060)", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: "0.92rem", boxShadow: "0 4px 14px rgba(123,29,69,0.3)" }}
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* PWA Install Guide */}
       <InstallGuideSheet

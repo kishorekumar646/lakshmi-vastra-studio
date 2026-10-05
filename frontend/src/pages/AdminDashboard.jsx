@@ -1746,19 +1746,19 @@ export default function AdminDashboard() {
                   <div key={dp.id} style={{ background: "#fff", borderRadius: 10, border: "1px solid var(--border-light)", overflow: "hidden" }}>
                     {/* Clickable header row */}
                     <div
+                      className="dp-card-header"
                       onClick={() => setExpandedDelivery(expandedDelivery === dp.id ? null : dp.id)}
-                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem", cursor: "pointer", gap: "0.75rem" }}
                     >
-                      <div style={{ display: "flex", gap: "0.85rem", alignItems: "center", flex: 1, minWidth: 0 }}>
+                      <div className="dp-card-info">
                         <div style={{ width: 42, height: 42, borderRadius: "50%", background: dp.is_active ? "var(--primary)" : "#94A3B8", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                           <span style={{ color: "#fff", fontWeight: 700, fontSize: "1rem" }}>{dp.name?.[0]?.toUpperCase() || "?"}</span>
                         </div>
                         <div style={{ minWidth: 0 }}>
                           <p style={{ margin: 0, fontWeight: 700, color: "var(--text)", fontSize: "0.97rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dp.name}</p>
-                          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>{dp.email}</p>
+                          <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)" }}>{dp.phone ? formatPhone(dp.phone) : dp.email}</p>
                         </div>
                       </div>
-                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexShrink: 0 }}>
+                      <div className="dp-card-actions">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1785,7 +1785,7 @@ export default function AdminDashboard() {
                         >
                           🔑 Reset
                         </button>
-                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{expandedDelivery === dp.id ? "▲" : "▼"}</span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginLeft: "0.15rem" }}>{expandedDelivery === dp.id ? "▲" : "▼"}</span>
                       </div>
                     </div>
 
@@ -2046,26 +2046,26 @@ export default function AdminDashboard() {
                   .map((c) => (
                     <div key={c.id} className="admin-card" style={{ padding: "1rem 1.25rem" }}>
                       <div
-                        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", gap: "1rem" }}
+                        className="customer-card-row"
                         onClick={() => setExpandedCustomer(expandedCustomer === c.id ? null : c.id)}
                       >
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.85rem", flex: 1, minWidth: 0 }}>
+                        <div className="customer-card-info">
                           <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                             <span style={{ color: "#fff", fontWeight: 700, fontSize: "0.95rem" }}>{c.name?.[0]?.toUpperCase() || "?"}</span>
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <p style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.name}</p>
-                            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0 }}>{c.email}</p>
+                            <p style={{ fontSize: "0.8rem", color: "var(--text-muted)", margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.email}</p>
                           </div>
                         </div>
-                        <div style={{ display: "flex", gap: "1.5rem", alignItems: "center", flexShrink: 0 }}>
+                        <div className="customer-card-meta">
                           <div style={{ textAlign: "right" }}>
-                            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", margin: 0 }}>Orders</p>
-                            <p style={{ fontWeight: 700, fontSize: "1rem", color: "var(--primary)", margin: 0 }}>{c.total_orders}</p>
+                            <p style={{ fontSize: "0.72rem", color: "var(--text-muted)", margin: 0 }}>Orders</p>
+                            <p style={{ fontWeight: 700, fontSize: "0.97rem", color: "var(--primary)", margin: 0 }}>{c.total_orders}</p>
                           </div>
-                          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                          <span className="customer-date">
                             {new Date(c.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
-                          </div>
+                          </span>
                           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{expandedCustomer === c.id ? "▲" : "▼"}</span>
                         </div>
                       </div>
