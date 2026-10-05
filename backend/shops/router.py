@@ -389,6 +389,7 @@ def _order_dict(order: Order) -> dict:
                 "name": item.product.name if item.product else "",
                 "quantity": item.quantity,
                 "price": item.price,
+                "image_url": item.product.image_url if item.product else None,
             }
             for item in order.items
         ],

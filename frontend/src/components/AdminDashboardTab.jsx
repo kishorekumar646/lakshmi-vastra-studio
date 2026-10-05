@@ -220,7 +220,7 @@ export default function AdminDashboardTab() {
       </div>
 
       {/* ── Revenue line chart + Donut ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "1rem", alignItems: "start" }}>
+      <div className="admin-dash-row-2col">
         <ChartCard title="Monthly Revenue (last 6 months)">
           {monthly_revenue.length >= 2 ? (
             <>
@@ -262,7 +262,7 @@ export default function AdminDashboardTab() {
       </div>
 
       {/* ── Top products bar chart + Rating distribution ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "1rem", alignItems: "start" }}>
+      <div className="admin-dash-row-fixed">
         <ChartCard title="Top Products by Units Sold">
           {top_products.length ? (
             <>

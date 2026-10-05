@@ -6,7 +6,7 @@ import {
   deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr, uploadShopAvatar, updateShopMe, changeShopPassword,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, ExternalLink } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -635,6 +635,7 @@ export default function ShopDashboard() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                 {filtered.map((o) => (
                   <div key={o.id} style={S.card}>
+                    {/* Order header */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
                       <div>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem" }}>Order #{o.id}</p>
@@ -642,11 +643,33 @@ export default function ShopDashboard() {
                       </div>
                       <span style={S.badge(o.status)}>{STATUS_LABEL[o.status] || o.status}</span>
                     </div>
-                    <div style={{ fontSize: "0.82rem", color: "#555", marginBottom: "0.75rem" }}>
+
+                    {/* Product image cards */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginBottom: "0.75rem" }}>
                       {o.items.map((item, i) => (
-                        <span key={i}>{item.name} ×{item.quantity}{i < o.items.length - 1 ? ", " : ""}</span>
+                        <a key={i}
+                          href={`/product/${item.product_id}?app=customer`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", textDecoration: "none", color: "inherit", background: "#FAFAF8", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid #F1F5F9" }}
+                        >
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name}
+                              style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                          ) : (
+                            <div style={{ width: 46, height: 46, borderRadius: 6, background: "#F1F5F9", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Package size={18} color="#CBD5E1" />
+                            </div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: "0.83rem", fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
+                            <p style={{ margin: "0.1rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>Qty {item.quantity} · ₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                          </div>
+                          <ExternalLink size={12} color="#CBD5E1" style={{ flexShrink: 0 }} />
+                        </a>
                       ))}
                     </div>
+
                     <p style={{ margin: 0, fontSize: "0.78rem", color: "#888" }}>📍 {o.delivery_address}</p>
                     {o.status === "confirmed" && (
                       <button onClick={() => showQr(o.id)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>

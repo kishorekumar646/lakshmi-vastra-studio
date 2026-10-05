@@ -173,7 +173,7 @@ export default function HelpCenter() {
     <div style={{ minHeight: "100vh", background: "#F8FAFC" }}>
 
       {/* ── Top bar ── */}
-      <div style={{ background: "#1A0812", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "0.85rem 2rem", display: "flex", alignItems: "center", gap: "1rem" }}>
+      <div className="help-top-bar-wrap" style={{ background: "#1A0812", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         <a href={backHref} style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "rgba(255,255,255,0.55)", textDecoration: "none", fontSize: "0.8rem", fontWeight: 600 }}
           onMouseEnter={(e) => e.currentTarget.style.color = "#fff"}
           onMouseLeave={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.55)"}
@@ -191,7 +191,7 @@ export default function HelpCenter() {
       </div>
 
       {/* ── Hero ── */}
-      <div style={{ background: cfg.gradient, padding: "3rem 2rem 3.5rem" }}>
+      <div className="help-hero-wrap" style={{ background: cfg.gradient }}>
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <p style={{ margin: "0 0 0.5rem", fontSize: "0.68rem", fontWeight: 800, color: "rgba(255,255,255,0.38)", textTransform: "uppercase", letterSpacing: "0.14em" }}>
             Lakshmi Vastra Studio — {cfg.label}
@@ -220,7 +220,7 @@ export default function HelpCenter() {
       </div>
 
       {/* ── Main content ── */}
-      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "2.5rem 2rem 5rem" }}>
+      <div className="help-content-wrap">
 
         {/* Resource cards */}
         {!isSearching && (
@@ -265,7 +265,7 @@ export default function HelpCenter() {
             )}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: isSearching || categories.length <= 2 ? "1fr" : "190px 1fr", gap: "1.5rem", alignItems: "start" }}>
+          <div className={isSearching || categories.length <= 2 ? "" : "help-faq-grid"} style={{ display: "grid", gridTemplateColumns: isSearching || categories.length <= 2 ? "1fr" : undefined, gap: "1.5rem", alignItems: "start" }}>
 
             {/* Category sidebar — only when not searching and more than one category */}
             {!isSearching && categories.length > 2 && (

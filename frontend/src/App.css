@@ -1002,7 +1002,7 @@ img {
   display: none;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: calc(env(safe-area-inset-top, 0px) + 1rem) 1.25rem 1rem;
   background: #0F080D;
   border-bottom: 1px solid #1E1118;
 }
@@ -1052,7 +1052,9 @@ img {
 
   .admin-main {
     padding: 1rem 0.85rem 5rem;
+    height: auto;
     min-height: 0;
+    overflow-y: visible;
   }
 
   .admin-section-title { font-size: 1.25rem; }
@@ -1524,7 +1526,7 @@ img {
   display: none;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1.25rem;
+  padding: calc(env(safe-area-inset-top, 0px) + 0.85rem) 1.25rem 0.85rem;
   position: sticky;
   top: 0;
   z-index: 198;
@@ -1871,4 +1873,35 @@ img {
   .chart-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* AdminDashboardTab responsive chart grids */
+.admin-dash-row-2col {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: start;
+}
+.admin-dash-row-fixed {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 768px) {
+  .admin-dash-row-2col { grid-template-columns: 1fr; }
+  .admin-dash-row-fixed { grid-template-columns: 1fr; }
+}
+
+/* HelpCenter responsive */
+.help-hero-wrap { padding: 3rem 2rem 3.5rem; }
+.help-content-wrap { max-width: 1100px; margin: 0 auto; padding: 2.5rem 2rem 5rem; }
+.help-top-bar-wrap { padding: 0.85rem 2rem; display: flex; align-items: center; gap: 1rem; }
+.help-faq-grid { display: grid; grid-template-columns: 190px 1fr; gap: 1.5rem; align-items: start; }
+@media (max-width: 640px) {
+  .help-hero-wrap { padding: 1.75rem 1rem 2rem; }
+  .help-content-wrap { padding: 1.5rem 1rem 4rem; }
+  .help-top-bar-wrap { padding: 0.75rem 1rem; flex-wrap: wrap; }
+  .help-faq-grid { grid-template-columns: 1fr; }
+  .help-faq-grid > nav { display: none; }
 }
