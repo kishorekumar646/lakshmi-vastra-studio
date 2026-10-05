@@ -102,25 +102,25 @@ const ALL_RESOURCES = {
     { icon: <HelpCircle size={22} strokeWidth={1.8} />, color: "#7B1D45", bg: "rgba(123,29,69,0.1)", title: "FAQ", desc: "Answers for product management, order workflows, QR scanning, and account settings.", linkLabel: "Browse FAQ", scroll: true },
     { icon: <BookOpen size={22} strokeWidth={1.8} />, color: "#0f2460", bg: "rgba(15,36,96,0.1)", title: "Shop Setup Guide", desc: "Step-by-step guide to registering, adding products, and managing your online shop.", linkLabel: "Open Guide", href: "#docs" },
     { icon: <PlayCircle size={22} strokeWidth={1.8} />, color: "#0e7490", bg: "rgba(14,116,144,0.1)", title: "Video Tutorials", desc: "Watch how-to videos: adding products, scanning QR codes, and managing orders.", linkLabel: "Watch Videos", href: "#tutorials" },
-    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Contact Support", desc: "Reach our team via WhatsApp. We respond within 24 hours on business days.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210"}`, external: true },
+    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Contact Support", desc: "Reach our team via WhatsApp. We respond within 24 hours on business days.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "918074635923"}`, external: true },
   ],
   delivery: [
     { icon: <HelpCircle size={22} strokeWidth={1.8} />, color: "#0f2460", bg: "rgba(15,36,96,0.1)", title: "FAQ", desc: "Answers for pickups, deliveries, OTP confirmation, earnings, and KYC setup.", linkLabel: "Browse FAQ", scroll: true },
     { icon: <BookOpen size={22} strokeWidth={1.8} />, color: "#0e7490", bg: "rgba(14,116,144,0.1)", title: "Getting Started Guide", desc: "How to complete your profile, get assigned orders, and start earning.", linkLabel: "Open Guide", href: "#docs" },
     { icon: <PlayCircle size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Video Tutorials", desc: "Watch step-by-step: QR scan at pickup, OTP delivery confirmation, earnings dashboard.", linkLabel: "Watch Videos", href: "#tutorials" },
-    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#16a34a", bg: "rgba(22,163,74,0.1)", title: "Contact Support", desc: "Reach our team via WhatsApp. We respond within 24 hours on business days.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210"}`, external: true },
+    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#16a34a", bg: "rgba(22,163,74,0.1)", title: "Contact Support", desc: "Reach our team via WhatsApp. We respond within 24 hours on business days.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "918074635923"}`, external: true },
   ],
   admin: [
     { icon: <HelpCircle size={22} strokeWidth={1.8} />, color: "#1A0812", bg: "rgba(26,8,18,0.08)", title: "FAQ", desc: "Answers covering shop approvals, order management, delivery assignment, and analytics.", linkLabel: "Browse FAQ", scroll: true },
     { icon: <BookOpen size={22} strokeWidth={1.8} />, color: "#0f2460", bg: "rgba(15,36,96,0.1)", title: "Admin Guide", desc: "Full documentation for managing shops, delivery partners, pincodes, and payments.", linkLabel: "Open Guide", href: "#docs" },
     { icon: <PlayCircle size={22} strokeWidth={1.8} />, color: "#0e7490", bg: "rgba(14,116,144,0.1)", title: "Video Tutorials", desc: "Watch how-to videos for the admin panel: approvals, assignments, and reporting.", linkLabel: "Watch Videos", href: "#tutorials" },
-    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Contact Support", desc: "Reach our engineering team for platform-level issues and feature requests.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210"}`, external: true },
+    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Contact Support", desc: "Reach our engineering team for platform-level issues and feature requests.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "918074635923"}`, external: true },
   ],
   customer: [
     { icon: <HelpCircle size={22} strokeWidth={1.8} />, color: "#7B1D45", bg: "rgba(123,29,69,0.1)", title: "FAQ", desc: "Answers for placing orders, tracking, payments, returns, and account management.", linkLabel: "Browse FAQ", scroll: true },
     { icon: <BookOpen size={22} strokeWidth={1.8} />, color: "#0f2460", bg: "rgba(15,36,96,0.1)", title: "How to Order", desc: "Step-by-step guide to browsing products, adding to cart, and completing checkout.", linkLabel: "Read Guide", href: "#docs" },
     { icon: <PlayCircle size={22} strokeWidth={1.8} />, color: "#0e7490", bg: "rgba(14,116,144,0.1)", title: "Video Tutorials", desc: "Watch videos on order tracking, wishlist, cart management, and account setup.", linkLabel: "Watch Videos", href: "#tutorials" },
-    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Contact Support", desc: "Reach us via WhatsApp for order issues, payment queries, and feedback.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "919876543210"}`, external: true },
+    { icon: <Headphones size={22} strokeWidth={1.8} />, color: "#7c3aed", bg: "rgba(124,58,237,0.1)", title: "Contact Support", desc: "Reach us via WhatsApp for order issues, payment queries, and feedback.", linkLabel: "Open WhatsApp", href: `https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || "918074635923"}`, external: true },
   ],
 };
 

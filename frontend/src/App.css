@@ -1462,6 +1462,7 @@ img {
 
 @media (max-width: 768px) {
   .sidebar-toggle-tab { display: none; }
+  .sidebar-wrap { height: 0; min-height: 0; overflow: hidden; }
 }
 
 .sidebar-footer {
