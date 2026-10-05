@@ -26,10 +26,11 @@ export const getProducts = (params) => api.get("/api/products", { params });
 export const getAdminProducts = (page = 1, perPage = 10) =>
   api.get("/api/admin/products", { params: { page, per_page: perPage } });
 export const getProduct = (id) => api.get(`/api/products/${id}`);
-export const createProduct = (data) => api.post("/api/products", data);
-export const updateProduct = (id, data) => api.put(`/api/products/${id}`, data);
-export const deleteProduct = (id) => api.delete(`/api/products/${id}`);
-export const deleteProductImage = (productId, imageId) => api.delete(`/api/products/${productId}/images/${imageId}`);
+// Admin-specific product CRUD (uses /api/admin/* so admin_token is sent correctly)
+export const createProduct = (data) => api.post("/api/admin/products", data);
+export const updateProduct = (id, data) => api.put(`/api/admin/products/${id}`, data);
+export const deleteProduct = (id) => api.delete(`/api/admin/products/${id}`);
+export const deleteProductImage = (productId, imageId) => api.delete(`/api/admin/products/${productId}/images/${imageId}`);
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const getCategories = () => api.get("/api/categories");
@@ -129,6 +130,7 @@ export const getShopProducts = () => api.get("/api/shops/products");
 export const createShopProduct = (data) => api.post("/api/shops/products", data);
 export const updateShopProduct = (id, data) => api.put(`/api/shops/products/${id}`, data);
 export const deleteShopProduct = (id) => api.delete(`/api/shops/products/${id}`);
+export const deleteShopProductImage = (productId, imageId) => api.delete(`/api/shops/products/${productId}/images/${imageId}`);
 export const getShopOrders = () => api.get("/api/shops/orders");
 export const getShopOrderQr = (orderId) => api.get(`/api/shops/orders/${orderId}/qr`);
 export const shopScanQr = (qr_token) => api.post("/api/shops/orders/scan", { qr_token });

@@ -216,6 +216,44 @@ def update_product(
     return _product_dict(product)
 
 
+@router.delete("/products/{product_id}/images/{image_id}")
+def delete_product_image(
+    product_id: int,
+    image_id: int,
+    owner: ShopOwner = Depends(get_current_shop_owner),
+    db: Session = Depends(get_db),
+):
+    product = db.query(Product).filter(Product.id == product_id, Product.shop_owner_id == owner.id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    img = db.query(ProductImage).filter(
+        ProductImage.id == image_id,
+        ProductImage.product_id == product_id,
+    ).first()
+    if not img:
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    if img.image_public_id:
+        try:
+            cloudinary.uploader.destroy(img.image_public_id)
+        except Exception:
+            pass
+
+    db.delete(img)
+    db.flush()
+    db.refresh(product)
+    if product.images:
+        product.image_url = product.images[0].image_url
+        product.image_public_id = product.images[0].image_public_id
+    else:
+        product.image_url = None
+        product.image_public_id = None
+
+    db.commit()
+    return {"message": "Image deleted"}
+
+
 @router.delete("/products/{product_id}")
 def delete_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     product = db.query(Product).filter(Product.id == product_id, Product.shop_owner_id == owner.id).first()

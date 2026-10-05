@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
+  deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr,
 } from "../api";
 import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, Download } from "lucide-react";
@@ -81,8 +82,27 @@ export default function ShopDashboard() {
 
   const handleImages = (e) => {
     const files = Array.from(e.target.files);
-    setNewImages(files);
-    setPreviews(files.map((f) => URL.createObjectURL(f)));
+    if (!files.length) return;
+    setNewImages((prev) => [...prev, ...files]);
+    setPreviews((prev) => [...prev, ...files.map((f) => URL.createObjectURL(f))]);
+    e.target.value = "";
+  };
+
+  const removeNewImage = (index) => {
+    URL.revokeObjectURL(previews[index]);
+    setNewImages((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteExistingImage = async (imageId) => {
+    if (!editing) return;
+    try {
+      await deleteShopProductImage(editing.id, imageId);
+      setEditing((prev) => ({ ...prev, images: prev.images.filter((img) => img.id !== imageId) }));
+      toast.success("Image removed");
+    } catch {
+      toast.error("Failed to remove image");
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -227,20 +247,31 @@ export default function ShopDashboard() {
                       ))}
                     </div>
                     <div>
-                      <label style={{ fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", padding: "0.6rem", border: "1px dashed #ccc", borderRadius: 6 }}>
-                        <ImagePlus size={15} /> Add Images
-                      </label>
-                      <input type="file" multiple accept="image/*" ref={fileRef} onChange={handleImages} style={{ display: "none" }} />
-                      <button type="button" onClick={() => fileRef.current?.click()} style={{ display: "none" }} />
-                      <label onClick={() => fileRef.current?.click()} style={{ fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", padding: "0.6rem", border: "1px dashed #ccc", borderRadius: 6, marginTop: "0.5rem" }}>
-                        <ImagePlus size={15} /> {newImages.length ? `${newImages.length} image(s) selected` : "Choose images"}
-                      </label>
-                      <input type="file" multiple accept="image/*" onChange={handleImages} style={{ display: "none" }} ref={fileRef} />
-                      {previews.length > 0 && (
-                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-                          {previews.map((p, i) => <img key={i} src={p} alt="" style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 4 }} />)}
+                      <label style={{ fontSize: "0.8rem", display: "block", marginBottom: "0.4rem" }}>Images</label>
+                      {editing && editing.images?.length > 0 && (
+                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                          {editing.images.map((img) => (
+                            <div key={img.id} style={{ position: "relative" }}>
+                              <img src={img.url} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6 }} />
+                              <button type="button" onClick={() => handleDeleteExistingImage(img.id)} style={{ position: "absolute", top: -6, right: -6, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                            </div>
+                          ))}
                         </div>
                       )}
+                      {previews.length > 0 && (
+                        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                          {previews.map((p, i) => (
+                            <div key={i} style={{ position: "relative" }}>
+                              <img src={p} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 6 }} />
+                              <button type="button" onClick={() => removeNewImage(i)} style={{ position: "absolute", top: -6, right: -6, background: "#c00", color: "#fff", border: "none", borderRadius: "50%", width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1 }}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <button type="button" onClick={() => fileRef.current?.click()} style={{ fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", padding: "0.6rem", border: "1px dashed #ccc", borderRadius: 6, background: "none", width: "100%", justifyContent: "center" }}>
+                        <ImagePlus size={15} /> Add Images
+                      </button>
+                      <input type="file" multiple accept="image/*" ref={fileRef} onChange={handleImages} style={{ display: "none" }} />
                     </div>
                     <button type="submit" className="btn-primary" disabled={submitting} style={{ opacity: submitting ? 0.7 : 1 }}>
                       {submitting ? "Saving..." : editing ? "Update Product" : "Add Product"}
