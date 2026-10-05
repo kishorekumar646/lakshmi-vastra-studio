@@ -146,6 +146,8 @@ export const getDeliveryStats = () => api.get("/api/delivery/stats");
 export const getCompletedDeliveries = () => api.get("/api/delivery/orders/completed");
 export const deliveryScanQr = (qr_token) => api.post("/api/delivery/orders/scan", { qr_token });
 export const markDelivered = (orderId, otp) => api.post(`/api/delivery/orders/${orderId}/delivered`, { otp });
+export const shopMarkOrderReady = (orderId) => api.put(`/api/shops/orders/${orderId}/mark-ready`);
+export const deliveryMarkPickedUp = (orderId) => api.put(`/api/delivery/orders/${orderId}/mark-picked-up`);
 export const updateDeliveryProfile = (formData) => api.put("/api/delivery/profile", formData);
 export const uploadCustomerAvatar = (formData) => api.put("/api/auth/me/avatar", formData);
 export const uploadShopAvatar = (formData) => api.put("/api/shops/me/avatar", formData);

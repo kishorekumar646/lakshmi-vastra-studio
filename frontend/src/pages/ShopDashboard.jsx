@@ -4,9 +4,9 @@ import toast from "react-hot-toast";
 import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   deleteShopProductImage,
-  getShopOrders, getShopOrderQr, shopScanQr, uploadShopAvatar, updateShopMe, changeShopPassword,
+  getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, uploadShopAvatar, updateShopMe, changeShopPassword,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, ExternalLink } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, ExternalLink, CheckCircle } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -216,6 +216,20 @@ export default function ShopDashboard() {
       loadOrders();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Scan failed");
+    }
+  };
+
+  const [markingReady, setMarkingReady] = useState({});
+  const handleMarkReady = async (orderId) => {
+    setMarkingReady((p) => ({ ...p, [orderId]: true }));
+    try {
+      const { data } = await shopMarkOrderReady(orderId);
+      setScanSuccess({ orderId: data.order_id });
+      loadOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to update status");
+    } finally {
+      setMarkingReady((p) => ({ ...p, [orderId]: false }));
     }
   };
 
@@ -675,10 +689,31 @@ export default function ShopDashboard() {
                     </div>
 
                     <p style={{ margin: 0, fontSize: "0.78rem", color: "#888" }}>📍 {o.delivery_address}</p>
-                    {(o.status === "confirmed" || o.status === "ready_for_delivery") && (
-                      <button onClick={() => showQr(o.id, o.status)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: o.status === "ready_for_delivery" ? "#0f2460" : "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
-                        <QrCode size={14} />
-                        {o.status === "ready_for_delivery" ? "Show QR for Pickup" : "View QR Code"}
+
+                    {/* Confirmed → shop packs and marks ready */}
+                    {o.status === "confirmed" && (
+                      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+                        <button
+                          onClick={() => handleMarkReady(o.id)}
+                          disabled={markingReady[o.id]}
+                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", background: markingReady[o.id] ? "#86EFAC" : "#16A34A", color: "#fff", border: "none", borderRadius: 8, padding: "0.55rem 1rem", cursor: markingReady[o.id] ? "not-allowed" : "pointer", fontSize: "0.82rem", fontWeight: 700 }}
+                        >
+                          <CheckCircle size={14} />
+                          {markingReady[o.id] ? "Updating…" : "Packed & Ready"}
+                        </button>
+                        <button
+                          onClick={() => showQr(o.id, o.status)}
+                          style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "transparent", color: "#94A3B8", border: "1px solid #E2E8F0", borderRadius: 8, padding: "0.55rem 0.85rem", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}
+                        >
+                          <QrCode size={13} /> QR
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Ready for delivery → show QR for delivery partner pickup */}
+                    {o.status === "ready_for_delivery" && (
+                      <button onClick={() => showQr(o.id, o.status)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "#0f2460", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
+                        <QrCode size={14} /> Show QR for Pickup
                       </button>
                     )}
                   </div>

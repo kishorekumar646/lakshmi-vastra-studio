@@ -470,3 +470,24 @@ def scan_qr_ready(body: ScanBody, owner: ShopOwner = Depends(get_current_shop_ow
     db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Marked ready by {owner.shop_name}"))
     db.commit()
     return {"success": True, "order_id": order.id, "status": order.status}
+
+
+@router.put("/orders/{order_id}/mark-ready")
+def mark_order_ready(order_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    has_item = (
+        db.query(OrderItem)
+        .join(OrderItem.product)
+        .filter(OrderItem.order_id == order.id, Product.shop_owner_id == owner.id)
+        .first()
+    )
+    if not has_item:
+        raise HTTPException(status_code=403, detail="This order does not belong to your shop")
+    if order.status != "confirmed":
+        raise HTTPException(status_code=400, detail=f"Order is already '{order.status}'")
+    order.status = "ready_for_delivery"
+    db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Packed and marked ready by {owner.shop_name}"))
+    db.commit()
+    return {"success": True, "order_id": order.id, "status": order.status}

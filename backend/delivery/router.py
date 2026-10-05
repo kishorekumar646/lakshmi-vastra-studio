@@ -311,3 +311,18 @@ def mark_delivered(order_id: int, body: DeliverBody, person: DeliveryPerson = De
     db.add(OrderStatusHistory(order_id=order.id, status="delivered", note=f"Delivered by {person.name} — OTP verified"))
     db.commit()
     return {"success": True, "order_id": order.id, "status": order.status}
+
+
+@router.put("/orders/{order_id}/mark-picked-up")
+def mark_picked_up(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id, Order.delivery_person_id == person.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found or not assigned to you")
+    if order.status != "ready_for_delivery":
+        raise HTTPException(status_code=400, detail=f"Order is already '{order.status}'")
+    otp = str(random.randint(1000, 9999))
+    order.status = "picked_up"
+    order.delivery_otp = otp
+    db.add(OrderStatusHistory(order_id=order.id, status="picked_up", note=f"Picked up by {person.name}"))
+    db.commit()
+    return {"success": True, "order_id": order.id, "status": order.status, "delivery_otp": otp}

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getDeliveryOrders, getDeliveryStats, getCompletedDeliveries,
-  deliveryScanQr, markDelivered, updateDeliveryProfile, changeDeliveryPassword,
+  deliveryScanQr, markDelivered, deliveryMarkPickedUp, updateDeliveryProfile, changeDeliveryPassword,
 } from "../api";
 import {
   LogOut, Truck, ScanLine, CheckCircle, MapPin, Package,
@@ -155,7 +155,7 @@ function TabBar({ active, onChange, counts }) {
 }
 
 /* ── Active order card ───────────────────────────────────── */
-function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver }) {
+function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pickingUp, onPickup }) {
   return (
     <div style={{
       background: "#fff", borderRadius: 14, overflow: "hidden",
@@ -231,10 +231,19 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver }) 
         )}
 
         {o.status === "ready_for_delivery" && (
-          <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.65rem 0.9rem", textAlign: "center" }}>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#92400E", fontWeight: 700 }}>
-              📦 Go to shop → use <strong>Scan QR</strong> above to confirm pickup
+          <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.75rem 0.9rem" }}>
+            <p style={{ margin: "0 0 0.6rem", fontSize: "0.78rem", color: "#92400E", fontWeight: 700 }}>
+              📦 Order is packed and ready at the shop
             </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                onClick={() => onPickup(o.id)}
+                disabled={pickingUp?.[o.id]}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", background: pickingUp?.[o.id] ? "#FCD34D" : "#D97706", color: "#fff", border: "none", borderRadius: 8, padding: "0.6rem 0.75rem", cursor: pickingUp?.[o.id] ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.82rem" }}
+              >
+                <Truck size={14} /> {pickingUp?.[o.id] ? "Updating…" : "Confirm Pickup"}
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -334,6 +343,20 @@ export default function DeliveryDashboard() {
       loadCore();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Scan failed");
+    }
+  };
+
+  const [pickingUp, setPickingUp] = useState({});
+  const handlePickup = async (orderId) => {
+    setPickingUp((p) => ({ ...p, [orderId]: true }));
+    try {
+      await deliveryMarkPickedUp(orderId);
+      toast.success("Order marked as Picked Up!");
+      loadCore();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed");
+    } finally {
+      setPickingUp((p) => ({ ...p, [orderId]: false }));
     }
   };
 
@@ -682,6 +705,7 @@ export default function DeliveryDashboard() {
                     key={o.id} o={o}
                     otpInputs={otpInputs} setOtpInputs={setOtpInputs}
                     delivering={delivering} onDeliver={handleDeliver}
+                    pickingUp={pickingUp} onPickup={handlePickup}
                   />
                 ))}
               </div>
