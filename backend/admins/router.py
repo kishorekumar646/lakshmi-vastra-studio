@@ -376,6 +376,23 @@ def assign_delivery(order_id: int, body: AssignDeliveryBody, background: Backgro
     return {"success": True, "order_id": order.id, "delivery_person": person.name}
 
 
+class DeleteOrdersBody(BaseModel):
+    order_ids: List[int]
+
+
+@router.delete("/orders")
+def delete_orders(body: DeleteOrdersBody, db: Session = Depends(get_db), _: str = Depends(verify_token)):
+    if not body.order_ids:
+        raise HTTPException(status_code=400, detail="No order IDs provided")
+    orders = db.query(Order).filter(Order.id.in_(body.order_ids)).all()
+    if not orders:
+        raise HTTPException(status_code=404, detail="Orders not found")
+    for order in orders:
+        db.delete(order)
+    db.commit()
+    return {"deleted": len(orders)}
+
+
 # ── Delivery Persons ──────────────────────────────────────────────────────────
 
 class CreateDeliveryPersonBody(BaseModel):

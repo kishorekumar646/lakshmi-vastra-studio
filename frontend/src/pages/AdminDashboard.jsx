@@ -7,7 +7,7 @@ import {
   getCategories, createCategory, deleteCategory,
   getInquiries, markInquiryRead,
   getAdminReviews, deleteReview, toggleReviewVisibility,
-  getAdminOrders, confirmOrder, assignDelivery,
+  getAdminOrders, confirmOrder, assignDelivery, deleteOrders,
   getDeliveryPersons, createDeliveryPerson, toggleDeliveryPerson, updateDeliveryPerson,
   getShopOwners, approveShopOwner, toggleShopOwner, updateShopOwner, resetShopOwnerPassword, resetDeliveryPassword,
   getAdminShopProducts, assignProductToShop, unassignProductFromShop,
@@ -92,6 +92,9 @@ export default function AdminDashboard() {
   const [assignDpId, setAssignDpId] = useState("");
   const [trackModal, setTrackModal] = useState(null); // order data
   const [trackLoading, setTrackLoading] = useState(false);
+  const [selectedOrders, setSelectedOrders] = useState(new Set());
+  const [deleteOrdersModal, setDeleteOrdersModal] = useState(false);
+  const [deletingOrders, setDeletingOrders] = useState(false);
 
   // Delivery Persons tab
   const [deliveryPersons, setDeliveryPersons] = useState([]);
@@ -183,6 +186,22 @@ export default function AdminDashboard() {
       .then((r) => setOrders(r.data.items ?? r.data))
       .catch(() => {})
       .finally(() => setOrdersLoading(false));
+  };
+
+  const handleDeleteOrders = async () => {
+    if (!selectedOrders.size) return;
+    setDeletingOrders(true);
+    try {
+      const { data } = await deleteOrders([...selectedOrders]);
+      toast.success(`${data.deleted} order${data.deleted !== 1 ? "s" : ""} deleted`);
+      setSelectedOrders(new Set());
+      setDeleteOrdersModal(false);
+      loadOrders(orderStatusFilter);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to delete orders");
+    } finally {
+      setDeletingOrders(false);
+    }
   };
 
   const loadDeliveryPersons = () => {
@@ -1235,7 +1254,7 @@ export default function AdminDashboard() {
                 {[["all", "All", orders.length, "#64748B"], ...STATUS_STEPS.map((s) => [s, ORDER_STATUS[s]?.label, counts[s], ORDER_STATUS[s]?.dot])].map(([key, label, count, dotColor]) => (
                   <button
                     key={key}
-                    onClick={() => { setOrderStatusFilter(key); loadOrders(key === "all" ? "all" : key); }}
+                    onClick={() => { setOrderStatusFilter(key); setSelectedOrders(new Set()); loadOrders(key === "all" ? "all" : key); }}
                     style={{
                       flexShrink: 0, display: "flex", alignItems: "center", gap: "0.4rem",
                       padding: "0.45rem 0.9rem", borderRadius: 8, border: "none", cursor: "pointer",
@@ -1276,7 +1295,7 @@ export default function AdminDashboard() {
                   <option value="razorpay">💳 Online</option>
                 </select>
                 <button
-                  onClick={() => { setOrderSearch(""); setOrderPaymentFilter("all"); setOrderStatusFilter("all"); loadOrders("all"); }}
+                  onClick={() => { setOrderSearch(""); setOrderPaymentFilter("all"); setOrderStatusFilter("all"); setSelectedOrders(new Set()); loadOrders("all"); }}
                   style={{ padding: "0.55rem 0.9rem", border: "1.5px solid var(--border-light)", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: "0.82rem", color: "#64748B", fontWeight: 600 }}
                 >
                   Clear
@@ -1289,9 +1308,32 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              <p style={{ fontSize: "0.78rem", color: "#94A3B8", marginBottom: "0.75rem" }}>
-                Showing {filtered.length} of {orders.length} orders
-              </p>
+              {/* Bulk-action toolbar */}
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem", minHeight: 36 }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.45rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600, color: "#475569", userSelect: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={filtered.length > 0 && filtered.every((o) => selectedOrders.has(o.id))}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedOrders(new Set(filtered.map((o) => o.id)));
+                      else setSelectedOrders(new Set());
+                    }}
+                    style={{ width: 16, height: 16, accentColor: "var(--primary)", cursor: "pointer" }}
+                  />
+                  Select all
+                </label>
+                <span style={{ fontSize: "0.78rem", color: "#94A3B8" }}>
+                  {selectedOrders.size > 0 ? `${selectedOrders.size} selected` : `${filtered.length} of ${orders.length} orders`}
+                </span>
+                {selectedOrders.size > 0 && (
+                  <button
+                    onClick={() => setDeleteOrdersModal(true)}
+                    style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.4rem 0.9rem", background: "#EF4444", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontWeight: 700, fontSize: "0.82rem" }}
+                  >
+                    <Trash2 size={14} /> Delete {selectedOrders.size} order{selectedOrders.size !== 1 ? "s" : ""}
+                  </button>
+                )}
+              </div>
 
               {ordersLoading ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -1312,12 +1354,24 @@ export default function AdminDashboard() {
                     const stepIdx = STATUS_STEPS.indexOf(o.status);
                     const isExpanded = expandedOrder === o.id;
                     return (
-                      <div key={o.id} style={{ background: "#fff", borderRadius: 12, border: `1px solid ${sc.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden" }}>
+                      <div key={o.id} style={{ background: "#fff", borderRadius: 12, border: `1.5px solid ${selectedOrders.has(o.id) ? "var(--primary)" : sc.border}`, boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden", transition: "border-color 0.15s" }}>
                         {/* ── Order header row ── */}
                         <div
                           onClick={() => setExpandedOrder(isExpanded ? null : o.id)}
                           style={{ padding: "1rem 1.25rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}
                         >
+                          {/* Checkbox */}
+                          <input
+                            type="checkbox"
+                            checked={selectedOrders.has(o.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const next = new Set(selectedOrders);
+                              if (e.target.checked) next.add(o.id); else next.delete(o.id);
+                              setSelectedOrders(next);
+                            }}
+                            style={{ width: 16, height: 16, accentColor: "var(--primary)", cursor: "pointer", flexShrink: 0 }}
+                          />
                           {/* Status dot */}
                           <div style={{ width: 10, height: 10, borderRadius: "50%", background: sc.dot, flexShrink: 0 }} />
 
@@ -1565,6 +1619,36 @@ export default function AdminDashboard() {
               )}
 
               {/* Assign Delivery Modal */}
+              {/* Delete orders confirm modal */}
+              {deleteOrdersModal && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }} onClick={() => setDeleteOrdersModal(false)}>
+                  <div style={{ background: "#fff", borderRadius: 14, padding: "1.75rem", maxWidth: 400, width: "100%", boxShadow: "0 24px 64px rgba(0,0,0,0.25)" }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                      <Trash2 size={22} color="#EF4444" />
+                    </div>
+                    <h3 style={{ textAlign: "center", margin: "0 0 0.5rem", fontSize: "1.05rem", color: "#0F172A" }}>Delete {selectedOrders.size} Order{selectedOrders.size !== 1 ? "s" : ""}?</h3>
+                    <p style={{ textAlign: "center", fontSize: "0.85rem", color: "#64748B", margin: "0 0 1.5rem", lineHeight: 1.6 }}>
+                      This will permanently remove the selected order{selectedOrders.size !== 1 ? "s" : ""} and all associated data. This cannot be undone.
+                    </p>
+                    <div style={{ display: "flex", gap: "0.75rem" }}>
+                      <button
+                        onClick={() => setDeleteOrdersModal(false)}
+                        style={{ flex: 1, padding: "0.75rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteOrders}
+                        disabled={deletingOrders}
+                        style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", cursor: deletingOrders ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.88rem", opacity: deletingOrders ? 0.7 : 1 }}
+                      >
+                        {deletingOrders ? "Deleting…" : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {assignModal && (
                 <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
                   <div style={{ background: "#fff", borderRadius: 12, padding: "1.75rem", maxWidth: 400, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>

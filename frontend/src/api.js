@@ -72,6 +72,7 @@ export const togglePincode = (id) => api.put(`/api/admin/pincodes/${id}/toggle`)
 export const confirmOrder = (id) => api.put(`/api/admin/orders/${id}/confirm`);
 export const assignDelivery = (orderId, deliveryPersonId) =>
   api.put(`/api/admin/orders/${orderId}/assign-delivery`, { delivery_person_id: deliveryPersonId });
+export const deleteOrders = (orderIds) => api.delete("/api/admin/orders", { data: { order_ids: orderIds } });
 
 // ── Admin Delivery Persons ────────────────────────────────────────────────────
 export const getDeliveryPersons = () => api.get("/api/admin/delivery-persons");
