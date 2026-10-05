@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List
@@ -456,7 +456,7 @@ class ScanBody(BaseModel):
 
 
 @router.post("/orders/scan")
-def scan_qr_ready(body: ScanBody, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+def scan_qr_ready(body: ScanBody, background: BackgroundTasks, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.qr_token == body.qr_token).first()
     if not order:
         raise HTTPException(status_code=404, detail="Invalid QR code")
@@ -477,11 +477,17 @@ def scan_qr_ready(body: ScanBody, owner: ShopOwner = Depends(get_current_shop_ow
     order.status = "ready_for_delivery"
     db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Marked ready by {owner.shop_name}"))
     db.commit()
+
+    from notifications.push import notify
+    order_id = order.id
+    background.add_task(notify, db, "delivery_person", None,
+        "New Order Ready for Pickup", f"Order #{order_id} is packed and ready. Open the app to accept.", "/delivery/dashboard")
+
     return {"success": True, "order_id": order.id, "status": order.status}
 
 
 @router.put("/orders/{order_id}/mark-ready")
-def mark_order_ready(order_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+def mark_order_ready(order_id: int, background: BackgroundTasks, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     order = db.query(Order).filter(Order.id == order_id).first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -498,4 +504,9 @@ def mark_order_ready(order_id: int, owner: ShopOwner = Depends(get_current_shop_
     order.status = "ready_for_delivery"
     db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Packed and marked ready by {owner.shop_name}"))
     db.commit()
+
+    from notifications.push import notify
+    background.add_task(notify, db, "delivery_person", None,
+        "New Order Ready for Pickup", f"Order #{order_id} is packed and ready. Open the app to accept.", "/delivery/dashboard")
+
     return {"success": True, "order_id": order.id, "status": order.status}

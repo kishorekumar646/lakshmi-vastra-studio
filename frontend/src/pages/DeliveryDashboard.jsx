@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import {
   getDeliveryOrders, getDeliveryStats, getCompletedDeliveries,
   deliveryScanQr, markDelivered, deliveryMarkPickedUp, updateDeliveryProfile, changeDeliveryPassword,
+  getAvailableDeliveryOrders, acceptDeliveryOrder,
 } from "../api";
 import {
   LogOut, Truck, ScanLine, CheckCircle, MapPin, Package,
@@ -304,6 +305,7 @@ export default function DeliveryDashboard() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("delivery_sidebar_collapsed") === "true");
   const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("delivery_sidebar_collapsed", !v); return !v; });
   const [orders, setOrders] = useState([]);
+  const [available, setAvailable] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [stats, setStats] = useState(null);
   const [selectedDay, setSelectedDay] = useState(6); // default = today (last index)
@@ -321,7 +323,7 @@ export default function DeliveryDashboard() {
 
   useEffect(() => { loadCore(); }, []);
 
-  // Auto-refresh active orders every 30s
+  // Auto-refresh active orders every 15s
   useEffect(() => {
     const prev = { count: 0 };
     const iv = setInterval(async () => {
@@ -333,7 +335,20 @@ export default function DeliveryDashboard() {
         prev.count = data.length;
         setOrders(data);
       } catch {}
-    }, 30000);
+    }, 15000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Poll available (unassigned) orders every 10s so accepted orders vanish from all apps
+  useEffect(() => {
+    const loadAvailable = async () => {
+      try {
+        const { data } = await getAvailableDeliveryOrders();
+        setAvailable(data);
+      } catch {}
+    };
+    loadAvailable();
+    const iv = setInterval(loadAvailable, 10000);
     return () => clearInterval(iv);
   }, []);
 
@@ -353,6 +368,7 @@ export default function DeliveryDashboard() {
     Promise.all([
       getDeliveryOrders().then((r) => setOrders(r.data)).catch(() => {}),
       getDeliveryStats().then((r) => setStats(r.data)).catch(() => {}),
+      getAvailableDeliveryOrders().then((r) => setAvailable(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
   };
 
@@ -384,6 +400,23 @@ export default function DeliveryDashboard() {
       toast.error(err.response?.data?.detail || "Failed");
     } finally {
       setPickingUp((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
+  const [accepting, setAccepting] = useState({});
+  const handleAccept = async (orderId) => {
+    setAccepting((p) => ({ ...p, [orderId]: true }));
+    try {
+      await acceptDeliveryOrder(orderId);
+      toast.success("Order accepted! Check your Active orders.");
+      loadCore();
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Failed to accept order";
+      toast.error(msg);
+      // Refresh available list so the taken order disappears
+      getAvailableDeliveryOrders().then((r) => setAvailable(r.data)).catch(() => {});
+    } finally {
+      setAccepting((p) => ({ ...p, [orderId]: false }));
     }
   };
 
@@ -483,7 +516,7 @@ export default function DeliveryDashboard() {
 
   const DEL_NAV = [
     { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={17} /> },
-    { key: "active",    label: "Active",    icon: <ListChecks size={17} />,  badge: orders.length || null },
+    { key: "active",    label: "Active",    icon: <ListChecks size={17} />,  badge: (orders.length + available.length) || null },
     { key: "completed", label: "Completed", icon: <History size={17} />,     badge: completed.length || null },
     { key: "account",   label: "Account",   icon: <UserCircle size={17} />,  warn: !person.profile_complete },
   ];
@@ -509,7 +542,7 @@ export default function DeliveryDashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button onClick={() => setNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
             <Bell size={18} color="#fff" />
-            {orders.length > 0 && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #0f2460" }} />}
+            {(orders.length > 0 || available.length > 0) && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #0f2460" }} />}
           </button>
           <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
             {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
@@ -524,15 +557,26 @@ export default function DeliveryDashboard() {
             <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#0F172A" }}>Notifications</span>
             <button onClick={() => setNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
           </div>
-          {orders.length > 0 ? (
-            <div style={{ padding: "0.85rem 1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-                <span style={{ fontSize: "1.2rem" }}>📦</span>
-                <div>
-                  <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#1E40AF" }}>{orders.length} Active Order{orders.length > 1 ? "s" : ""}</p>
-                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#1E3A8A" }}>Deliveries assigned to you</p>
+          {(orders.length > 0 || available.length > 0) ? (
+            <div style={{ padding: "0.85rem 1rem", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+              {available.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#F0FDF4", border: "1px solid #86EFAC" }}>
+                  <span style={{ fontSize: "1.2rem" }}>🟢</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#15803D" }}>{available.length} Order{available.length > 1 ? "s" : ""} Ready to Accept</p>
+                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#166534" }}>Go to Active tab to claim</p>
+                  </div>
                 </div>
-              </div>
+              )}
+              {orders.length > 0 && (
+                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                  <span style={{ fontSize: "1.2rem" }}>📦</span>
+                  <div>
+                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#1E40AF" }}>{orders.length} Active Order{orders.length > 1 ? "s" : ""}</p>
+                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#1E3A8A" }}>Deliveries assigned to you</p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#94A3B8" }}>
@@ -715,10 +759,16 @@ export default function DeliveryDashboard() {
             </div>
 
             {/* Active summary */}
-            {orders.length > 0 && (
+            {(orders.length > 0 || available.length > 0) && (
               <div style={{ background: "#fff", borderRadius: 14, padding: "1rem 1.1rem", marginBottom: "1.25rem", boxShadow: "0 2px 12px rgba(0,0,0,0.06)" }}>
                 <p style={{ margin: "0 0 0.75rem", fontWeight: 700, fontSize: "0.8rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.06em" }}>Active Now</p>
                 <div style={{ display: "flex", gap: "0.75rem" }}>
+                  {available.length > 0 && (
+                    <button onClick={() => switchTab("active")} style={{ flex: 1, background: "#F0FDF4", border: "1.5px solid #86EFAC", borderRadius: 10, padding: "0.75rem", textAlign: "center", cursor: "pointer" }}>
+                      <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#15803D" }}>{available.length}</p>
+                      <p style={{ margin: "0.15rem 0 0", fontSize: "0.68rem", fontWeight: 700, color: "#166534" }}>Ready to Accept</p>
+                    </button>
+                  )}
                   {readyCount > 0 && (
                     <button onClick={() => switchTab("active")} style={{ flex: 1, background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.75rem", textAlign: "center", cursor: "pointer" }}>
                       <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#92400E" }}>{readyCount}</p>
@@ -736,7 +786,7 @@ export default function DeliveryDashboard() {
             )}
 
             {/* All-clear empty */}
-            {orders.length === 0 && (
+            {orders.length === 0 && available.length === 0 && (
               <div style={{ textAlign: "center", padding: "2rem 1rem 0" }}>
                 <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#D1FAE5", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
                   <CheckCircle size={28} color="#16a34a" />
@@ -763,18 +813,96 @@ export default function DeliveryDashboard() {
               </button>
             </div>
 
-            {/* Summary strip */}
-            {orders.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.65rem", marginBottom: "1rem" }}>
-                <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 12, padding: "0.85rem 1rem", textAlign: "center" }}>
-                  <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#92400E" }}>{readyCount}</p>
-                  <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", fontWeight: 700, color: "#B45309" }}>Awaiting Pickup</p>
+            {/* ── Available Orders (unassigned, broadcast to all delivery persons) ── */}
+            {available.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.65rem" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#16a34a", animation: "pulse 1.5s ease-in-out infinite" }} />
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: "0.78rem", color: "#16a34a", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                    Available — {available.length} Order{available.length > 1 ? "s" : ""} Ready for Pickup
+                  </p>
                 </div>
-                <div style={{ background: "#EDE9FE", border: "1.5px solid #C4B5FD", borderRadius: 12, padding: "0.85rem 1rem", textAlign: "center" }}>
-                  <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#5B21B6" }}>{pickedCount}</p>
-                  <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", fontWeight: 700, color: "#6D28D9" }}>Out for Delivery</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {available.map((o) => (
+                    <div key={o.id} style={{
+                      background: "#fff", borderRadius: 14, overflow: "hidden",
+                      boxShadow: "0 2px 16px rgba(22,163,74,0.12)",
+                      border: "1.5px solid #86EFAC",
+                    }}>
+                      <div style={{ padding: "0.9rem 1.1rem 0.6rem", borderBottom: "1px solid #F0FDF4" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "0.97rem", color: "#0F172A" }}>Order #{o.id}</p>
+                            <p style={{ margin: "0.15rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>
+                              {o.customer?.name} · {o.payment_method === "cod" ? "💵 COD" : "✅ Paid Online"}
+                            </p>
+                          </div>
+                          <div style={{ textAlign: "right" }}>
+                            <span style={{ display: "inline-block", padding: "0.22rem 0.7rem", borderRadius: 20, fontSize: "0.68rem", fontWeight: 700, background: "#DCFCE7", color: "#15803D" }}>
+                              Ready for Pickup
+                            </span>
+                            <p style={{ margin: "0.3rem 0 0", fontWeight: 800, color: "#0F172A", fontSize: "1rem" }}>₹{Number(o.total || 0).toLocaleString("en-IN")}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ padding: "0.65rem 1.1rem 0.9rem" }}>
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", marginBottom: "0.55rem" }}
+                        >
+                          <div style={{ background: "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
+                            <MapPin size={12} style={{ color: "#1D4ED8" }} />
+                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#1D4ED8", whiteSpace: "nowrap" }}>Maps</span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+                        </a>
+                        <div style={{ background: "#F8FAFC", borderRadius: 8, padding: "0.4rem 0.7rem", marginBottom: "0.75rem" }}>
+                          {o.items?.map((item, i) => (
+                            <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.76rem", color: "#64748B", padding: "0.1rem 0" }}>
+                              <span>{item.name} ×{item.quantity}</span>
+                              <span style={{ fontWeight: 600 }}>₹{Number(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => handleAccept(o.id)}
+                          disabled={accepting[o.id]}
+                          style={{
+                            width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: accepting[o.id] ? "not-allowed" : "pointer",
+                            background: accepting[o.id] ? "#86EFAC" : "linear-gradient(135deg, #16a34a, #15803d)",
+                            color: "#fff", fontWeight: 800, fontSize: "0.9rem",
+                            display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
+                            boxShadow: accepting[o.id] ? "none" : "0 4px 14px rgba(22,163,74,0.3)",
+                          }}
+                        >
+                          <Truck size={16} />
+                          {accepting[o.id] ? "Accepting…" : "Accept & Deliver"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
+
+            {/* ── My Assigned Orders ── */}
+            {orders.length > 0 && (
+              <>
+                <p style={{ margin: "0 0 0.65rem", fontWeight: 800, fontSize: "0.75rem", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                  My Assigned Orders
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.65rem", marginBottom: "1rem" }}>
+                  <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 12, padding: "0.85rem 1rem", textAlign: "center" }}>
+                    <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#92400E" }}>{readyCount}</p>
+                    <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", fontWeight: 700, color: "#B45309" }}>Awaiting Pickup</p>
+                  </div>
+                  <div style={{ background: "#EDE9FE", border: "1.5px solid #C4B5FD", borderRadius: 12, padding: "0.85rem 1rem", textAlign: "center" }}>
+                    <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#5B21B6" }}>{pickedCount}</p>
+                    <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", fontWeight: 700, color: "#6D28D9" }}>Out for Delivery</p>
+                  </div>
+                </div>
+              </>
             )}
 
             {loading ? (
@@ -783,13 +911,13 @@ export default function DeliveryDashboard() {
                   <div key={i} style={{ background: "#fff", borderRadius: 14, height: 140, animation: "pulse 1.5s ease-in-out infinite" }} />
                 ))}
               </div>
-            ) : orders.length === 0 ? (
+            ) : orders.length === 0 && available.length === 0 ? (
               <div style={{ textAlign: "center", padding: "4rem 1rem", background: "#fff", borderRadius: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
                 <Truck size={44} style={{ color: "#CBD5E1", marginBottom: "1rem" }} />
                 <p style={{ fontWeight: 700, color: "#334155", margin: "0 0 0.35rem" }}>No active orders</p>
-                <p style={{ color: "#94A3B8", fontSize: "0.85rem" }}>New assignments will appear here.</p>
+                <p style={{ color: "#94A3B8", fontSize: "0.85rem" }}>Ready orders from the shop will appear here.</p>
               </div>
-            ) : (
+            ) : orders.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                 {orders.map((o) => (
                   <ActiveOrderCard
@@ -800,7 +928,7 @@ export default function DeliveryDashboard() {
                   />
                 ))}
               </div>
-            )}
+            ) : null}
           </div>
         )}
 

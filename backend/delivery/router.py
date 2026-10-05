@@ -235,6 +235,40 @@ def get_stats(person: DeliveryPerson = Depends(get_current_delivery_person), db:
     }
 
 
+@router.get("/orders/available")
+def list_available_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Returns unassigned ready_for_delivery orders visible to all delivery persons."""
+    orders = (
+        db.query(Order)
+        .filter(Order.status == "ready_for_delivery", Order.delivery_person_id.is_(None))
+        .options(
+            joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.customer),
+            joinedload(Order.status_history),
+        )
+        .order_by(Order.created_at.asc())
+        .all()
+    )
+    return [_order_dict(o) for o in orders]
+
+
+@router.post("/orders/{order_id}/accept")
+def accept_order(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Atomically claim an available order. Returns 409 if already taken."""
+    order = (
+        db.query(Order)
+        .filter(Order.id == order_id, Order.status == "ready_for_delivery", Order.delivery_person_id.is_(None))
+        .with_for_update()
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=409, detail="Order already taken by another delivery person")
+    order.delivery_person_id = person.id
+    db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Accepted by {person.name}"))
+    db.commit()
+    return {"success": True, "order_id": order.id, "status": order.status}
+
+
 @router.get("/orders")
 def list_assigned_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
     orders = (
