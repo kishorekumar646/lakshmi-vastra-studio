@@ -216,7 +216,7 @@ export default function ShopDashboard() {
       await deleteShopProduct(deleteModal.id);
       toast.success("Product deleted");
       loadProducts();
-    } catch { toast.error("Failed to delete"); }
+    } catch (err) { toast.error(err?.response?.data?.detail || "Failed to delete"); }
     setDeleteModal(null);
   };
 
@@ -789,10 +789,10 @@ export default function ShopDashboard() {
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginBottom: "0.75rem" }}>
                       {o.items.map((item, i) => (
                         <a key={i}
-                          href={`/product/${item.product_id}?app=customer`}
-                          target="_blank"
+                          href={item.product_id ? `/product/${item.product_id}` : undefined}
+                          target={item.product_id ? "_blank" : undefined}
                           rel="noopener noreferrer"
-                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", textDecoration: "none", color: "inherit", background: "#FAFAF8", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid #F1F5F9" }}
+                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", textDecoration: "none", color: "inherit", background: "#FAFAF8", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid #F1F5F9", cursor: item.product_id ? "pointer" : "default" }}
                         >
                           {item.image_url ? (
                             <img src={item.image_url} alt={item.name}

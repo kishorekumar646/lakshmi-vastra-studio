@@ -406,8 +406,8 @@ export default function AdminDashboard() {
         ? productPage - 1
         : productPage;
       loadProducts(targetPage);
-    } catch {
-      toast.error("Failed to delete");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Failed to delete");
     }
     setAdminDeleteModal(null);
   };

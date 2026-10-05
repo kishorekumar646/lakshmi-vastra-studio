@@ -357,6 +357,9 @@ def delete_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_
     product = db.query(Product).filter(Product.id == product_id, Product.shop_owner_id == owner.id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
+    order_count = db.query(OrderItem).filter(OrderItem.product_id == product_id).count()
+    if order_count > 0:
+        raise HTTPException(status_code=409, detail=f"Cannot delete: this product appears in {order_count} order(s). Deactivate it instead.")
     for img in product.images:
         if img.image_public_id:
             try:
