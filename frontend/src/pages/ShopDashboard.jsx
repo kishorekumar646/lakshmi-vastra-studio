@@ -6,7 +6,7 @@ import {
   deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, uploadShopAvatar, updateShopMe, changeShopPassword,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, ExternalLink, CheckCircle } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, ExternalLink, CheckCircle, Bell } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -50,6 +50,10 @@ export default function ShopDashboard() {
   const additionalFileRef = useRef();
   const shopFormRef = useRef();
   const shopAvatarRef = useRef();
+  const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [deleteModal, setDeleteModal] = useState(null);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
   // Orders
@@ -68,6 +72,24 @@ export default function ShopDashboard() {
 
   useEffect(() => {
     if (tab === "orders") loadOrders();
+  }, [tab]);
+
+  // Auto-refresh orders every 30s when on orders tab
+  useEffect(() => {
+    if (tab !== "orders") return;
+    const prev = { count: orders.length };
+    const iv = setInterval(async () => {
+      try {
+        const { data } = await getShopOrders();
+        if (data.length > prev.count) {
+          const newCount = data.length - prev.count;
+          toast.success(`${newCount} new order${newCount > 1 ? "s" : ""}!`);
+        }
+        prev.count = data.length;
+        setOrders(data);
+      } catch {}
+    }, 30000);
+    return () => clearInterval(iv);
   }, [tab]);
 
   const loadProducts = () =>
@@ -188,13 +210,14 @@ export default function ShopDashboard() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this product?")) return;
+  const handleDelete = async () => {
+    if (!deleteModal) return;
     try {
-      await deleteShopProduct(id);
-      toast.success("Deleted");
+      await deleteShopProduct(deleteModal.id);
+      toast.success("Product deleted");
       loadProducts();
     } catch { toast.error("Failed to delete"); }
+    setDeleteModal(null);
   };
 
   // ── Orders ────────────────────────────────────────────────────────────────────
@@ -290,10 +313,60 @@ export default function ShopDashboard() {
       {/* Mobile top bar */}
       <div className="portal-mobile-header" style={{ background: "var(--primary)" }}>
         <span className="portal-mobile-title">{owner.shop_name || "My Shop"}</span>
-        <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
-          {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button onClick={() => setNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+            <Bell size={18} color="#fff" />
+            {pendingCount > 0 && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid var(--primary)" }} />}
+          </button>
+          <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
+
+      {/* Notification panel */}
+      {notifOpen && (
+        <div style={{ position: "fixed", top: 52, right: 8, zIndex: 2500, background: "#fff", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", width: 300, maxHeight: 380, overflow: "auto", border: "1px solid #E2E8F0" }}>
+          <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#0F172A" }}>Notifications</span>
+            <button onClick={() => setNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
+          </div>
+          {pendingCount > 0 ? (
+            <div style={{ padding: "0.85rem 1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#FFF7ED", border: "1px solid #FED7AA" }}>
+                <span style={{ fontSize: "1.2rem" }}>🛒</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#C2410C" }}>{pendingCount} Pending Order{pendingCount > 1 ? "s" : ""}</p>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#9A3412" }}>Orders waiting for your attention</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#94A3B8" }}>
+              <Bell size={28} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
+              <p style={{ margin: 0, fontSize: "0.82rem" }}>No new notifications</p>
+            </div>
+          )}
+          <div style={{ padding: "0.6rem 1rem", borderTop: "1px solid #F1F5F9" }}>
+            <button
+              onClick={async () => {
+                try {
+                  const reg = await navigator.serviceWorker?.ready;
+                  if (reg) {
+                    const perm = await Notification.requestPermission();
+                    if (perm === "granted") toast.success("Push notifications enabled!");
+                    else toast.error("Notification permission denied");
+                  }
+                } catch { toast.error("Could not enable notifications"); }
+                setNotifOpen(false);
+              }}
+              style={{ width: "100%", padding: "0.55rem", border: "1px solid #E2E8F0", borderRadius: 8, background: "#F8FAFC", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}
+            >
+              🔔 Enable Push Notifications
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar */}
       <div className="sidebar-wrap">
@@ -362,42 +435,92 @@ export default function ShopDashboard() {
       <main className="portal-main">
 
         {/* Products Tab — list */}
-        {tab === "products" && !showForm && (
+        {tab === "products" && !showForm && (() => {
+          const filteredProducts = products.filter((p) => {
+            const q = productSearch.trim().toLowerCase();
+            if (q && !p.name.toLowerCase().includes(q)) return false;
+            if (productCategoryFilter !== "all" && String(p.category_id) !== productCategoryFilter) return false;
+            return true;
+          });
+          return (
           <>
+            {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>My Products</h2>
+              <div>
+                <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>My Products</h2>
+                <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>{products.length} product{products.length !== 1 ? "s" : ""} total</p>
+              </div>
               <button onClick={openAdd} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
                 <Plus size={15} /> Add Product
               </button>
             </div>
+
+            {/* Search */}
+            <div style={{ position: "relative", marginBottom: "0.65rem" }}>
+              <input
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                placeholder="Search products by name…"
+                style={{ width: "100%", padding: "0.6rem 0.9rem 0.6rem 2.2rem", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: "0.83rem", outline: "none", background: "#fff", boxSizing: "border-box", color: "#0F172A" }}
+              />
+              <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none", fontSize: "0.85rem" }}>🔍</span>
+            </div>
+
+            {/* Category filter pills */}
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+              {[{ id: "all", name: "All" }, ...categories].map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setProductCategoryFilter(String(c.id))}
+                  style={{ padding: "0.3rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: productCategoryFilter === String(c.id) ? "var(--primary)" : "#fff", color: productCategoryFilter === String(c.id) ? "#fff" : "#64748B", borderColor: productCategoryFilter === String(c.id) ? "var(--primary)" : "#E2E8F0", transition: "all 0.15s" }}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+
             {products.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem", color: "#888" }}>
                 <Package size={40} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
                 <p>No products yet. Add your first product!</p>
               </div>
+            ) : filteredProducts.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2rem", color: "#94A3B8" }}>
+                <p style={{ fontWeight: 600, margin: "0 0 0.25rem" }}>No products match your filter</p>
+                <button onClick={() => { setProductSearch(""); setProductCategoryFilter("all"); }} style={{ fontSize: "0.8rem", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear filters</button>
+              </div>
             ) : (
               <div style={{ display: "grid", gap: "0.75rem" }}>
-                {products.map((p) => (
-                  <div key={p.id} style={{ ...S.card, display: "flex", gap: "1rem", alignItems: "center" }}>
+                {filteredProducts.map((p) => (
+                  <div key={p.id} style={{ ...S.card, display: "flex", gap: "0.85rem", alignItems: "center" }}>
                     {p.image_url
-                      ? <img src={p.image_url} alt={p.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
-                      : <div style={{ width: 60, height: 60, borderRadius: 6, background: "#f0f0f0", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} style={{ opacity: 0.3 }} /></div>
+                      ? <img src={p.image_url} alt={p.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, flexShrink: 0, border: "1px solid #F1F5F9" }} />
+                      : <div style={{ width: 72, height: 72, borderRadius: 10, background: "#F8FAFC", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #F1F5F9" }}><Package size={22} style={{ opacity: 0.3 }} /></div>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontWeight: 600, fontSize: "0.95rem" }}>{p.name}</p>
-                      <p style={{ margin: 0, fontSize: "0.8rem", color: "#888" }}>{p.category_name} · ₹{p.price.toLocaleString("en-IN")}</p>
-                      {p.images?.length > 0 && <p style={{ margin: 0, fontSize: "0.72rem", color: "#aaa" }}>{p.images.length} photo{p.images.length !== 1 ? "s" : ""}</p>}
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.93rem", color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                      <p style={{ margin: "0.15rem 0 0.35rem", fontSize: "0.78rem", color: "#64748B" }}>
+                        {p.category_name} · <span style={{ fontWeight: 700, color: "var(--primary)" }}>₹{p.price.toLocaleString("en-IN")}</span>
+                      </p>
+                      <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+                        {p.is_featured && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Featured</span>}
+                        {p.is_handloom && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Handloom</span>}
+                        {p.has_multiple_colours && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#DBEAFE", color: "#1E40AF", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Multi-colour</span>}
+                        {p.custom_orders && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Custom</span>}
+                        {p.images?.length > 0 && <span style={{ fontSize: "0.62rem", color: "#94A3B8", alignSelf: "center" }}>{p.images.length} photo{p.images.length !== 1 ? "s" : ""}</span>}
+                      </div>
                     </div>
-                    <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
-                      <button onClick={() => openEdit(p)} style={{ background: "#f0f0f0", border: "none", borderRadius: 6, padding: "0.4rem", cursor: "pointer" }}><Edit2 size={14} /></button>
-                      <button onClick={() => handleDelete(p.id)} style={{ background: "#fff0f0", border: "none", borderRadius: 6, padding: "0.4rem", cursor: "pointer", color: "#c00" }}><Trash2 size={14} /></button>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", flexShrink: 0 }}>
+                      <button onClick={() => openEdit(p)} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, padding: "0.45rem 0.55rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", fontWeight: 600, color: "#475569" }}><Edit2 size={13} /></button>
+                      <button onClick={() => setDeleteModal({ id: p.id, name: p.name })} style={{ background: "#FEE2E2", border: "none", borderRadius: 8, padding: "0.45rem 0.55rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", fontWeight: 600, color: "#DC2626" }}><Trash2 size={13} /></button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </>
-        )}
+          );
+        })()}
 
         {/* Products Tab — add / edit page (same layout as admin) */}
         {tab === "products" && showForm && (
@@ -1012,6 +1135,23 @@ export default function ShopDashboard() {
             >
               Done
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "#0F172A" }}>Delete Product?</h3>
+            <p style={{ margin: "0 0 1.5rem", fontSize: "0.88rem", color: "#64748B", lineHeight: 1.5 }}>
+              "<strong>{deleteModal.name}</strong>" will be permanently deleted. This cannot be undone.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>Cancel</button>
+              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Delete</button>
+            </div>
           </div>
         </div>
       )}

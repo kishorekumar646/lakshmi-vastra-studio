@@ -8,7 +8,7 @@ import {
 import {
   LogOut, Truck, ScanLine, CheckCircle, MapPin, Package,
   TrendingUp, Star, LayoutDashboard, ListChecks, History, UserCircle,
-  Upload, AlertTriangle, Menu, X, Camera, HelpCircle,
+  Upload, AlertTriangle, Menu, X, Camera, HelpCircle, Bell,
 } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -185,10 +185,20 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pi
 
       {/* Body */}
       <div style={{ padding: "0.75rem 1.1rem" }}>
-        {/* Address */}
+        {/* Address with Maps link */}
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginBottom: "0.6rem" }}>
-          <MapPin size={13} style={{ color: "#94A3B8", marginTop: 2, flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+          <a
+            href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", flex: 1 }}
+          >
+            <div style={{ background: "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 1 }}>
+              <MapPin size={12} style={{ color: "#1D4ED8" }} />
+              <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#1D4ED8", whiteSpace: "nowrap" }}>Maps</span>
+            </div>
+            <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+          </a>
         </div>
 
         {/* Phone */}
@@ -277,9 +287,9 @@ function CompletedOrderCard({ o, earningPerDelivery }) {
         </div>
       </div>
       <div style={{ padding: "0 1.1rem 0.75rem" }}>
-        <div style={{ display: "flex", gap: "0.4rem", alignItems: "flex-start" }}>
-          <MapPin size={11} style={{ color: "#94A3B8", marginTop: 2, flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: "0.73rem", color: "#94A3B8" }}>{o.delivery_address}</p>
+        <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+          <Package size={11} style={{ color: "#94A3B8", flexShrink: 0 }} />
+          <p style={{ margin: 0, fontSize: "0.73rem", color: "#94A3B8" }}>{o.items?.length || 1} item{(o.items?.length || 1) !== 1 ? "s" : ""} delivered</p>
         </div>
       </div>
     </div>
@@ -307,8 +317,25 @@ export default function DeliveryDashboard() {
   const navigate = useNavigate();
   const { canInstall, install, nativeInstall, hasNativePrompt, installing, installed: appInstalled, guideOpen, closeGuide } = usePwaInstall();
   usePushNotifications("delivery_person", person.id, localStorage.getItem("delivery_token"));
+  const [notifOpen, setNotifOpen] = useState(false);
 
   useEffect(() => { loadCore(); }, []);
+
+  // Auto-refresh active orders every 30s
+  useEffect(() => {
+    const prev = { count: 0 };
+    const iv = setInterval(async () => {
+      try {
+        const { data } = await getDeliveryOrders();
+        if (data.length > prev.count) {
+          toast.success("New order assigned to you!");
+        }
+        prev.count = data.length;
+        setOrders(data);
+      } catch {}
+    }, 30000);
+    return () => clearInterval(iv);
+  }, []);
 
   // Lazy-load completed orders only when that tab is first opened
   useEffect(() => {
@@ -479,10 +506,60 @@ export default function DeliveryDashboard() {
           </div>
           <span className="portal-mobile-title">{person.name || "Delivery"}</span>
         </div>
-        <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
-          {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button onClick={() => setNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+            <Bell size={18} color="#fff" />
+            {orders.length > 0 && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #0f2460" }} />}
+          </button>
+          <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
+
+      {/* Delivery notification panel */}
+      {notifOpen && (
+        <div style={{ position: "fixed", top: 52, right: 8, zIndex: 2500, background: "#fff", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", width: 300, maxHeight: 380, overflow: "auto", border: "1px solid #E2E8F0" }}>
+          <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#0F172A" }}>Notifications</span>
+            <button onClick={() => setNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
+          </div>
+          {orders.length > 0 ? (
+            <div style={{ padding: "0.85rem 1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+                <span style={{ fontSize: "1.2rem" }}>📦</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#1E40AF" }}>{orders.length} Active Order{orders.length > 1 ? "s" : ""}</p>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#1E3A8A" }}>Deliveries assigned to you</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#94A3B8" }}>
+              <Bell size={28} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
+              <p style={{ margin: 0, fontSize: "0.82rem" }}>No active assignments</p>
+            </div>
+          )}
+          <div style={{ padding: "0.6rem 1rem", borderTop: "1px solid #F1F5F9" }}>
+            <button
+              onClick={async () => {
+                try {
+                  const reg = await navigator.serviceWorker?.ready;
+                  if (reg) {
+                    const perm = await Notification.requestPermission();
+                    if (perm === "granted") toast.success("Push notifications enabled!");
+                    else toast.error("Notification permission denied");
+                  }
+                } catch { toast.error("Could not enable notifications"); }
+                setNotifOpen(false);
+              }}
+              style={{ width: "100%", padding: "0.55rem", border: "1px solid #E2E8F0", borderRadius: 8, background: "#F8FAFC", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}
+            >
+              🔔 Enable Push Notifications
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar */}
       <div className="sidebar-wrap">
@@ -685,6 +762,20 @@ export default function DeliveryDashboard() {
                 <ScanLine size={15} /> Scan QR
               </button>
             </div>
+
+            {/* Summary strip */}
+            {orders.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.65rem", marginBottom: "1rem" }}>
+                <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 12, padding: "0.85rem 1rem", textAlign: "center" }}>
+                  <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#92400E" }}>{readyCount}</p>
+                  <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", fontWeight: 700, color: "#B45309" }}>Awaiting Pickup</p>
+                </div>
+                <div style={{ background: "#EDE9FE", border: "1.5px solid #C4B5FD", borderRadius: 12, padding: "0.85rem 1rem", textAlign: "center" }}>
+                  <p style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900, color: "#5B21B6" }}>{pickedCount}</p>
+                  <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", fontWeight: 700, color: "#6D28D9" }}>Out for Delivery</p>
+                </div>
+              </div>
+            )}
 
             {loading ? (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

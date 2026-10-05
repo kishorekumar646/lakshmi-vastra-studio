@@ -21,7 +21,7 @@ import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
   ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp, MapPin,
-  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle,
+  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle, Bell,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -53,6 +53,11 @@ export default function AdminDashboard() {
 
   // Products — all fetched, paginated client-side
   const [allProducts, setAllProducts] = useState([]);
+  const [productSearch, setProductSearch] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [productStatusFilter, setProductStatusFilter] = useState("all");
+  const [adminDeleteModal, setAdminDeleteModal] = useState(null);
+  const [adminNotifOpen, setAdminNotifOpen] = useState(false);
   const [productPage, setProductPage] = useState(1);
   const [productTotal, setProductTotal] = useState(0);
   const [productPages, setProductPages] = useState(1);
@@ -223,6 +228,24 @@ export default function AdminDashboard() {
 
   useEffect(() => { loadAll(); }, []);
 
+  // Auto-refresh orders every 30s
+  useEffect(() => {
+    const prev = { pending: 0 };
+    const iv = setInterval(async () => {
+      try {
+        const { data } = await getAdminOrders(1, 100, "");
+        const items = data.items ?? data;
+        const newPending = items.filter(o => o.status === "pending").length;
+        if (newPending > prev.pending) {
+          toast.success(`${newPending - prev.pending} new order(s) received!`);
+        }
+        prev.pending = newPending;
+        setOrders(items);
+      } catch {}
+    }, 30000);
+    return () => clearInterval(iv);
+  }, []);
+
   const goToPage = (page) => {
     if (page < 1 || page > productPages) return;
     // If we have all products in memory (fallback mode), just update the page number
@@ -373,15 +396,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this product?")) return;
-    await deleteProduct(id);
-    toast.success("Deleted");
-    const remaining = productTotal - 1;
-    const targetPage = remaining > 0 && (productPage - 1) * PER_PAGE >= remaining
-      ? productPage - 1
-      : productPage;
-    loadProducts(targetPage);
+  const handleDelete = async () => {
+    if (!adminDeleteModal) return;
+    try {
+      await deleteProduct(adminDeleteModal.id);
+      toast.success("Deleted");
+      const remaining = productTotal - 1;
+      const targetPage = remaining > 0 && (productPage - 1) * PER_PAGE >= remaining
+        ? productPage - 1
+        : productPage;
+      loadProducts(targetPage);
+    } catch {
+      toast.error("Failed to delete");
+    }
+    setAdminDeleteModal(null);
   };
 
   const handleAddCategory = async (e) => {
@@ -435,10 +463,60 @@ export default function AdminDashboard() {
       {/* Mobile top bar */}
       <div className="admin-mobile-header">
         <span className="admin-mobile-title">Admin Panel</span>
-        <button className="admin-mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <button onClick={() => setAdminNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.12)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
+            <Bell size={18} color="#fff" />
+            {pendingOrders > 0 && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #1e0a15" }} />}
+          </button>
+          <button className="admin-mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
+
+      {/* Admin notification panel */}
+      {adminNotifOpen && (
+        <div style={{ position: "fixed", top: 52, right: 8, zIndex: 2500, background: "#fff", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", width: 300, maxHeight: 380, overflow: "auto", border: "1px solid #E2E8F0" }}>
+          <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#0F172A" }}>Notifications</span>
+            <button onClick={() => setAdminNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
+          </div>
+          {pendingOrders > 0 ? (
+            <div style={{ padding: "0.85rem 1rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#FFF7ED", border: "1px solid #FED7AA" }}>
+                <span style={{ fontSize: "1.2rem" }}>🛒</span>
+                <div>
+                  <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#C2410C" }}>{pendingOrders} Pending Order{pendingOrders > 1 ? "s" : ""}</p>
+                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#9A3412" }}>Orders awaiting confirmation</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#94A3B8" }}>
+              <Bell size={28} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
+              <p style={{ margin: 0, fontSize: "0.82rem" }}>No new notifications</p>
+            </div>
+          )}
+          <div style={{ padding: "0.6rem 1rem", borderTop: "1px solid #F1F5F9" }}>
+            <button
+              onClick={async () => {
+                try {
+                  const reg = await navigator.serviceWorker?.ready;
+                  if (reg) {
+                    const perm = await Notification.requestPermission();
+                    if (perm === "granted") toast.success("Push notifications enabled!");
+                    else toast.error("Notification permission denied");
+                  }
+                } catch { toast.error("Could not enable notifications"); }
+                setAdminNotifOpen(false);
+              }}
+              style={{ width: "100%", padding: "0.55rem", border: "1px solid #E2E8F0", borderRadius: 8, background: "#F8FAFC", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}
+            >
+              🔔 Enable Push Notifications
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sidebar */}
       <div className="sidebar-wrap">
@@ -530,6 +608,46 @@ export default function AdminDashboard() {
               </button>
             </div>
 
+            {/* Filter bar */}
+            <div style={{ display: "flex", gap: "0.65rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+              <div style={{ flex: "1 1 220px", position: "relative" }}>
+                <input
+                  type="text"
+                  placeholder="Search by product name…"
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  style={{ width: "100%", padding: "0.55rem 0.85rem 0.55rem 2.2rem", border: "1.5px solid var(--border-light)", borderRadius: 8, fontSize: "0.85rem", outline: "none", boxSizing: "border-box", background: "#fff" }}
+                />
+                <Search size={15} style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} />
+              </div>
+              <select
+                value={productCategoryFilter}
+                onChange={(e) => setProductCategoryFilter(e.target.value)}
+                style={{ padding: "0.55rem 0.85rem", border: "1.5px solid var(--border-light)", borderRadius: 8, fontSize: "0.85rem", background: "#fff", cursor: "pointer", outline: "none" }}
+              >
+                <option value="all">All Categories</option>
+                {categories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+              </select>
+              <select
+                value={productStatusFilter}
+                onChange={(e) => setProductStatusFilter(e.target.value)}
+                style={{ padding: "0.55rem 0.85rem", border: "1.5px solid var(--border-light)", borderRadius: 8, fontSize: "0.85rem", background: "#fff", cursor: "pointer", outline: "none" }}
+              >
+                <option value="all">All Status</option>
+                <option value="visible">Visible</option>
+                <option value="hidden">Hidden</option>
+                <option value="featured">Featured</option>
+              </select>
+              {(productSearch || productCategoryFilter !== "all" || productStatusFilter !== "all") && (
+                <button
+                  onClick={() => { setProductSearch(""); setProductCategoryFilter("all"); setProductStatusFilter("all"); }}
+                  style={{ padding: "0.55rem 0.9rem", border: "1.5px solid var(--border-light)", borderRadius: 8, background: "#fff", cursor: "pointer", fontSize: "0.82rem", color: "#64748B", fontWeight: 600 }}
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
             <div className="admin-table-wrap" style={{ opacity: productsLoading ? 0.5 : 1, transition: "opacity 0.2s" }}>
               <table className="admin-table">
                 <thead>
@@ -547,7 +665,17 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => (
+                  {(() => {
+                    const filteredProducts = products.filter((p) => {
+                      if (productSearch && !p.name.toLowerCase().includes(productSearch.toLowerCase())) return false;
+                      if (productCategoryFilter !== "all" && String(p.category_id) !== productCategoryFilter) return false;
+                      if (productStatusFilter === "visible" && !p.is_available) return false;
+                      if (productStatusFilter === "hidden" && p.is_available) return false;
+                      if (productStatusFilter === "featured" && !p.is_featured) return false;
+                      return true;
+                    });
+                    return filteredProducts;
+                  })().map((p) => (
                     <tr key={p.id}>
                       <td>
                         {p.image_url
@@ -598,7 +726,7 @@ export default function AdminDashboard() {
                       <td>
                         <div style={{ display: "flex", gap: "0.5rem" }}>
                           <button onClick={() => handleEdit(p)} className="admin-edit-btn" title="Edit"><Edit2 size={14} /></button>
-                          <button onClick={() => handleDelete(p.id)} className="admin-delete-btn" title="Delete"><Trash2 size={14} /></button>
+                          <button onClick={() => setAdminDeleteModal({ id: p.id, name: p.name })} className="admin-delete-btn" title="Delete"><Trash2 size={14} /></button>
                         </div>
                       </td>
                     </tr>
@@ -2409,6 +2537,23 @@ export default function AdminDashboard() {
               >
                 {resetPwLoading ? "Resetting…" : "Reset Password"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Delete Confirmation Modal */}
+      {adminDeleteModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "#0F172A" }}>Delete Product?</h3>
+            <p style={{ margin: "0 0 1.5rem", fontSize: "0.88rem", color: "#64748B", lineHeight: 1.5 }}>
+              "<strong>{adminDeleteModal.name}</strong>" will be permanently deleted and cannot be recovered.
+            </p>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button onClick={() => setAdminDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>Cancel</button>
+              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Delete</button>
             </div>
           </div>
         </div>
