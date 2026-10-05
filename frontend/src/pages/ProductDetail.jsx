@@ -11,7 +11,6 @@ import RelatedProducts from "../components/RelatedProducts";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
-import TrustBadges from "../components/TrustBadges";
 
 const WA_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -132,23 +131,12 @@ export default function ProductDetail() {
     }
   }
 
-  if (loading) return <ProductDetailSkeleton />;
-  if (!product) return (
-    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "4rem 1.5rem", background: "var(--cream)" }}>
-      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", color: "var(--gold)", fontSize: "1.1rem", letterSpacing: "0.1em", marginBottom: "0.75rem", display: "block" }}>Oops</span>
-      <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "var(--text)", fontWeight: 700, marginBottom: "0.75rem" }}>Product Not Found</h2>
-      <div style={{ width: 60, height: 1, background: "var(--gold)", margin: "0 auto 1.5rem", opacity: 0.6 }} />
-      <p style={{ color: "var(--text-muted)", marginBottom: "2rem", lineHeight: 1.75 }}>This product may have been removed or is no longer available.</p>
-      <Link to="/catalog" className="btn-primary">Browse Collection</Link>
-    </div>
-  );
-
-  const waMsg = `Hello%2C%20I%20am%20interested%20in%20%22${encodeURIComponent(product.name)}%22%20(%E2%82%B9${product.price}).%20Please%20share%20more%20details.`;
-
-  // Build images list — use images array if available, fall back to image_url
-  const images = (product.images && product.images.length > 0)
-    ? product.images.map((img) => img.url)
-    : (product.image_url ? [product.image_url] : []);
+  // Build images list — must be before early returns (hooks must not come after conditionals)
+  const images = product
+    ? (product.images && product.images.length > 0)
+      ? product.images.map((img) => img.url)
+      : (product.image_url ? [product.image_url] : [])
+    : [];
 
   // Auto-slide every 3s; pause when lightbox open or user manually navigated
   useEffect(() => {
@@ -165,6 +153,19 @@ export default function ProductDetail() {
     const t = setTimeout(() => setUserInteracted(false), 5000);
     return () => clearTimeout(t);
   }, [userInteracted]);
+
+  if (loading) return <ProductDetailSkeleton />;
+  if (!product) return (
+    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "4rem 1.5rem", background: "var(--cream)" }}>
+      <span style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: "italic", color: "var(--gold)", fontSize: "1.1rem", letterSpacing: "0.1em", marginBottom: "0.75rem", display: "block" }}>Oops</span>
+      <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "var(--text)", fontWeight: 700, marginBottom: "0.75rem" }}>Product Not Found</h2>
+      <div style={{ width: 60, height: 1, background: "var(--gold)", margin: "0 auto 1.5rem", opacity: 0.6 }} />
+      <p style={{ color: "var(--text-muted)", marginBottom: "2rem", lineHeight: 1.75 }}>This product may have been removed or is no longer available.</p>
+      <Link to="/catalog" className="btn-primary">Browse Collection</Link>
+    </div>
+  );
+
+  const waMsg = `Hello%2C%20I%20am%20interested%20in%20%22${encodeURIComponent(product.name)}%22%20(%E2%82%B9${product.price}).%20Please%20share%20more%20details.`;
 
   const goToImg = (i) => { setActiveImg(i); setUserInteracted(true); };
 
@@ -258,88 +259,78 @@ export default function ProductDetail() {
             <p style={styles.price}>₹{product.price.toLocaleString("en-IN")}</p>
             {product.description && <p style={styles.desc}>{product.description}</p>}
 
-            {/* Quantity selector */}
-            <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.25rem" }}>
-              <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Qty</span>
-              <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 6, overflow: "hidden" }}>
-                <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 36, height: 36, border: "none", background: "var(--cream)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
-                  <Minus size={14} />
-                </button>
-                <span style={{ minWidth: 36, textAlign: "center", fontWeight: 700, fontSize: "1rem", color: "var(--text)" }}>{qty}</span>
-                <button onClick={() => setQty((q) => q + 1)} style={{ width: 36, height: 36, border: "none", background: "var(--cream)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "background 0.15s" }}>
-                  <Plus size={14} />
-                </button>
+            {/* Quantity + Wishlist row */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>Qty</span>
+                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid var(--border-light)", borderRadius: 6, overflow: "hidden" }}>
+                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={{ width: 36, height: 36, border: "none", background: "var(--cream)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Minus size={14} />
+                  </button>
+                  <span style={{ minWidth: 36, textAlign: "center", fontWeight: 700, fontSize: "1rem", color: "var(--text)" }}>{qty}</span>
+                  <button onClick={() => setQty((q) => q + 1)} style={{ width: 36, height: 36, border: "none", background: "var(--cream)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Plus size={14} />
+                  </button>
+                </div>
               </div>
+              <button
+                onClick={handleWishlist}
+                style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "none", border: "none", cursor: "pointer", color: wishlisted ? "var(--primary)" : "var(--text-muted)", fontWeight: 600, fontSize: "0.82rem", padding: "0.4rem 0.5rem", borderRadius: 4, transition: "color 0.2s" }}
+                aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                <Heart size={17} fill={wishlisted ? "var(--primary)" : "none"} color={wishlisted ? "var(--primary)" : "var(--text-muted)"} />
+                {wishlisted ? "Wishlisted" : "Wishlist"}
+              </button>
             </div>
 
-            {/* Primary purchase CTAs */}
-            <div style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
-              <button
-                onClick={handleAddToCart}
-                disabled={adding}
-                style={{
-                  flex: "1 1 160px",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
-                  padding: "0.95rem 1.5rem",
-                  background: added ? "#1a7a4a" : "#fff",
-                  color: added ? "#fff" : "var(--primary)",
-                  border: `2px solid ${added ? "#1a7a4a" : "var(--primary)"}`,
-                  borderRadius: 4, cursor: adding ? "not-allowed" : "pointer",
-                  fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.05em", textTransform: "uppercase",
-                  transition: "all 0.25s",
-                }}
-              >
-                {added ? <><Check size={16} /> Added to Cart</> : <><ShoppingCart size={16} /> Add to Cart</>}
-              </button>
-
+            {/* Primary CTAs */}
+            <div style={{ display: "flex", gap: "0.65rem", marginBottom: "0.65rem" }}>
               <button
                 onClick={handleBuyNow}
                 disabled={adding}
-                style={{
-                  flex: "1 1 160px",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
-                  padding: "0.95rem 1.5rem",
-                  background: "var(--primary)", color: "#fff",
-                  border: "2px solid var(--primary)",
-                  borderRadius: 4, cursor: adding ? "not-allowed" : "pointer",
-                  fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.05em", textTransform: "uppercase",
-                  transition: "opacity 0.2s",
-                  opacity: adding ? 0.7 : 1,
-                }}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.45rem", padding: "0.95rem 1rem", background: "var(--primary)", color: "#fff", border: "2px solid var(--primary)", borderRadius: 6, cursor: adding ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.04em", textTransform: "uppercase", opacity: adding ? 0.7 : 1, transition: "opacity 0.2s" }}
               >
                 <Zap size={16} /> Buy Now
               </button>
-
               <button
-                onClick={handleWishlist}
-                style={{
-                  width: 50, height: 50, flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: wishlisted ? "var(--primary)" : "#fff",
-                  border: `2px solid ${wishlisted ? "var(--primary)" : "var(--border-light)"}`,
-                  borderRadius: 4, cursor: "pointer",
-                  transition: "all 0.2s",
-                }}
-                aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                title={wishlisted ? "Remove from wishlist" : "Save to wishlist"}
+                onClick={handleAddToCart}
+                disabled={adding}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.45rem", padding: "0.95rem 1rem", background: added ? "#1a7a4a" : "#fff", color: added ? "#fff" : "var(--primary)", border: `2px solid ${added ? "#1a7a4a" : "var(--primary)"}`, borderRadius: 6, cursor: adding ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.04em", textTransform: "uppercase", transition: "all 0.25s" }}
               >
-                <Heart size={18} fill={wishlisted ? "#fff" : "none"} color={wishlisted ? "#fff" : "var(--primary)"} />
+                {added ? <><Check size={16} /> Added</> : <><ShoppingCart size={16} /> Add to Cart</>}
               </button>
             </div>
 
-            <TrustBadges compact />
-
-            {/* Secondary actions */}
-            <div style={styles.actions}>
-              <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}`} target="_blank" rel="noreferrer" style={styles.waBtn}>
+            {/* Contact row */}
+            <div style={{ display: "flex", gap: "0.65rem", marginBottom: "1.5rem" }}>
+              <a href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}`} target="_blank" rel="noreferrer"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.45rem", padding: "0.7rem 1rem", background: "#25D366", color: "#fff", borderRadius: 6, textDecoration: "none", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.03em" }}>
                 {WA_ICON} WhatsApp
               </a>
-              <a href={`tel:${PHONE_NUMBER}`} style={styles.callBtn}>
-                <Phone size={16} /> Call
+              <a href={`tel:${PHONE_NUMBER}`}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.45rem", padding: "0.7rem 1rem", background: "#fff", color: "var(--primary)", border: "2px solid var(--primary)", borderRadius: 6, textDecoration: "none", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.03em" }}>
+                <Phone size={15} /> Call Us
               </a>
-              <button onClick={handleShareProduct} style={styles.shareBtn}>
-                <Share2 size={16} /> Share
+              <button onClick={handleShareProduct}
+                style={{ width: 44, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", border: "2px solid var(--border-light)", borderRadius: 6, cursor: "pointer", color: "var(--text-muted)" }}>
+                <Share2 size={16} />
               </button>
+            </div>
+
+            {/* Trust badges: 3-col grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.5rem", marginBottom: "1.5rem" }}>
+              {[
+                { icon: "🔒", label: "Secure Pay" },
+                { icon: "🚚", label: "Cash on Delivery" },
+                { icon: "↩️", label: "Easy Returns" },
+                { icon: "🏆", label: "100% Genuine" },
+                { icon: "📞", label: "Live Support" },
+                { icon: "✅", label: "GST Verified" },
+              ].map(({ icon, label }) => (
+                <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 0.6rem", background: "#fff", border: "1px solid var(--border-light)", borderRadius: 6, fontSize: "0.72rem", fontWeight: 600, color: "var(--text-muted)" }}>
+                  <span style={{ fontSize: "0.9rem" }}>{icon}</span> {label}
+                </div>
+              ))}
             </div>
 
             {(product.is_handloom || product.has_multiple_colours || product.custom_orders) && (
@@ -514,11 +505,7 @@ const styles = {
   name: { fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", color: "var(--text)", marginBottom: "0.75rem", fontWeight: 700, lineHeight: 1.15 },
   price: { fontFamily: "'Playfair Display', serif", fontSize: "1.9rem", fontWeight: 700, color: "var(--primary)", marginBottom: "1.5rem" },
   desc: { color: "var(--text-muted)", lineHeight: 1.85, fontSize: "0.975rem", marginBottom: "2rem" },
-  actions: { display: "flex", gap: "0.875rem", marginBottom: "2rem", flexWrap: "wrap" },
-  waBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "#25D366", color: "#fff", padding: "0.875rem 1.5rem", borderRadius: 2, textDecoration: "none", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase" },
-  callBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "var(--primary)", color: "#fff", padding: "0.875rem 1.5rem", borderRadius: 2, textDecoration: "none", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase" },
   note: { background: "#fff", borderRadius: 4, padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "0.65rem", color: "var(--text-muted)", fontSize: "0.875rem", border: "1px solid var(--border-light)" },
-  shareBtn: { display: "inline-flex", alignItems: "center", gap: "0.5rem", background: "transparent", color: "var(--primary)", padding: "0.875rem 1.2rem", borderRadius: 2, border: "1.5px solid var(--primary)", fontWeight: 700, fontSize: "0.85rem", letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer" },
 };
 
 const labelStyle = { display: "block", fontSize: "0.82rem", fontWeight: 600, color: "var(--text)", marginBottom: "0.4rem", textTransform: "uppercase", letterSpacing: "0.06em" };
