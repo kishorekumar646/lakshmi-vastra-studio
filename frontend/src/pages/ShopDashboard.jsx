@@ -69,6 +69,7 @@ export default function ShopDashboard() {
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [productModal, setProductModal] = useState(null); // { item, product }
   const [productModalImg, setProductModalImg] = useState(0);
+  const [productModalUserInteracted, setProductModalUserInteracted] = useState(false);
   const [confirmingOrder, setConfirmingOrder] = useState({});
 
   useEffect(() => {
@@ -295,14 +296,36 @@ export default function ShopDashboard() {
     }
   };
 
-  // Lock body scroll while product modal is open
+  // Lock body scroll while product modal is open; reset image index on open
   useEffect(() => {
     if (productModal) {
+      setProductModalImg(0);
+      setProductModalUserInteracted(false);
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = prev; };
     }
   }, [productModal]);
+
+  // Auto-slide product modal images every 3s
+  useEffect(() => {
+    if (!productModal) return;
+    const images = productModal.product?.images?.length
+      ? productModal.product.images.map(img => img.url)
+      : (productModal.item?.image_url ? [productModal.item.image_url] : []);
+    if (images.length <= 1 || productModalUserInteracted) return;
+    const timer = setInterval(() => {
+      setProductModalImg((prev) => (prev + 1) % images.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [productModal, productModalUserInteracted]);
+
+  // Resume auto-slide 5s after user manually taps arrow/dot in product modal
+  useEffect(() => {
+    if (!productModalUserInteracted) return;
+    const t = setTimeout(() => setProductModalUserInteracted(false), 5000);
+    return () => clearTimeout(t);
+  }, [productModalUserInteracted]);
 
   const S = { // inline style helpers
     card: { background: "#fff", borderRadius: 10, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: "0.75rem" },
@@ -432,7 +455,7 @@ export default function ShopDashboard() {
                 {images.length > 1 && (
                   <>
                     <button
-                      onClick={() => setProductModalImg((i) => (i - 1 + images.length) % images.length)}
+                      onClick={() => { setProductModalImg((i) => (i - 1 + images.length) % images.length); setProductModalUserInteracted(true); }}
                       style={{
                         position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
                         background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%",
@@ -444,7 +467,7 @@ export default function ShopDashboard() {
                       <ChevronLeft size={20} color="#0F172A" />
                     </button>
                     <button
-                      onClick={() => setProductModalImg((i) => (i + 1) % images.length)}
+                      onClick={() => { setProductModalImg((i) => (i + 1) % images.length); setProductModalUserInteracted(true); }}
                       style={{
                         position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
                         background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%",
@@ -459,7 +482,7 @@ export default function ShopDashboard() {
                     <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, display: "flex", justifyContent: "center", gap: "0.3rem" }}>
                       {images.map((_, i) => (
                         <div
-                          key={i} onClick={() => setProductModalImg(i)}
+                          key={i} onClick={() => { setProductModalImg(i); setProductModalUserInteracted(true); }}
                           style={{
                             width: i === productModalImg ? 18 : 6, height: 6, borderRadius: 3,
                             background: i === productModalImg ? "#fff" : "rgba(255,255,255,0.5)",
@@ -1360,7 +1383,7 @@ export default function ShopDashboard() {
         {SHOP_NAV.map(({ key, icon, label, badge }) => (
           <button
             key={key}
-            onClick={() => { switchTab(key); setShowForm(false); }}
+            onClick={() => { switchTab(key); setShowForm(false); setSidebarOpen(false); }}
             className={`portal-bottom-tab ${tab === key ? "active" : ""}`}
             style={{ color: tab === key ? "var(--primary)" : "#94A3B8" }}
           >
