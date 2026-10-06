@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   ShoppingBag, MapPin, CreditCard, Check,
@@ -68,6 +68,12 @@ export default function Checkout() {
     name: "", phone: "", address: "", city: "", state: "", pincode: "",
   });
   const [fieldErrors, setFieldErrors] = useState({});
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
 
   useEffect(() => {
     document.title = "Checkout | Lakshmi Vastra Studio";
