@@ -2,7 +2,7 @@ import random
 import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session, joinedload
@@ -145,6 +145,8 @@ async def update_profile(
 
 
 def _order_dict(order: Order) -> dict:
+    shop = order.items[0].shop_owner if order.items else None
+    shop_parts = [p for p in [getattr(shop, "address", None), getattr(shop, "city", None)] if p]
     return {
         "id": order.id,
         "total": order.total,
@@ -153,6 +155,8 @@ def _order_dict(order: Order) -> dict:
         "delivery_address": order.delivery_address,
         "delivery_otp": order.delivery_otp,
         "created_at": order.created_at,
+        "shop_name": shop.shop_name if shop else None,
+        "shop_address": ", ".join(shop_parts) if shop_parts else None,
         "customer": {
             "name": order.customer.name if order.customer else "",
             "phone": order.customer.phone if order.customer else "",
@@ -244,6 +248,7 @@ def list_available_orders(person: DeliveryPerson = Depends(get_current_delivery_
         .filter(Order.status == "ready_for_delivery", Order.delivery_person_id.is_(None))
         .options(
             joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
             joinedload(Order.customer),
             joinedload(Order.status_history),
         )
@@ -278,6 +283,7 @@ def list_assigned_orders(person: DeliveryPerson = Depends(get_current_delivery_p
         .filter(Order.status.in_(["ready_for_delivery", "picked_up"]))
         .options(
             joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
             joinedload(Order.customer),
             joinedload(Order.status_history),
         )
@@ -444,7 +450,7 @@ def list_my_return_orders(person: DeliveryPerson = Depends(get_current_delivery_
 
 
 @router.put("/return-orders/{order_id}/picked-up")
-def mark_return_picked_up(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+def mark_return_picked_up(order_id: int, background: BackgroundTasks, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
     """Delivery person has collected the item from the customer."""
     order = db.query(Order).filter(Order.id == order_id, Order.return_delivery_person_id == person.id).first()
     if not order:
@@ -454,11 +460,19 @@ def mark_return_picked_up(order_id: int, person: DeliveryPerson = Depends(get_cu
     order.return_delivery_status = "picked_up_from_customer"
     db.add(OrderStatusHistory(order_id=order.id, status="return_picked_up", note=f"Item collected from customer by {person.name}"))
     db.commit()
+    shop_ids = list({item.shop_owner_id for item in order.items if item.shop_owner_id})
+    pname = person.name
+    oid = order.id
+    def _notify():
+        from notifications.push import notify
+        for sid in shop_ids:
+            notify(db, "shop_owner", sid, "Return Item Collected", f"Order #{oid} — {pname} collected the item from customer and is heading to your shop.", "/shop/dashboard")
+    background.add_task(_notify)
     return {"success": True, "order_id": order.id}
 
 
 @router.put("/return-orders/{order_id}/returned")
-def mark_returned_to_shop(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+def mark_returned_to_shop(order_id: int, background: BackgroundTasks, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
     """Delivery person has dropped the item back at the shop."""
     order = db.query(Order).filter(Order.id == order_id, Order.return_delivery_person_id == person.id).first()
     if not order:
@@ -469,4 +483,14 @@ def mark_returned_to_shop(order_id: int, person: DeliveryPerson = Depends(get_cu
     order.return_status = "returned"
     db.add(OrderStatusHistory(order_id=order.id, status="return_completed", note=f"Item returned to shop by {person.name}"))
     db.commit()
+    shop_ids = list({item.shop_owner_id for item in order.items if item.shop_owner_id})
+    cid = order.customer_id
+    pname = person.name
+    oid = order.id
+    def _notify():
+        from notifications.push import notify
+        for sid in shop_ids:
+            notify(db, "shop_owner", sid, "Return Completed ✓", f"Order #{oid} — {pname} has returned the item to your shop.", "/shop/dashboard")
+        notify(db, "customer", cid, "Return Completed ✓", f"Order #{oid} — your item has been returned to the shop. Return process complete.", "/account")
+    background.add_task(_notify)
     return {"success": True, "order_id": order.id}

@@ -236,6 +236,7 @@ const STATUS_STYLE = {
   return_requested:   { bg: "#EDE9FE", color: "#5B21B6", label: "Return Requested" },
   return_accepted:    { bg: "#D1FAE5", color: "#065F46", label: "Return Accepted" },
   return_rejected:    { bg: "#FEE2E2", color: "#991B1B", label: "Return Rejected" },
+  return_returned:    { bg: "#DCFCE7", color: "#15803D", label: "Return Completed" },
 };
 
 const CANCELLABLE = ["pending", "confirmed"];
@@ -273,7 +274,13 @@ function OrderHistory() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const iv = setInterval(load, 30000);
+    const onVisible = () => { if (!document.hidden) load(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(iv); document.removeEventListener("visibilitychange", onVisible); };
+  }, []);
 
   const handleCancel = async (orderId) => {
     if (!window.confirm("Are you sure you want to cancel this order?")) return;
@@ -433,7 +440,7 @@ function OrderHistory() {
             {order.return_status && (
               <div style={{ marginTop: "0.65rem", background: (order.return_status === "accepted" || order.return_status === "returned") ? "#F0FDF4" : order.return_status === "rejected" ? "#FEF2F2" : "#FAF5FF", border: `1px solid ${(order.return_status === "accepted" || order.return_status === "returned") ? "#86EFAC" : order.return_status === "rejected" ? "#FCA5A5" : "#C4B5FD"}`, borderRadius: 8, padding: "0.65rem 0.85rem", fontSize: "0.8rem" }}>
                 <p style={{ margin: "0 0 0.2rem", fontWeight: 700, color: (order.return_status === "accepted" || order.return_status === "returned") ? "#15803D" : order.return_status === "rejected" ? "#991B1B" : "#5B21B6" }}>
-                  {order.return_status === "pending" ? "⏳ Return request under review" : order.return_status === "accepted" ? "✅ Return accepted — item being collected" : order.return_status === "returned" ? "📦 Item returned to shop" : "❌ Return rejected"}
+                  {order.return_status === "pending" ? "⏳ Return request under review" : order.return_status === "accepted" ? "✅ Return accepted — item being collected" : order.return_status === "returned" ? "📦 Return completed — item back at shop" : "❌ Return rejected"}
                 </p>
                 {order.return_reason && <p style={{ margin: "0.15rem 0 0", color: "#64748B" }}>Reason: {order.return_reason}</p>}
                 {order.return_note && <p style={{ margin: "0.15rem 0 0", color: "#475569", fontWeight: 600 }}>Shop note: {order.return_note}</p>}

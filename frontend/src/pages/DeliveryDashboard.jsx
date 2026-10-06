@@ -187,19 +187,28 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pi
 
       {/* Body */}
       <div style={{ padding: "0.75rem 1.1rem" }}>
-        {/* Address with Maps link */}
+        {/* Address with Maps link — show SHOP address before pickup, CUSTOMER address after */}
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginBottom: "0.6rem" }}>
           <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`}
+            href={`https://maps.google.com/?q=${encodeURIComponent(o.status === "ready_for_delivery" ? (o.shop_address || o.shop_name || o.delivery_address) : o.delivery_address)}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", flex: 1 }}
           >
-            <div style={{ background: "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 1 }}>
-              <MapPin size={12} style={{ color: "#1D4ED8" }} />
-              <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#1D4ED8", whiteSpace: "nowrap" }}>Maps</span>
+            <div style={{ background: o.status === "ready_for_delivery" ? "#FEF3C7" : "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 1 }}>
+              <MapPin size={12} style={{ color: o.status === "ready_for_delivery" ? "#D97706" : "#1D4ED8" }} />
+              <span style={{ fontSize: "0.62rem", fontWeight: 700, color: o.status === "ready_for_delivery" ? "#D97706" : "#1D4ED8", whiteSpace: "nowrap" }}>
+                {o.status === "ready_for_delivery" ? "Pick up" : "Deliver to"}
+              </span>
             </div>
-            <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+            <div>
+              {o.status === "ready_for_delivery" && o.shop_name && (
+                <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400E" }}>{o.shop_name}</p>
+              )}
+              <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>
+                {o.status === "ready_for_delivery" ? (o.shop_address || "Shop address not set — contact shop") : o.delivery_address}
+              </p>
+            </div>
           </a>
         </div>
 
@@ -319,6 +328,7 @@ export default function DeliveryDashboard() {
   const [loading, setLoading] = useState(true);
   const [completedLoading, setCompletedLoading] = useState(false);
   const [completedLoaded, setCompletedLoaded] = useState(false);
+  const [completedTypeFilter, setCompletedTypeFilter] = useState("all");
   const [showScanner, setShowScanner] = useState(false);
   const [otpInputs, setOtpInputs] = useState({});
   const [delivering, setDelivering] = useState({});
@@ -373,16 +383,20 @@ export default function DeliveryDashboard() {
     return () => clearInterval(iv);
   }, []);
 
-  // Lazy-load completed orders only when that tab is first opened
+  // Load completed orders when tab is opened; poll every 60s while active
   useEffect(() => {
-    if (tab === "completed" && !completedLoaded) {
-      setCompletedLoading(true);
+    if (tab !== "completed") return;
+    const fetchCompleted = () => {
+      if (!completedLoaded) setCompletedLoading(true);
       getCompletedDeliveries()
         .then((r) => { setCompleted(r.data); setCompletedLoaded(true); })
         .catch(() => {})
         .finally(() => setCompletedLoading(false));
-    }
-  }, [tab, completedLoaded]);
+    };
+    fetchCompleted();
+    const iv = setInterval(fetchCompleted, 60000);
+    return () => clearInterval(iv);
+  }, [tab]);
 
   const loadCore = () => {
     setLoading(true);
@@ -705,6 +719,16 @@ export default function DeliveryDashboard() {
             <span style={{ fontSize: "1rem" }}>🚚</span> Install App
           </button>
         )}
+        <button
+          onClick={() => setNotifOpen(v => !v)}
+          className="portal-nav-btn"
+          title={sidebarCollapsed ? "Notifications" : undefined}
+          style={{ position: "relative" }}
+        >
+          <Bell size={17} />
+          {(orders.length > 0 || available.length > 0) && <span style={{ position: "absolute", top: 6, left: 22, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #0A1628" }} />}
+          <span className="pnb-label"> Notifications{(orders.length + available.length) > 0 ? ` (${orders.length + available.length})` : ""}</span>
+        </button>
         <a href="/help?app=delivery" className="portal-nav-btn" title={sidebarCollapsed ? "Help Center" : undefined} style={{ textDecoration: "none" }}>
           <HelpCircle size={17} /><span className="pnb-label"> Help Center</span>
         </a>
@@ -913,15 +937,20 @@ export default function DeliveryDashboard() {
                       </div>
                       <div style={{ padding: "0.65rem 1.1rem 0.9rem" }}>
                         <a
-                          href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`}
+                          href={`https://maps.google.com/?q=${encodeURIComponent(o.shop_address || o.shop_name || o.delivery_address)}`}
                           target="_blank" rel="noopener noreferrer"
                           style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", marginBottom: "0.55rem" }}
                         >
-                          <div style={{ background: "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
-                            <MapPin size={12} style={{ color: "#1D4ED8" }} />
-                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#1D4ED8", whiteSpace: "nowrap" }}>Maps</span>
+                          <div style={{ background: "#FEF3C7", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
+                            <MapPin size={12} style={{ color: "#D97706" }} />
+                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#D97706", whiteSpace: "nowrap" }}>Pick up</span>
                           </div>
-                          <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+                          <div>
+                            {o.shop_name && <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400E" }}>{o.shop_name}</p>}
+                            <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>
+                              {o.shop_address || "Shop address not set — contact shop"}
+                            </p>
+                          </div>
                         </a>
                         <div style={{ background: "#F8FAFC", borderRadius: 8, padding: "0.4rem 0.7rem", marginBottom: "0.75rem" }}>
                           {o.items?.map((item, i) => (
@@ -1494,16 +1523,41 @@ export default function DeliveryDashboard() {
                 <p style={{ fontWeight: 700, color: "#334155", margin: "0 0 0.35rem" }}>No deliveries yet</p>
                 <p style={{ color: "#94A3B8", fontSize: "0.85rem" }}>Completed orders will appear here.</p>
               </div>
-            ) : (
-              <>
-                <p style={{ fontSize: "0.75rem", color: "#94A3B8", fontWeight: 600, marginBottom: "0.75rem" }}>
-                  Showing last {completed.length} deliveries
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
-                  {completed.map((o) => <CompletedOrderCard key={o.id} o={o} earningPerDelivery={stats?.earning_per_delivery} />)}
-                </div>
-              </>
-            )}
+            ) : (() => {
+              const filteredCompleted = completed.filter((o) => {
+                if (completedTypeFilter === "deliveries") return o.return_delivery_status !== "returned_to_shop";
+                if (completedTypeFilter === "returns") return o.return_delivery_status === "returned_to_shop";
+                return true;
+              });
+              return (
+                <>
+                  {/* Type filter pills */}
+                  <div style={{ display: "flex", gap: "0.4rem", marginBottom: "0.85rem" }}>
+                    {[["all", "All"], ["deliveries", "Deliveries"], ["returns", "Returns"]].map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => setCompletedTypeFilter(key)}
+                        style={{ padding: "0.28rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", background: completedTypeFilter === key ? "#1a4080" : "#fff", color: completedTypeFilter === key ? "#fff" : "#64748B", borderColor: completedTypeFilter === key ? "#1a4080" : "#E2E8F0", transition: "all 0.15s" }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: "0.75rem", color: "#94A3B8", fontWeight: 600, marginBottom: "0.75rem" }}>
+                    Showing {filteredCompleted.length} of {completed.length} completed
+                  </p>
+                  {filteredCompleted.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "2.5rem 1rem", background: "#fff", borderRadius: 14 }}>
+                      <p style={{ color: "#94A3B8", fontWeight: 600 }}>No {completedTypeFilter} found</p>
+                    </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
+                      {filteredCompleted.map((o) => <CompletedOrderCard key={o.id} o={o} earningPerDelivery={stats?.earning_per_delivery} />)}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
       </main>

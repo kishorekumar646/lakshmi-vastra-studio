@@ -295,7 +295,7 @@ class ReturnRequestBody(BaseModel):
     reason: str
 
 @router.post("/{order_id}/request-return")
-def request_return(order_id: int, body: ReturnRequestBody, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+def request_return(order_id: int, body: ReturnRequestBody, background: BackgroundTasks, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
     from datetime import datetime, timezone
     order = db.query(Order).filter(Order.id == order_id, Order.customer_id == customer.id).first()
     if not order:
@@ -309,4 +309,10 @@ def request_return(order_id: int, body: ReturnRequestBody, customer: Customer = 
     order.return_requested_at = datetime.now(timezone.utc)
     db.add(OrderStatusHistory(order_id=order.id, status="return_requested", note=f"Return requested: {body.reason.strip()}"))
     db.commit()
+    shop_ids = list({item.shop_owner_id for item in order.items if item.shop_owner_id})
+    def _notify():
+        from notifications.push import notify
+        for sid in shop_ids:
+            notify(db, "shop_owner", sid, "Return Requested", f"Order #{order.id} — {customer.name} requested a return: {body.reason.strip()[:60]}", "/shop/dashboard")
+    background.add_task(_notify)
     return {"order_id": order.id, "return_status": "pending"}

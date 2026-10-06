@@ -30,6 +30,7 @@ const STATUS_LABEL = {
   awaiting_payment: "Awaiting Payment",
   pending: "Order Placed", confirmed: "Confirmed",
   ready_for_delivery: "Ready for Delivery", picked_up: "Picked Up", delivered: "Delivered",
+  return_completed: "Return Completed",
 };
 const STATUS_COLOR = {
   awaiting_payment: "#C2410C",
@@ -120,7 +121,7 @@ export default function ShopDashboard() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [tab]);
 
-  // Auto-refresh orders every 30s when on orders tab
+  // Auto-refresh orders every 15s when on orders tab
   useEffect(() => {
     if (tab !== "orders") return;
     const prev = { count: orders.length };
@@ -134,7 +135,7 @@ export default function ShopDashboard() {
         prev.count = data.length;
         setOrders(data);
       } catch {}
-    }, 30000);
+    }, 15000);
     return () => clearInterval(iv);
   }, [tab]);
 
@@ -789,6 +790,16 @@ export default function ShopDashboard() {
             <span style={{ fontSize: "1rem" }}>🏪</span> Install App
           </button>
         )}
+        <button
+          onClick={() => setNotifOpen(v => !v)}
+          className="portal-nav-btn"
+          title={sidebarCollapsed ? "Notifications" : undefined}
+          style={{ position: "relative" }}
+        >
+          <Bell size={17} />
+          {pendingCount > 0 && <span style={{ position: "absolute", top: 6, left: 22, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #1A0812" }} />}
+          <span className="pnb-label"> Notifications{pendingCount > 0 ? ` (${pendingCount})` : ""}</span>
+        </button>
         <a href="/help?app=shop" className="portal-nav-btn" title={sidebarCollapsed ? "Help Center" : undefined} style={{ textDecoration: "none" }}>
           <HelpCircle size={17} /><span className="pnb-label"> Help Center</span>
         </a>
@@ -1091,7 +1102,8 @@ export default function ShopDashboard() {
         {/* Orders Tab */}
         {tab === "orders" && (() => {
           const filtered = orders.filter((o) => {
-            const matchStatus = orderStatusFilter === "all" || o.status === orderStatusFilter;
+            const matchStatus = orderStatusFilter === "all"
+              || (orderStatusFilter === "return_completed" ? o.return_status === "returned" : o.status === orderStatusFilter);
             const q = orderSearch.trim().toLowerCase();
             const matchSearch = !q || String(o.id).includes(q) || (o.customer?.name || "").toLowerCase().includes(q);
             return matchStatus && matchSearch;
@@ -1160,7 +1172,11 @@ export default function ShopDashboard() {
                         <p style={{ margin: 0, fontSize: "0.8rem", color: "#888" }}>{o.customer?.name} · {o.payment_method === "cod" ? "COD" : "Paid"} · ₹{o.total.toLocaleString("en-IN")}</p>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.3rem" }}>
-                        <span style={S.badge(o.status)}>{STATUS_LABEL[o.status] || o.status}</span>
+                        {o.return_status === "returned" ? (
+                          <span style={{ display: "inline-block", padding: "0.25rem 0.7rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: "#DCFCE7", color: "#15803D" }}>📦 Return Completed</span>
+                        ) : (
+                          <span style={S.badge(o.status)}>{STATUS_LABEL[o.status] || o.status}</span>
+                        )}
                         {o.return_status === "pending" && (
                           <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6" }}>↩ Return Requested</span>
                         )}
@@ -1169,9 +1185,6 @@ export default function ShopDashboard() {
                         )}
                         {o.return_status === "rejected" && (
                           <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#FEE2E2", color: "#991B1B" }}>✗ Return Rejected</span>
-                        )}
-                        {o.return_status === "returned" && (
-                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }}>📦 Item Returned to Shop</span>
                         )}
                       </div>
                     </div>

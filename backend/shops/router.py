@@ -552,7 +552,7 @@ class ReturnDecisionBody(BaseModel):
     note: str = ""
 
 @router.put("/orders/{order_id}/return/accept")
-def accept_return(order_id: int, body: ReturnDecisionBody, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+def accept_return(order_id: int, body: ReturnDecisionBody, background: BackgroundTasks, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     order = (
         db.query(Order)
         .join(Order.items)
@@ -575,10 +575,17 @@ def accept_return(order_id: int, body: ReturnDecisionBody, owner: ShopOwner = De
     order.return_note = body.note.strip() or "Return accepted by shop"
     db.add(OrderStatusHistory(order_id=order.id, status="return_accepted", note=order.return_note))
     db.commit()
+    cid = order.customer_id
+    oid = order.id
+    def _notify_accepted():
+        from notifications.push import notify
+        notify(db, "customer", cid, "Return Accepted", f"Order #{oid} — your return has been accepted. A delivery person will collect the item.", "/account")
+        notify(db, "delivery_person", None, "New Return Pickup Available", f"Order #{oid} return pickup is available — item to collect from customer.", "/delivery/dashboard")
+    background.add_task(_notify_accepted)
     return {"order_id": order.id, "return_status": "accepted"}
 
 @router.put("/orders/{order_id}/return/reject")
-def reject_return(order_id: int, body: ReturnDecisionBody, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+def reject_return(order_id: int, body: ReturnDecisionBody, background: BackgroundTasks, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     order = (
         db.query(Order)
         .join(Order.items)
@@ -600,4 +607,11 @@ def reject_return(order_id: int, body: ReturnDecisionBody, owner: ShopOwner = De
     order.return_note = body.note.strip() or "Return rejected by shop"
     db.add(OrderStatusHistory(order_id=order.id, status="return_rejected", note=order.return_note))
     db.commit()
+    cid = order.customer_id
+    oid = order.id
+    note_text = order.return_note
+    def _notify_rejected():
+        from notifications.push import notify
+        notify(db, "customer", cid, "Return Rejected", f"Order #{oid} — your return request was rejected. {note_text}", "/account")
+    background.add_task(_notify_rejected)
     return {"order_id": order.id, "return_status": "rejected"}
