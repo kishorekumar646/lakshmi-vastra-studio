@@ -65,7 +65,7 @@ class DeliveryPerson(Base):
     bank_ifsc = Column(String(20), nullable=True)
     bank_account_type = Column(String(20), nullable=True)  # Savings / Current
 
-    assigned_orders = relationship("Order", back_populates="delivery_person")
+    assigned_orders = relationship("Order", foreign_keys="Order.delivery_person_id", back_populates="delivery_person")
 
 
 class Product(Base):
