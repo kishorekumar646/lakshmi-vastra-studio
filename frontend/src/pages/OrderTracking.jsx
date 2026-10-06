@@ -210,7 +210,6 @@ export default function OrderTracking() {
               const accent = (isRetAccepted || isRetReturned) ? "#15803D" : isRetPending ? "#5B21B6" : "#991B1B";
               const accentBg = (isRetAccepted || isRetReturned) ? "#F0FDF4" : isRetPending ? "#FAF5FF" : "#FEF2F2";
               const Icon = isRetReturned ? CheckCircle : isRetAccepted ? RotateCcw : isRetPending ? RotateCcw : XCircle;
-              const isRetReturned = order.return_status === "returned";
               const label = isRetPending ? "Return Requested" : isRetAccepted ? "Return Accepted — Pickup Scheduled" : isRetReturned ? "Returned to Shop" : "Return Rejected";
               const desc = isRetPending
                 ? "Your return request is under review by the shop."
