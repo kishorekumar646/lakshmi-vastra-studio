@@ -5,7 +5,7 @@ import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, shopConfirmOrder, getPublicProduct,
-  uploadShopAvatar, updateShopMe, changeShopPassword, shopAcceptReturn, shopRejectReturn,
+  uploadShopAvatar, getShopMe, updateShopMe, changeShopPassword, shopAcceptReturn, shopRejectReturn,
 } from "../api";
 import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, CheckCircle, Bell, Eye, ChevronRight } from "lucide-react";
 import QrScanner from "../components/QrScanner";
@@ -39,7 +39,9 @@ const STATUS_COLOR = {
 
 export default function ShopDashboard() {
   const [tab, setTab] = useState("products");
-  const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const mainRef = useRef(null);
+  const scrollToTop = () => { if (mainRef.current) mainRef.current.scrollTop = 0; };
+  const switchTab = (t) => { setTab(t); scrollToTop(); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("shop_sidebar_collapsed") === "true");
   const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("shop_sidebar_collapsed", !v); return !v; });
@@ -94,6 +96,21 @@ export default function ShopDashboard() {
   useEffect(() => {
     if (tab === "orders") loadOrders();
     if (tab === "products") loadProducts();
+    if (tab === "account") {
+      getShopMe().then(({ data }) => {
+        const updated = { ...owner, ...data };
+        setOwner(updated);
+        localStorage.setItem("shop_owner", JSON.stringify(updated));
+        setAccountForm({
+          name: data.name || "", shop_name: data.shop_name || "", phone: data.phone || "",
+          address: data.address || "", city: data.city || "", state: data.state || "",
+          pincode: data.pincode || "", gst_number: data.gst_number || "",
+          bank_account_holder: data.bank_account_holder || "", bank_name: data.bank_name || "",
+          bank_account_number: data.bank_account_number || "", bank_ifsc: data.bank_ifsc || "",
+          bank_account_type: data.bank_account_type || "",
+        });
+      }).catch(() => {});
+    }
   }, [tab]);
 
   // Re-fetch when user returns to this browser tab
@@ -164,12 +181,12 @@ export default function ShopDashboard() {
     setAdditionalFiles([]); setAdditionalPreviews([]);
   };
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); clearImageState(); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); clearImageState(); setSavedProductName(null); setShowForm(true); scrollToTop(); };
   const closeForm = () => { setShowForm(false); setEditing(null); setForm(EMPTY); clearImageState(); setSavedProductName(null); };
   const openEdit = (p) => {
     setEditing(p);
     setForm({ name: p.name, description: p.description || "", price: p.price, category_id: p.category_id, is_featured: p.is_featured, is_handloom: p.is_handloom, has_multiple_colours: p.has_multiple_colours, custom_orders: p.custom_orders });
-    clearImageState(); setSavedProductName(null); setShowForm(true); window.scrollTo({ top: 0, behavior: "instant" });
+    clearImageState(); setSavedProductName(null); setShowForm(true); scrollToTop();
   };
 
   const handlePrimarySelect = (e) => {
@@ -230,7 +247,7 @@ export default function ShopDashboard() {
         setSavedProductName(addedName);
         setForm(EMPTY);
         clearImageState();
-        window.scrollTo({ top: 0, behavior: "instant" });
+        scrollToTop();
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed");
@@ -792,7 +809,7 @@ export default function ShopDashboard() {
       </div>
 
       {/* Main content */}
-      <main className="portal-main">
+      <main className="portal-main" ref={mainRef}>
 
         {/* Products Tab — list */}
         {tab === "products" && !showForm && (() => {
@@ -1519,7 +1536,7 @@ export default function ShopDashboard() {
             <div style={{ position: "relative" }}>
               {icon}
               {badge ? (
-                <span style={{ position: "absolute", top: -5, right: -8, background: "var(--primary)", color: "#fff", borderRadius: 20, fontSize: "0.55rem", fontWeight: 900, padding: "0.1rem 0.35rem", minWidth: 14, textAlign: "center" }}>{badge}</span>
+                <span style={{ position: "absolute", top: -6, right: -10, background: "var(--primary)", color: "#fff", borderRadius: 20, fontSize: "0.62rem", fontWeight: 900, padding: "0.15rem 0.4rem", minWidth: 16, textAlign: "center", lineHeight: 1.2, zIndex: 10 }}>{badge}</span>
               ) : null}
             </div>
             <span className="pbt-label">{label}</span>

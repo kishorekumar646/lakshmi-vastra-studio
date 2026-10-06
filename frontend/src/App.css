@@ -2483,10 +2483,8 @@ img {
   /* fixed height prevents any layout shift when active tab changes */
   height: calc(58px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
-  /* stabilise on iOS Safari — prevents fixed-element jitter on content height changes */
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  will-change: transform;
+  /* overflow visible so badges that sit above tabs aren't clipped */
+  overflow: visible;
 }
 .portal-bottom-tab {
   flex: 1;
@@ -2504,6 +2502,7 @@ img {
   transition: color 0.18s;
   position: relative;
   box-sizing: border-box;
+  overflow: visible;
 }
 .portal-bottom-tab span.pbt-label {
   font-size: 0.68rem;   /* increased from 0.63 — more readable */
@@ -2526,9 +2525,7 @@ img {
 @media (max-width: 768px) {
   .portal-page {
     flex-direction: column;
-    height: 100%;
-    min-height: 100vh;
-    overflow: visible;
+    /* height: 100vh and overflow: hidden inherited from base — no page-level scrolling */
   }
   .portal-mobile-header { display: flex; }
   .portal-sidebar {
@@ -2542,11 +2539,18 @@ img {
   .portal-sidebar.open { transform: translateX(0); }
   .portal-overlay.open { display: block; }
   .portal-main {
-    padding: 1rem 0.85rem calc(58px + env(safe-area-inset-bottom, 0px) + 0.75rem);
-    overflow-y: visible;
+    flex: 1;
+    min-height: 0; /* allow flex item to shrink so internal scroll works */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1rem 0.85rem 1.5rem;
     height: auto;
   }
-  .portal-bottom-nav { display: flex; }
+  /* Bottom nav sits in the flex column as a stable footer — no fixed positioning on mobile */
+  .portal-bottom-nav {
+    display: flex;
+    position: static;
+  }
 }
 
 /* ── Payment transactions responsive ─────── */

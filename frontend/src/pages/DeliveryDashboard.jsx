@@ -301,7 +301,8 @@ function CompletedOrderCard({ o, earningPerDelivery }) {
 /* ── Main ────────────────────────────────────────────────── */
 export default function DeliveryDashboard() {
   const [tab, setTab] = useState("dashboard");
-  const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const mainRef = useRef(null);
+  const switchTab = (t) => { setTab(t); if (mainRef.current) mainRef.current.scrollTop = 0; };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("delivery_sidebar_collapsed") === "true");
   const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("delivery_sidebar_collapsed", !v); return !v; });
@@ -720,7 +721,7 @@ export default function DeliveryDashboard() {
       </div>
 
       {/* Main content */}
-      <main className="portal-main" style={{ background: "#F1F5F9" }}>
+      <main className="portal-main" ref={mainRef} style={{ background: "#F1F5F9" }}>
 
         {/* Active tab quick pills — now inside main */}
         {tab === "active" && person.profile_complete && orders.length > 0 && (
@@ -1515,7 +1516,7 @@ export default function DeliveryDashboard() {
             <div style={{ position: "relative" }}>
               {icon}
               {(badge > 0 || warn) && (
-                <span style={{ position: "absolute", top: -5, right: -8, background: warn ? "#D97706" : "#1a4080", color: "#fff", borderRadius: 20, fontSize: "0.55rem", fontWeight: 900, padding: "0.1rem 0.35rem", minWidth: 14, textAlign: "center" }}>
+                <span style={{ position: "absolute", top: -6, right: -10, background: warn ? "#D97706" : "#1a4080", color: "#fff", borderRadius: 20, fontSize: "0.62rem", fontWeight: 900, padding: "0.15rem 0.4rem", minWidth: 16, textAlign: "center", lineHeight: 1.2, zIndex: 10 }}>
                   {warn ? "!" : badge}
                 </span>
               )}
