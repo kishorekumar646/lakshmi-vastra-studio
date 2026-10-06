@@ -251,6 +251,10 @@ def _order_dict(order: Order) -> dict:
         "payment_method": order.payment_method,
         "delivery_address": order.delivery_address,
         "created_at": order.created_at,
+        "return_status": order.return_status,
+        "return_reason": order.return_reason,
+        "return_note": order.return_note,
+        "return_requested_at": order.return_requested_at,
         "customer": {
             "id": order.customer.id if order.customer else None,
             "name": order.customer.name if order.customer else "",

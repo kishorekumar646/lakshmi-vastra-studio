@@ -386,6 +386,10 @@ def _order_dict(order: Order) -> dict:
         "payment_method": order.payment_method,
         "delivery_address": order.delivery_address,
         "created_at": order.created_at,
+        "return_status": order.return_status,
+        "return_reason": order.return_reason,
+        "return_note": order.return_note,
+        "return_requested_at": order.return_requested_at,
         "customer": {
             "name": order.customer.name if order.customer else "",
             "email": order.customer.email if order.customer else "",
@@ -536,3 +540,58 @@ def mark_order_ready(order_id: int, background: BackgroundTasks, owner: ShopOwne
         "New Order Ready for Pickup", f"Order #{order_id} is packed and ready. Open the app to accept.", "/delivery/dashboard")
 
     return {"success": True, "order_id": order.id, "status": order.status}
+
+
+class ReturnDecisionBody(BaseModel):
+    note: str = ""
+
+@router.put("/orders/{order_id}/return/accept")
+def accept_return(order_id: int, body: ReturnDecisionBody, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    order = (
+        db.query(Order)
+        .join(Order.items)
+        .filter(
+            Order.id == order_id,
+            Order.status == "delivered",
+            Order.return_status == "pending",
+            (OrderItem.shop_owner_id == owner.id) |
+            (
+                (OrderItem.shop_owner_id == None) &
+                (OrderItem.product_id == Product.id) &
+                (Product.shop_owner_id == owner.id)
+            ),
+        )
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Return request not found")
+    order.return_status = "accepted"
+    order.return_note = body.note.strip() or "Return accepted by shop"
+    db.add(OrderStatusHistory(order_id=order.id, status="return_accepted", note=order.return_note))
+    db.commit()
+    return {"order_id": order.id, "return_status": "accepted"}
+
+@router.put("/orders/{order_id}/return/reject")
+def reject_return(order_id: int, body: ReturnDecisionBody, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    order = (
+        db.query(Order)
+        .join(Order.items)
+        .filter(
+            Order.id == order_id,
+            Order.return_status == "pending",
+            (OrderItem.shop_owner_id == owner.id) |
+            (
+                (OrderItem.shop_owner_id == None) &
+                (OrderItem.product_id == Product.id) &
+                (Product.shop_owner_id == owner.id)
+            ),
+        )
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Return request not found")
+    order.return_status = "rejected"
+    order.return_note = body.note.strip() or "Return rejected by shop"
+    db.add(OrderStatusHistory(order_id=order.id, status="return_rejected", note=order.return_note))
+    db.commit()
+    return {"order_id": order.id, "return_status": "rejected"}

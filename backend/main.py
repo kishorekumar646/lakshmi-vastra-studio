@@ -77,6 +77,10 @@ def _run_migrations():
         ("delivery_persons", "bank_ifsc", "TEXT"),
         ("delivery_persons", "bank_account_type", "TEXT"),
         ("order_items", "shop_owner_id", "INTEGER REFERENCES shop_owners(id)"),
+        ("orders", "return_status", "TEXT"),
+        ("orders", "return_reason", "TEXT"),
+        ("orders", "return_note", "TEXT"),
+        ("orders", "return_requested_at", "TIMESTAMP"),
     ]
     with engine.connect() as conn:
         for table, col, col_def in new_cols:

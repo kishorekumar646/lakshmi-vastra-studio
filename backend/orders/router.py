@@ -52,6 +52,10 @@ def _order_dict(order: Order) -> dict:
         "razorpay_order_id": order.razorpay_order_id,
         "delivery_address": order.delivery_address,
         "created_at": order.created_at,
+        "return_status": order.return_status,
+        "return_reason": order.return_reason,
+        "return_note": order.return_note,
+        "return_requested_at": order.return_requested_at,
         "items": [
             {
                 "product_id": item.product_id,
@@ -285,3 +289,24 @@ def cancel_order(order_id: int, customer: Customer = Depends(get_current_custome
     db.add(OrderStatusHistory(order_id=order.id, status="cancelled", note="Cancelled by customer"))
     db.commit()
     return {"order_id": order.id, "status": "cancelled"}
+
+
+class ReturnRequestBody(BaseModel):
+    reason: str
+
+@router.post("/{order_id}/request-return")
+def request_return(order_id: int, body: ReturnRequestBody, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+    from datetime import datetime, timezone
+    order = db.query(Order).filter(Order.id == order_id, Order.customer_id == customer.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != "delivered":
+        raise HTTPException(status_code=400, detail="Only delivered orders can be returned")
+    if order.return_status:
+        raise HTTPException(status_code=400, detail="Return already requested for this order")
+    order.return_status = "pending"
+    order.return_reason = body.reason.strip()
+    order.return_requested_at = datetime.now(timezone.utc)
+    db.add(OrderStatusHistory(order_id=order.id, status="return_requested", note=f"Return requested: {body.reason.strip()}"))
+    db.commit()
+    return {"order_id": order.id, "return_status": "pending"}

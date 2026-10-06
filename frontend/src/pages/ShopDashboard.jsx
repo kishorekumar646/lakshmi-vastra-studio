@@ -5,7 +5,7 @@ import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, shopConfirmOrder, getPublicProduct,
-  uploadShopAvatar, updateShopMe, changeShopPassword,
+  uploadShopAvatar, updateShopMe, changeShopPassword, shopAcceptReturn, shopRejectReturn,
 } from "../api";
 import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, CheckCircle, Bell, Eye, ChevronRight } from "lucide-react";
 import QrScanner from "../components/QrScanner";
@@ -71,6 +71,9 @@ export default function ShopDashboard() {
   const [productModalImg, setProductModalImg] = useState(0);
   const [productModalUserInteracted, setProductModalUserInteracted] = useState(false);
   const [confirmingOrder, setConfirmingOrder] = useState({});
+  const [returningOrder, setReturningOrder] = useState({});
+  const [returnNoteModal, setReturnNoteModal] = useState(null);
+  const [returnNote, setReturnNote] = useState("");
 
   useEffect(() => {
     getCategories().then((r) => setCategories(r.data)).catch(() => {});
@@ -284,6 +287,24 @@ export default function ShopDashboard() {
     }
   };
 
+  const handleReturnDecision = async () => {
+    if (!returnNoteModal) return;
+    const { orderId, action } = returnNoteModal;
+    setReturningOrder((p) => ({ ...p, [orderId]: true }));
+    try {
+      if (action === "accept") await shopAcceptReturn(orderId, returnNote);
+      else await shopRejectReturn(orderId, returnNote);
+      toast.success(action === "accept" ? "Return accepted" : "Return rejected");
+      setReturnNoteModal(null);
+      setReturnNote("");
+      loadOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed");
+    } finally {
+      setReturningOrder((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
   const openProductModal = async (item) => {
     setProductModalImg(0);
     const local = products.find((p) => String(p.id) === String(item.product_id)) || null;
@@ -369,7 +390,7 @@ export default function ShopDashboard() {
     }
   };
 
-  const pendingCount = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
+  const pendingCount = orders.filter((o) => o.status === "pending" || o.status === "confirmed" || o.return_status === "pending").length;
   const SHOP_NAV = [
     { key: "products", label: "Products", icon: <Package size={17} />, badge: products.length || null },
     { key: "orders",   label: "Orders",   icon: <ShoppingBag size={17} />, badge: pendingCount || null },
@@ -1099,7 +1120,18 @@ export default function ShopDashboard() {
                         <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem" }}>Order #{o.id}</p>
                         <p style={{ margin: 0, fontSize: "0.8rem", color: "#888" }}>{o.customer?.name} · {o.payment_method === "cod" ? "COD" : "Paid"} · ₹{o.total.toLocaleString("en-IN")}</p>
                       </div>
-                      <span style={S.badge(o.status)}>{STATUS_LABEL[o.status] || o.status}</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.3rem" }}>
+                        <span style={S.badge(o.status)}>{STATUS_LABEL[o.status] || o.status}</span>
+                        {o.return_status === "pending" && (
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6" }}>↩ Return Requested</span>
+                        )}
+                        {o.return_status === "accepted" && (
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }}>✓ Return Accepted</span>
+                        )}
+                        {o.return_status === "rejected" && (
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#FEE2E2", color: "#991B1B" }}>✗ Return Rejected</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Product image cards */}
@@ -1170,6 +1202,33 @@ export default function ShopDashboard() {
                       <button onClick={() => showQr(o.id, o.status)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "#0f2460", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
                         <QrCode size={14} /> Show QR for Pickup
                       </button>
+                    )}
+
+                    {/* Pending return → accept or reject */}
+                    {o.return_status === "pending" && (
+                      <div style={{ marginTop: "0.75rem", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 10, padding: "0.65rem 0.85rem" }}>
+                        <p style={{ margin: "0 0 0.3rem", fontSize: "0.78rem", color: "#5B21B6", fontWeight: 700 }}>↩ Customer requested a return</p>
+                        <p style={{ margin: "0 0 0.55rem", fontSize: "0.76rem", color: "#6D28D9" }}>Reason: {o.return_reason || "—"}</p>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            onClick={() => { setReturnNoteModal({ orderId: o.id, action: "accept" }); setReturnNote(""); }}
+                            disabled={returningOrder[o.id]}
+                            style={{ flex: 1, background: returningOrder[o.id] ? "#86EFAC" : "#16A34A", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 0.7rem", cursor: returningOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 700 }}
+                          >Accept</button>
+                          <button
+                            onClick={() => { setReturnNoteModal({ orderId: o.id, action: "reject" }); setReturnNote(""); }}
+                            disabled={returningOrder[o.id]}
+                            style={{ flex: 1, background: returningOrder[o.id] ? "#FCA5A5" : "#DC2626", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 0.7rem", cursor: returningOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 700 }}
+                          >Reject</button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Accepted/rejected return note */}
+                    {(o.return_status === "accepted" || o.return_status === "rejected") && o.return_note && (
+                      <p style={{ margin: "0.55rem 0 0", fontSize: "0.76rem", color: "#64748B" }}>
+                        Note: {o.return_note}
+                      </p>
                     )}
                   </div>
                 ))}
@@ -1397,6 +1456,42 @@ export default function ShopDashboard() {
           </button>
         ))}
       </nav>
+
+      {/* Return Decision Modal */}
+      {returnNoteModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: "1.5rem", maxWidth: 360, width: "100%" }}>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", color: returnNoteModal.action === "accept" ? "#065F46" : "#991B1B" }}>
+              {returnNoteModal.action === "accept" ? "Accept Return" : "Reject Return"}
+            </h3>
+            <p style={{ margin: "0 0 0.85rem", fontSize: "0.82rem", color: "#64748B" }}>
+              {returnNoteModal.action === "accept"
+                ? "Add a note for the customer (optional) — e.g. refund timeline or pickup instructions."
+                : "Let the customer know why their return was rejected (optional)."}
+            </p>
+            <textarea
+              value={returnNote}
+              onChange={(e) => setReturnNote(e.target.value)}
+              placeholder="Note (optional)…"
+              rows={3}
+              style={{ width: "100%", boxSizing: "border-box", borderRadius: 8, border: "1px solid #E2E8F0", padding: "0.6rem 0.75rem", fontSize: "0.84rem", resize: "vertical" }}
+            />
+            <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
+              <button
+                onClick={() => { setReturnNoteModal(null); setReturnNote(""); }}
+                style={{ flex: 1, background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 8, padding: "0.55rem", cursor: "pointer", fontSize: "0.84rem", fontWeight: 600 }}
+              >Cancel</button>
+              <button
+                onClick={handleReturnDecision}
+                disabled={returningOrder[returnNoteModal.orderId]}
+                style={{ flex: 1, background: returnNoteModal.action === "accept" ? "#16A34A" : "#DC2626", color: "#fff", border: "none", borderRadius: 8, padding: "0.55rem", cursor: returningOrder[returnNoteModal.orderId] ? "not-allowed" : "pointer", fontSize: "0.84rem", fontWeight: 700 }}
+              >
+                {returningOrder[returnNoteModal.orderId] ? "Processing…" : returnNoteModal.action === "accept" ? "Confirm Accept" : "Confirm Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Modal */}
       {qrModal && (() => {

@@ -10,10 +10,10 @@ function useIsMobile(breakpoint = 640) {
   return isMobile;
 }
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle, Camera, CreditCard } from "lucide-react";
+import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle, Camera, CreditCard, RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { getOrders, cancelOrder, updateProfile, uploadCustomerAvatar, retryPayment, verifyPayment } from "../api";
+import { getOrders, cancelOrder, requestReturn, updateProfile, uploadCustomerAvatar, retryPayment, verifyPayment } from "../api";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { stripPhone, formatPhone, phoneError } from "../utils/phone";
 
@@ -233,6 +233,9 @@ const STATUS_STYLE = {
   picked_up:          { bg: "#EDE9FE", color: "#5B21B6", label: "Out for Delivery" },
   delivered:          { bg: "#D1FAE5", color: "#065F46", label: "Delivered" },
   cancelled:          { bg: "#FEE2E2", color: "#991B1B", label: "Cancelled" },
+  return_requested:   { bg: "#EDE9FE", color: "#5B21B6", label: "Return Requested" },
+  return_accepted:    { bg: "#D1FAE5", color: "#065F46", label: "Return Accepted" },
+  return_rejected:    { bg: "#FEE2E2", color: "#991B1B", label: "Return Rejected" },
 };
 
 const CANCELLABLE = ["pending", "confirmed"];
@@ -259,6 +262,9 @@ function OrderHistory() {
   const [cancelling, setCancelling] = useState(null);
   const [retrying, setRetrying] = useState(null);
   const [expanded, setExpanded] = useState({});
+  const [returnModal, setReturnModal] = useState(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returning, setReturning] = useState(null);
 
   const load = () => {
     getOrders()
@@ -317,6 +323,22 @@ function OrderHistory() {
     }
   };
 
+  const handleRequestReturn = async () => {
+    if (!returnReason.trim()) { toast.error("Please describe the reason for return"); return; }
+    setReturning(returnModal);
+    try {
+      await requestReturn(returnModal, returnReason.trim());
+      toast.success("Return request submitted! The shop will review it.");
+      setReturnModal(null);
+      setReturnReason("");
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to submit return request");
+    } finally {
+      setReturning(null);
+    }
+  };
+
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {[1, 2].map((i) => (
@@ -344,6 +366,8 @@ function OrderHistory() {
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {orders.map((order, idx) => {
         const st = STATUS_STYLE[order.status] || { bg: "#F1F5F9", color: "#64748B", label: order.status };
+        const returnSt = order.return_status ? (STATUS_STYLE[`return_${order.return_status}`] || null) : null;
+        const displaySt = returnSt || st;
         const canCancel = CANCELLABLE.includes(order.status);
         const canTrack  = !["cancelled", "awaiting_payment"].includes(order.status);
         const isAwaiting = order.status === "awaiting_payment";
@@ -382,8 +406,8 @@ function OrderHistory() {
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
-                <span style={{ display: "inline-block", padding: "0.22rem 0.8rem", borderRadius: 20, background: st.bg, color: st.color, fontSize: "0.72rem", fontWeight: 700 }}>
-                  {st.label}
+                <span style={{ display: "inline-block", padding: "0.22rem 0.8rem", borderRadius: 20, background: displaySt.bg, color: displaySt.color, fontSize: "0.72rem", fontWeight: 700 }}>
+                  {displaySt.label}
                 </span>
                 <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "1.05rem", margin: "0.35rem 0 0" }}>
                   ₹{order.total.toLocaleString("en-IN")}
@@ -404,6 +428,17 @@ function OrderHistory() {
                 </div>
               ))}
             </div>
+
+            {/* Return status note */}
+            {order.return_status && (
+              <div style={{ marginTop: "0.65rem", background: order.return_status === "accepted" ? "#F0FDF4" : order.return_status === "rejected" ? "#FEF2F2" : "#FAF5FF", border: `1px solid ${order.return_status === "accepted" ? "#86EFAC" : order.return_status === "rejected" ? "#FCA5A5" : "#C4B5FD"}`, borderRadius: 8, padding: "0.65rem 0.85rem", fontSize: "0.8rem" }}>
+                <p style={{ margin: "0 0 0.2rem", fontWeight: 700, color: order.return_status === "accepted" ? "#15803D" : order.return_status === "rejected" ? "#991B1B" : "#5B21B6" }}>
+                  {order.return_status === "pending" ? "⏳ Return request under review" : order.return_status === "accepted" ? "✅ Return accepted" : "❌ Return rejected"}
+                </p>
+                {order.return_reason && <p style={{ margin: "0.15rem 0 0", color: "#64748B" }}>Reason: {order.return_reason}</p>}
+                {order.return_note && <p style={{ margin: "0.15rem 0 0", color: "#475569", fontWeight: 600 }}>Shop note: {order.return_note}</p>}
+              </div>
+            )}
 
             {/* Status timeline (collapsible) */}
             {order.status_history?.length > 0 && (
@@ -466,10 +501,53 @@ function OrderHistory() {
                   <XCircle size={14} /> {cancelling === order.id ? "Cancelling…" : "Cancel Order"}
                 </button>
               )}
+              {order.status === "delivered" && !order.return_status && (() => {
+                const daysSince = (Date.now() - new Date(order.created_at)) / 86400000;
+                return daysSince <= 7;
+              })() && (
+                <button
+                  onClick={() => { setReturnModal(order.id); setReturnReason(""); }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1.1rem", background: "#fff", color: "#7c3aed", border: "1px solid #c4b5fd", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700 }}
+                >
+                  <RotateCcw size={14} /> Request Return
+                </button>
+              )}
             </div>
           </div>
         );
       })}
+      {returnModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 400, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
+            <h3 style={{ margin: "0 0 0.4rem", fontSize: "1.05rem", fontWeight: 800, color: "#0F172A" }}>Request Return</h3>
+            <p style={{ margin: "0 0 1rem", fontSize: "0.83rem", color: "#64748B", lineHeight: 1.5 }}>
+              Please describe why you want to return this order. The shop owner will review your request within 1–2 business days.
+            </p>
+            <textarea
+              value={returnReason}
+              onChange={(e) => setReturnReason(e.target.value)}
+              placeholder="e.g. Wrong colour received, damaged product, size doesn't fit…"
+              rows={4}
+              style={{ width: "100%", padding: "0.65rem 0.85rem", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: "0.85rem", resize: "vertical", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
+            />
+            <p style={{ margin: "0.4rem 0 1.25rem", fontSize: "0.72rem", color: "#94A3B8" }}>
+              Returns accepted within 7 days of delivery for unused, undamaged products.
+            </p>
+            <div style={{ display: "flex", gap: "0.65rem" }}>
+              <button onClick={() => setReturnModal(null)} style={{ flex: 1, padding: "0.7rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>
+                Cancel
+              </button>
+              <button
+                onClick={handleRequestReturn}
+                disabled={!!returning}
+                style={{ flex: 2, padding: "0.7rem", border: "none", borderRadius: 10, background: returning ? "#C4B5FD" : "#7c3aed", color: "#fff", cursor: returning ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.88rem" }}
+              >
+                {returning ? "Submitting…" : "Submit Return Request"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

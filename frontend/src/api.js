@@ -126,6 +126,9 @@ export const retryPayment  = (orderId) => api.post(`/api/orders/${orderId}/retry
 export const trackOrder = (orderId) => api.get(`/api/orders/${orderId}/track`);
 export const adminTrackOrder = (orderId) => api.get(`/api/admin/orders/${orderId}/track`);
 export const cancelOrder = (orderId) => api.put(`/api/orders/${orderId}/cancel`);
+export const requestReturn = (orderId, reason) => api.post(`/api/orders/${orderId}/request-return`, { reason });
+export const shopAcceptReturn = (orderId, note) => api.put(`/api/shops/orders/${orderId}/return/accept`, { note });
+export const shopRejectReturn = (orderId, note) => api.put(`/api/shops/orders/${orderId}/return/reject`, { note });
 
 // ── Shop Owner ────────────────────────────────────────────────────────────────
 export const shopRegister = (data) => api.post("/api/shops/register", data);

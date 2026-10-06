@@ -196,6 +196,10 @@ class Order(Base):
     qr_token = Column(String(100), unique=True, index=True)
     delivery_otp = Column(String(6), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    return_status = Column(String(20), nullable=True)   # pending | accepted | rejected
+    return_reason = Column(Text, nullable=True)
+    return_note = Column(Text, nullable=True)
+    return_requested_at = Column(DateTime(timezone=True), nullable=True)
 
     customer = relationship("Customer", back_populates="orders")
     delivery_person = relationship("DeliveryPerson", back_populates="assigned_orders")
