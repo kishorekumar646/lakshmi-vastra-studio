@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, ShoppingCart, Check } from "lucide-react";
+import { Heart, ShoppingCart, Check, Eye } from "lucide-react";
 import toast from "react-hot-toast";
 import { WHATSAPP_NUMBER } from "../api";
 import { useAuth } from "../context/AuthContext";
@@ -16,6 +16,7 @@ export default function ProductCard({ product }) {
   const { addItem } = useCart();
   const [added, setAdded] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [pop, setPop] = useState(false);
 
   const wishlisted = isWishlisted(product.id);
   const isNew = product.created_at && (Date.now() - new Date(product.created_at).getTime()) < 14 * DAY_MS;
@@ -33,6 +34,8 @@ export default function ProductCard({ product }) {
     try {
       await addItem(product, 1);
       setAdded(true);
+      setPop(true);
+      setTimeout(() => setPop(false), 400);
       toast.success(`"${product.name}" added to cart`);
       setTimeout(() => setAdded(false), 2500);
     } catch {
@@ -90,20 +93,19 @@ export default function ProductCard({ product }) {
 
         <div className="product-card-actions">
           <Link to={`/product/${product.id}`} className="product-card-detail-btn">
-            View Details
+            <span style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              <Eye size={14} />
+              View Details
+            </span>
           </Link>
           <button
             onClick={handleAddToCart}
             disabled={adding}
-            className="product-card-cart-btn"
-            style={{
-              background: added ? "#1a7a4a" : "var(--primary)",
-              transition: "background 0.25s",
-            }}
+            className={`product-card-cart-btn${added ? " added" : ""}${pop ? " pop" : ""}`}
             aria-label="Add to cart"
           >
             {added
-              ? <><Check size={14} /> Added</>
+              ? <><Check size={14} /> Added to Cart</>
               : <><ShoppingCart size={14} /> Add to Cart</>
             }
           </button>
