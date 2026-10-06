@@ -6,7 +6,7 @@ import cloudinary
 import cloudinary.uploader
 import os
 from database import get_db
-from models import ShopOwner, Product, ProductImage, Category, Order, OrderItem, OrderStatusHistory
+from models import ShopOwner, Product, ProductImage, Category, Order, OrderItem, OrderStatusHistory, DeliveryPerson
 from shops.auth import hash_password, verify_password, create_shop_owner_token, get_current_shop_owner
 from orders.qr import generate_qr_base64
 
@@ -390,6 +390,11 @@ def _order_dict(order: Order) -> dict:
         "return_reason": order.return_reason,
         "return_note": order.return_note,
         "return_requested_at": order.return_requested_at,
+        "return_delivery_status": order.return_delivery_status,
+        "return_delivery_person": {
+            "name": order.return_delivery_person.name if order.return_delivery_person else None,
+            "phone": order.return_delivery_person.phone if order.return_delivery_person else None,
+        } if order.return_delivery_person_id else None,
         "customer": {
             "name": order.customer.name if order.customer else "",
             "email": order.customer.email if order.customer else "",
@@ -431,6 +436,7 @@ def list_orders(owner: ShopOwner = Depends(get_current_shop_owner), db: Session 
             joinedload(Order.items).joinedload(OrderItem.product),
             joinedload(Order.customer),
             joinedload(Order.status_history),
+            joinedload(Order.return_delivery_person),
         )
         .distinct()
         .order_by(Order.created_at.desc())

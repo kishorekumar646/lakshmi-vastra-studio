@@ -196,13 +196,16 @@ class Order(Base):
     qr_token = Column(String(100), unique=True, index=True)
     delivery_otp = Column(String(6), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    return_status = Column(String(20), nullable=True)   # pending | accepted | rejected
+    return_status = Column(String(20), nullable=True)   # pending | accepted | rejected | returned
     return_reason = Column(Text, nullable=True)
     return_note = Column(Text, nullable=True)
     return_requested_at = Column(DateTime(timezone=True), nullable=True)
+    return_delivery_person_id = Column(Integer, ForeignKey("delivery_persons.id"), nullable=True)
+    return_delivery_status = Column(String(30), nullable=True)  # pickup_accepted | picked_up_from_customer | returned_to_shop
 
     customer = relationship("Customer", back_populates="orders")
-    delivery_person = relationship("DeliveryPerson", back_populates="assigned_orders")
+    delivery_person = relationship("DeliveryPerson", foreign_keys=[delivery_person_id], back_populates="assigned_orders")
+    return_delivery_person = relationship("DeliveryPerson", foreign_keys=[return_delivery_person_id])
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     status_history = relationship(
         "OrderStatusHistory",

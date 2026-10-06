@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import {
   ShoppingBag, MapPin, CreditCard, Check,
   ChevronLeft, ChevronRight, Minus, Plus, Trash2,
-  CheckCircle, Package,
+  CheckCircle, Package, Banknote,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
@@ -61,9 +61,10 @@ export default function Checkout() {
   const navigate = useNavigate();
   const { customer, setCustomer, loading: authLoading } = useAuth();
   const { items, updateItem, removeItem, clearCartLocal, cartTotal } = useCart();
-  const [step, setStep]       = useState(1);
-  const [placing, setPlacing] = useState(false);
-  const [paid, setPaid]       = useState(false);
+  const [step, setStep]           = useState(1);
+  const [placing, setPlacing]     = useState(false);
+  const [paid, setPaid]           = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("razorpay"); // "razorpay" | "cod"
   const [address, setAddress] = useState({
     name: "", phone: "", address: "", city: "", state: "", pincode: "",
   });
@@ -126,44 +127,54 @@ export default function Checkout() {
     return Object.keys(errors).length === 0;
   };
 
+  const _saveAddress = async () => {
+    try {
+      const { data: updated } = await updateProfile({
+        phone:           customer.phone || "",
+        secondary_phone: customer.secondary_phone || "",
+        address:         address.address,
+        city:            address.city,
+        state:           address.state,
+        pincode:         address.pincode,
+      });
+      setCustomer(updated);
+    } catch { /* non-critical */ }
+  };
+
   const handlePay = async () => {
     if (placing) return;
     setPlacing(true);
     const fullAddress = [address.name, address.phone, address.address, address.city, address.state, address.pincode]
       .filter(Boolean).join(", ");
     try {
-      const { data: order } = await createOrder(fullAddress);
-      const payment = await openRazorpay({
-        key:         order.key_id || RAZORPAY_KEY_ID,
-        amount:      order.amount,
-        currency:    order.currency || "INR",
-        name:        "Lakshmi Vastra Studio",
-        description: `Order #${order.order_id}`,
-        order_id:    order.razorpay_order_id,
-        prefill:     { name: address.name, contact: address.phone, email: customer.email },
-        theme:       { color: "#7B1D45" },
-        modal:       { escape: false },
-      });
-      await verifyPayment({
-        order_id:             order.order_id,
-        razorpay_order_id:    payment.razorpay_order_id,
-        razorpay_payment_id:  payment.razorpay_payment_id,
-        razorpay_signature:   payment.razorpay_signature,
-      });
-      // Mark paid BEFORE clearing cart so the empty-cart guard doesn't redirect
-      setPaid(true);
-      clearCartLocal();
-      try {
-        const { data: updated } = await updateProfile({
-          phone:           customer.phone || "",
-          secondary_phone: customer.secondary_phone || "",
-          address:         address.address,
-          city:            address.city,
-          state:           address.state,
-          pincode:         address.pincode,
+      if (paymentMethod === "cod") {
+        await createOrder(fullAddress, "cod");
+        setPaid(true);
+        clearCartLocal();
+        await _saveAddress();
+      } else {
+        const { data: order } = await createOrder(fullAddress, "razorpay");
+        const payment = await openRazorpay({
+          key:         order.key_id || RAZORPAY_KEY_ID,
+          amount:      order.amount,
+          currency:    order.currency || "INR",
+          name:        "Lakshmi Vastra Studio",
+          description: `Order #${order.order_id}`,
+          order_id:    order.razorpay_order_id,
+          prefill:     { name: address.name, contact: address.phone, email: customer.email },
+          theme:       { color: "#7B1D45" },
+          modal:       { escape: false },
         });
-        setCustomer(updated);
-      } catch { /* non-critical */ }
+        await verifyPayment({
+          order_id:             order.order_id,
+          razorpay_order_id:    payment.razorpay_order_id,
+          razorpay_payment_id:  payment.razorpay_payment_id,
+          razorpay_signature:   payment.razorpay_signature,
+        });
+        setPaid(true);
+        clearCartLocal();
+        await _saveAddress();
+      }
     } catch (err) {
       if (err.message === "dismissed") {
         toast("Payment cancelled.", { icon: "ℹ️" });
@@ -189,6 +200,11 @@ export default function Checkout() {
               <p className="checkout-success-sub">
                 Thank you for shopping with us. Your order has been placed successfully and is being processed.
               </p>
+              {paymentMethod === "cod" && (
+                <div style={{ background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "0.75rem 1rem", margin: "0.5rem 0 0", fontSize: "0.85rem", color: "#92400E", fontWeight: 600 }}>
+                  💵 Please keep ₹{cartTotal.toLocaleString("en-IN")} ready to pay the delivery partner on arrival.
+                </div>
+              )}
               <div className="checkout-success-actions">
                 <button
                   className="btn-primary checkout-success-btn"
@@ -351,9 +367,69 @@ export default function Checkout() {
                   <button className="checkout-edit-link" onClick={() => setStep(2)}>Edit</button>
                 </div>
 
-                <div className="checkout-razorpay-badge">
-                  Secured by <strong>Razorpay</strong> — UPI · Cards · Net Banking · Wallets
+                {/* Payment method selector */}
+                <p style={{ margin: "1.25rem 0 0.65rem", fontSize: "0.8rem", fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Choose Payment Method
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem", marginBottom: "1.5rem" }}>
+                  {/* Online */}
+                  <label
+                    onClick={() => setPaymentMethod("razorpay")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "1rem",
+                      border: `2px solid ${paymentMethod === "razorpay" ? "var(--primary)" : "#E2E8F0"}`,
+                      borderRadius: 12, padding: "1rem 1.1rem", cursor: "pointer",
+                      background: paymentMethod === "razorpay" ? "#FDF8F0" : "#fff",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${paymentMethod === "razorpay" ? "var(--primary)" : "#CBD5E1"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {paymentMethod === "razorpay" && <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--primary)" }} />}
+                    </div>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: "#DBEAFE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <CreditCard size={18} color="#1E40AF" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.92rem", color: "#0F172A" }}>Pay Online</p>
+                      <p style={{ margin: "0.1rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>UPI · Cards · Net Banking · Wallets via Razorpay</p>
+                    </div>
+                    {paymentMethod === "razorpay" && (
+                      <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--primary)", background: "#FDF8F0", border: "1px solid var(--primary)", borderRadius: 20, padding: "0.15rem 0.55rem", flexShrink: 0 }}>Selected</span>
+                    )}
+                  </label>
+
+                  {/* COD */}
+                  <label
+                    onClick={() => setPaymentMethod("cod")}
+                    style={{
+                      display: "flex", alignItems: "center", gap: "1rem",
+                      border: `2px solid ${paymentMethod === "cod" ? "#D97706" : "#E2E8F0"}`,
+                      borderRadius: 12, padding: "1rem 1.1rem", cursor: "pointer",
+                      background: paymentMethod === "cod" ? "#FFFBEB" : "#fff",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${paymentMethod === "cod" ? "#D97706" : "#CBD5E1"}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      {paymentMethod === "cod" && <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#D97706" }} />}
+                    </div>
+                    <div style={{ width: 38, height: 38, borderRadius: 10, background: "#FEF9C3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Banknote size={18} color="#854D0E" />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.92rem", color: "#0F172A" }}>Cash on Delivery</p>
+                      <p style={{ margin: "0.1rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>Pay ₹{cartTotal.toLocaleString("en-IN")} when your order arrives</p>
+                    </div>
+                    {paymentMethod === "cod" && (
+                      <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "#D97706", background: "#FFFBEB", border: "1px solid #D97706", borderRadius: 20, padding: "0.15rem 0.55rem", flexShrink: 0 }}>Selected</span>
+                    )}
+                  </label>
                 </div>
+
+                {paymentMethod === "razorpay" && (
+                  <div className="checkout-razorpay-badge" style={{ marginBottom: "1rem" }}>
+                    Secured by <strong>Razorpay</strong> — UPI · Cards · Net Banking · Wallets
+                  </div>
+                )}
 
                 <div className="checkout-btn-row">
                   <button className="checkout-back-btn" onClick={() => setStep(2)}>
@@ -363,9 +439,12 @@ export default function Checkout() {
                     className="btn-primary checkout-pay-btn"
                     onClick={handlePay}
                     disabled={placing}
+                    style={{ background: paymentMethod === "cod" ? "#D97706" : undefined }}
                   >
                     {placing ? (
                       <><span className="checkout-spinner" /> Processing...</>
+                    ) : paymentMethod === "cod" ? (
+                      <><Banknote size={16} /> Place Order (COD)</>
                     ) : (
                       <><CreditCard size={16} /> Pay ₹{cartTotal.toLocaleString("en-IN")}</>
                     )}

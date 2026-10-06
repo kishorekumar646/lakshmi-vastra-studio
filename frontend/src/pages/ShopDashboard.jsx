@@ -378,9 +378,20 @@ export default function ShopDashboard() {
   const handleAccountSave = async () => {
     setAccountSaving(true);
     try {
-      const { data } = await updateShopMe(accountForm);
+      // Only send fields that have a value — same pattern as delivery app — prevents accidentally clearing saved fields
+      const payload = Object.fromEntries(Object.entries(accountForm).filter(([, v]) => v !== ""));
+      const { data } = await updateShopMe(payload);
       const updated = { ...owner, ...data };
       setOwner(updated);
+      // Re-sync form so saved values are reflected
+      setAccountForm({
+        name: data.name || "", shop_name: data.shop_name || "", phone: data.phone || "",
+        address: data.address || "", city: data.city || "", state: data.state || "",
+        pincode: data.pincode || "", gst_number: data.gst_number || "",
+        bank_account_holder: data.bank_account_holder || "", bank_name: data.bank_name || "",
+        bank_account_number: data.bank_account_number || "", bank_ifsc: data.bank_ifsc || "",
+        bank_account_type: data.bank_account_type || "",
+      });
       localStorage.setItem("shop_owner", JSON.stringify(updated));
       toast.success("Shop details updated!");
     } catch (err) {
@@ -1230,6 +1241,25 @@ export default function ShopDashboard() {
                         Note: {o.return_note}
                       </p>
                     )}
+
+                    {/* Return delivery progress — shown once accepted */}
+                    {o.return_status === "accepted" && (() => {
+                      const rds = o.return_delivery_status;
+                      const rdp = o.return_delivery_person;
+                      const statusLabel = !rds ? "Waiting for delivery person" : rds === "pickup_accepted" ? "Delivery person on the way to customer" : rds === "picked_up_from_customer" ? "Item collected — heading to shop" : rds === "returned_to_shop" ? "Returned to shop ✓" : rds;
+                      const statusColor = rds === "returned_to_shop" ? "#15803D" : rds ? "#5B21B6" : "#64748B";
+                      const statusBg = rds === "returned_to_shop" ? "#F0FDF4" : rds ? "#FAF5FF" : "#F8FAFC";
+                      return (
+                        <div style={{ marginTop: "0.6rem", background: statusBg, border: `1px solid ${rds === "returned_to_shop" ? "#86EFAC" : rds ? "#C4B5FD" : "#E2E8F0"}`, borderRadius: 8, padding: "0.55rem 0.75rem" }}>
+                          <p style={{ margin: 0, fontSize: "0.73rem", fontWeight: 700, color: statusColor }}>↩ {statusLabel}</p>
+                          {rdp && (
+                            <p style={{ margin: "0.2rem 0 0", fontSize: "0.71rem", color: "#64748B" }}>
+                              Delivery: {rdp.name}{rdp.phone ? ` · ${rdp.phone}` : ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>

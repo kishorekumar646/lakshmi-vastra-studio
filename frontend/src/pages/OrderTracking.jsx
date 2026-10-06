@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { trackOrder } from "../api";
-import { Package, CheckCircle, Truck, MapPin, Clock, ArrowLeft, ShoppingBag, Star } from "lucide-react";
+import { Package, CheckCircle, Truck, MapPin, Clock, ArrowLeft, ShoppingBag, Star, RotateCcw, XCircle } from "lucide-react";
 import { formatPhone } from "../utils/phone";
 
 const STEPS = [
@@ -38,14 +38,18 @@ const STEPS = [
 ];
 
 const STATUS_BANNER = {
+  awaiting_payment: { bg: "#FFF7ED", color: "#C2410C", border: "#FDBA74", emoji: "⏳", msg: "Awaiting payment confirmation" },
   pending: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "✅", msg: "Payment received — order placed!" },
   confirmed: { bg: "#DBEAFE", color: "#1E40AF", border: "#93C5FD", emoji: "📦", msg: "Shop is packing your order" },
   ready_for_delivery: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "✅", msg: "Packed & waiting for pickup" },
   picked_up: { bg: "#EDE9FE", color: "#5B21B6", border: "#C4B5FD", emoji: "🚚", msg: "Out for delivery" },
   delivered: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "🎉", msg: "Delivered successfully!" },
+  cancelled: { bg: "#FEE2E2", color: "#991B1B", border: "#FCA5A5", emoji: "❌", msg: "Order cancelled" },
 };
 
 function stepIndex(status) {
+  if (status === "cancelled") return -1;
+  if (status === "awaiting_payment") return -1;
   const i = STEPS.findIndex((s) => s.key === status);
   return i === -1 ? 0 : i;
 }
@@ -78,6 +82,8 @@ export default function OrderTracking() {
   );
 
   const current = stepIndex(order.status);
+  const isCancelled = order.status === "cancelled";
+  const isAwaiting = order.status === "awaiting_payment";
   const banner = STATUS_BANNER[order.status] || STATUS_BANNER.pending;
 
   return (
@@ -105,7 +111,7 @@ export default function OrderTracking() {
           <div>
             <p style={{ margin: 0, fontWeight: 700, color: banner.color, fontSize: "0.95rem" }}>{banner.msg}</p>
             <p style={{ margin: 0, fontSize: "0.78rem", color: banner.color, opacity: 0.75 }}>
-              {STEPS[current].desc}
+              {STEPS[current]?.desc || ""}
             </p>
           </div>
         </div>
@@ -138,66 +144,120 @@ export default function OrderTracking() {
           </div>
         )}
 
-        {/* Timeline */}
-        <div style={{ background: "#fff", borderRadius: 10, padding: "1.5rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-          <h3 style={{ fontSize: "0.88rem", fontWeight: 700, marginBottom: "1.5rem", color: "#333", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tracking Timeline</h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-            {STEPS.map((step, i) => {
-              const done = i <= current;
-              const active = i === current;
-              const future = i > current;
-              const Icon = step.icon;
-              const historyEntry = order.status_history?.find((h) => h.status === step.key);
-              return (
-                <div key={step.key} style={{ display: "flex", gap: "1rem", position: "relative" }}>
-                  {/* Icon column */}
-                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div style={{
-                      width: 38, height: 38, borderRadius: "50%",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      background: active ? "var(--primary)" : done ? "#4CAF50" : "#e5e5e5",
-                      color: done || active ? "#fff" : "#bbb",
-                      flexShrink: 0,
-                      boxShadow: active ? "0 0 0 5px rgba(123,29,69,0.12)" : "none",
-                      transition: "all 0.2s",
-                    }}>
-                      <Icon size={16} />
-                    </div>
-                    {i < STEPS.length - 1 && (
+        {/* Timeline — hidden for cancelled / awaiting payment */}
+        {!isCancelled && !isAwaiting && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: "1.5rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+            <h3 style={{ fontSize: "0.88rem", fontWeight: 700, marginBottom: "1.5rem", color: "#333", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tracking Timeline</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+              {STEPS.map((step, i) => {
+                const done = i <= current;
+                const active = i === current;
+                const future = i > current;
+                const Icon = step.icon;
+                const historyEntry = order.status_history?.find((h) => h.status === step.key);
+                return (
+                  <div key={step.key} style={{ display: "flex", gap: "1rem", position: "relative" }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
                       <div style={{
-                        width: 2, flexGrow: 1,
-                        background: i < current ? "#4CAF50" : "#e5e5e5",
-                        minHeight: 36, margin: "3px 0",
-                      }} />
-                    )}
+                        width: 38, height: 38, borderRadius: "50%",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: active ? "var(--primary)" : done ? "#4CAF50" : "#e5e5e5",
+                        color: done || active ? "#fff" : "#bbb",
+                        flexShrink: 0,
+                        boxShadow: active ? "0 0 0 5px rgba(123,29,69,0.12)" : "none",
+                        transition: "all 0.2s",
+                      }}>
+                        <Icon size={16} />
+                      </div>
+                      {i < STEPS.length - 1 && (
+                        <div style={{
+                          width: 2, flexGrow: 1,
+                          background: i < current ? "#4CAF50" : "#e5e5e5",
+                          minHeight: 36, margin: "3px 0",
+                        }} />
+                      )}
+                    </div>
+                    <div style={{ paddingBottom: i < STEPS.length - 1 ? "1.75rem" : 0, paddingTop: "0.35rem", flex: 1 }}>
+                      <p style={{
+                        margin: 0,
+                        fontWeight: active ? 700 : done ? 600 : 400,
+                        color: active ? "var(--primary)" : done ? "#222" : "#bbb",
+                        fontSize: "0.92rem",
+                      }}>
+                        {step.label}
+                        {active && <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", background: "var(--primary)", color: "#fff", padding: "0.1rem 0.45rem", borderRadius: 20, verticalAlign: "middle", fontWeight: 700 }}>NOW</span>}
+                      </p>
+                      {historyEntry ? (
+                        <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#888", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                          <Clock size={10} />
+                          {new Date(historyEntry.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          {historyEntry.note && ` · ${historyEntry.note}`}
+                        </p>
+                      ) : future ? (
+                        <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#ccc" }}>{step.desc}</p>
+                      ) : null}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Text column */}
-                  <div style={{ paddingBottom: i < STEPS.length - 1 ? "1.75rem" : 0, paddingTop: "0.35rem", flex: 1 }}>
-                    <p style={{
-                      margin: 0,
-                      fontWeight: active ? 700 : done ? 600 : 400,
-                      color: active ? "var(--primary)" : done ? "#222" : "#bbb",
-                      fontSize: "0.92rem",
-                    }}>
-                      {step.label}
-                      {active && <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", background: "var(--primary)", color: "#fff", padding: "0.1rem 0.45rem", borderRadius: 20, verticalAlign: "middle", fontWeight: 700 }}>NOW</span>}
-                    </p>
-                    {historyEntry ? (
+            {/* Return status — appended after Delivered step when present */}
+            {order.return_status && (() => {
+              const isRetPending  = order.return_status === "pending";
+              const isRetAccepted = order.return_status === "accepted";
+              const isRetReturned = order.return_status === "returned";
+              const accent = (isRetAccepted || isRetReturned) ? "#15803D" : isRetPending ? "#5B21B6" : "#991B1B";
+              const accentBg = (isRetAccepted || isRetReturned) ? "#F0FDF4" : isRetPending ? "#FAF5FF" : "#FEF2F2";
+              const Icon = isRetReturned ? CheckCircle : isRetAccepted ? RotateCcw : isRetPending ? RotateCcw : XCircle;
+              const isRetReturned = order.return_status === "returned";
+              const label = isRetPending ? "Return Requested" : isRetAccepted ? "Return Accepted — Pickup Scheduled" : isRetReturned ? "Returned to Shop" : "Return Rejected";
+              const desc = isRetPending
+                ? "Your return request is under review by the shop."
+                : isRetAccepted
+                ? "Return accepted. A delivery person will collect the item from you."
+                : isRetReturned
+                ? "Item has been collected and returned to the shop."
+                : "Your return request was not accepted.";
+              const histEntry = order.status_history?.find((h) => h.status === "return_requested");
+              return (
+                <div style={{ display: "flex", gap: "1rem", marginTop: "0.25rem" }}>
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div style={{ width: 2, height: 28, background: "#e5e5e5" }} />
+                    <div style={{ width: 38, height: 38, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: accentBg, border: `2px solid ${accent}`, flexShrink: 0 }}>
+                      <Icon size={16} color={accent} />
+                    </div>
+                  </div>
+                  <div style={{ paddingTop: "2.1rem", flex: 1 }}>
+                    <p style={{ margin: 0, fontWeight: 700, color: accent, fontSize: "0.92rem" }}>{label}</p>
+                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#888" }}>{desc}</p>
+                    {order.return_reason && <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>Reason: {order.return_reason}</p>}
+                    {order.return_note   && <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>Shop note: {order.return_note}</p>}
+                    {histEntry && (
                       <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#888", display: "flex", alignItems: "center", gap: "0.3rem" }}>
                         <Clock size={10} />
-                        {new Date(historyEntry.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                        {historyEntry.note && ` · ${historyEntry.note}`}
+                        {new Date(histEntry.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </p>
-                    ) : future ? (
-                      <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#ccc" }}>{step.desc}</p>
-                    ) : null}
+                    )}
                   </div>
                 </div>
               );
-            })}
+            })()}
           </div>
-        </div>
+        )}
+
+        {/* Cancelled placeholder */}
+        {isCancelled && (
+          <div style={{ background: "#fff", borderRadius: 10, padding: "1.5rem", marginBottom: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: "1rem" }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <XCircle size={22} color="#991B1B" />
+            </div>
+            <div>
+              <p style={{ margin: 0, fontWeight: 700, color: "#991B1B", fontSize: "0.95rem" }}>Order Cancelled</p>
+              <p style={{ margin: "0.2rem 0 0", fontSize: "0.8rem", color: "#888" }}>This order was cancelled and will not be processed.</p>
+            </div>
+          </div>
+        )}
 
         {/* Delivery person */}
         {order.delivery_person && (

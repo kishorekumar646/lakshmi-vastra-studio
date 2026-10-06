@@ -13,7 +13,7 @@ cloudinary.config(
     api_secret=os.getenv("CLOUDINARY_API_SECRET"),
 )
 from database import get_db
-from models import DeliveryPerson, Order, OrderItem, OrderStatusHistory, Product
+from models import DeliveryPerson, Order, OrderItem, OrderStatusHistory, Product, ShopOwner
 from delivery.auth import hash_password, verify_password, create_delivery_token, get_current_delivery_person
 
 router = APIRouter(prefix="/api/delivery", tags=["delivery"])
@@ -360,3 +360,107 @@ def mark_picked_up(order_id: int, person: DeliveryPerson = Depends(get_current_d
     db.add(OrderStatusHistory(order_id=order.id, status="picked_up", note=f"Picked up by {person.name}"))
     db.commit()
     return {"success": True, "order_id": order.id, "status": order.status, "delivery_otp": otp}
+
+
+# ── Return pickups ────────────────────────────────────────────────────────────
+
+def _return_order_dict(order: Order) -> dict:
+    d = _order_dict(order)
+    shop = order.items[0].shop_owner if order.items else None
+    shop_parts = [p for p in [getattr(shop, "address", None), getattr(shop, "city", None)] if p]
+    d.update({
+        "return_status": order.return_status,
+        "return_delivery_status": order.return_delivery_status,
+        "return_reason": order.return_reason,
+        "return_note": order.return_note,
+        "return_requested_at": order.return_requested_at,
+        "shop_name": shop.shop_name if shop else None,
+        "shop_address": ", ".join(shop_parts) if shop_parts else None,
+    })
+    return d
+
+
+@router.get("/return-orders/available")
+def list_available_return_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Shop-accepted returns not yet claimed by any delivery person."""
+    orders = (
+        db.query(Order)
+        .filter(Order.return_status == "accepted", Order.return_delivery_person_id.is_(None))
+        .options(
+            joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
+            joinedload(Order.customer),
+            joinedload(Order.status_history),
+        )
+        .order_by(Order.return_requested_at.asc())
+        .all()
+    )
+    return [_return_order_dict(o) for o in orders]
+
+
+@router.post("/return-orders/{order_id}/accept")
+def accept_return_order(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Atomically claim a return pickup. Returns 409 if already taken."""
+    order = (
+        db.query(Order)
+        .filter(Order.id == order_id, Order.return_status == "accepted", Order.return_delivery_person_id.is_(None))
+        .with_for_update()
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=409, detail="Return already claimed by another delivery person")
+    order.return_delivery_person_id = person.id
+    order.return_delivery_status = "pickup_accepted"
+    db.add(OrderStatusHistory(order_id=order.id, status="return_pickup_accepted", note=f"Return pickup accepted by {person.name}"))
+    db.commit()
+    return {"success": True, "order_id": order.id}
+
+
+@router.get("/return-orders")
+def list_my_return_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Returns actively assigned to this delivery person (not yet returned to shop)."""
+    orders = (
+        db.query(Order)
+        .filter(
+            Order.return_delivery_person_id == person.id,
+            Order.return_delivery_status.in_(["pickup_accepted", "picked_up_from_customer"]),
+        )
+        .options(
+            joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
+            joinedload(Order.customer),
+            joinedload(Order.status_history),
+        )
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+    return [_return_order_dict(o) for o in orders]
+
+
+@router.put("/return-orders/{order_id}/picked-up")
+def mark_return_picked_up(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Delivery person has collected the item from the customer."""
+    order = db.query(Order).filter(Order.id == order_id, Order.return_delivery_person_id == person.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Return order not found")
+    if order.return_delivery_status != "pickup_accepted":
+        raise HTTPException(status_code=400, detail=f"Return is already '{order.return_delivery_status}'")
+    order.return_delivery_status = "picked_up_from_customer"
+    db.add(OrderStatusHistory(order_id=order.id, status="return_picked_up", note=f"Item collected from customer by {person.name}"))
+    db.commit()
+    return {"success": True, "order_id": order.id}
+
+
+@router.put("/return-orders/{order_id}/returned")
+def mark_returned_to_shop(order_id: int, person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
+    """Delivery person has dropped the item back at the shop."""
+    order = db.query(Order).filter(Order.id == order_id, Order.return_delivery_person_id == person.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Return order not found")
+    if order.return_delivery_status != "picked_up_from_customer":
+        raise HTTPException(status_code=400, detail=f"Return is already '{order.return_delivery_status}'")
+    order.return_delivery_status = "returned_to_shop"
+    order.return_status = "returned"
+    db.add(OrderStatusHistory(order_id=order.id, status="return_completed", note=f"Item returned to shop by {person.name}"))
+    db.commit()
+    return {"success": True, "order_id": order.id}

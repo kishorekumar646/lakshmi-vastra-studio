@@ -5,11 +5,12 @@ import {
   getDeliveryOrders, getDeliveryStats, getCompletedDeliveries,
   deliveryScanQr, markDelivered, deliveryMarkPickedUp, updateDeliveryProfile, changeDeliveryPassword,
   getAvailableDeliveryOrders, acceptDeliveryOrder,
+  getAvailableReturnOrders, acceptReturnOrder, getMyReturnOrders, markReturnPickedUp, markReturnedToShop,
 } from "../api";
 import {
   LogOut, Truck, ScanLine, CheckCircle, MapPin, Package,
   TrendingUp, Star, LayoutDashboard, ListChecks, History, UserCircle,
-  Upload, AlertTriangle, Menu, X, Camera, HelpCircle, Bell,
+  Upload, AlertTriangle, Menu, X, Camera, HelpCircle, Bell, RotateCcw,
 } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -306,6 +307,8 @@ export default function DeliveryDashboard() {
   const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("delivery_sidebar_collapsed", !v); return !v; });
   const [orders, setOrders] = useState([]);
   const [available, setAvailable] = useState([]);
+  const [availableReturns, setAvailableReturns] = useState([]);
+  const [myReturns, setMyReturns] = useState([]);
   const [completed, setCompleted] = useState([]);
   const [stats, setStats] = useState(null);
   const [selectedDay, setSelectedDay] = useState(6); // default = today (last index)
@@ -352,6 +355,20 @@ export default function DeliveryDashboard() {
     return () => clearInterval(iv);
   }, []);
 
+  // Poll available return pickups every 10s
+  useEffect(() => {
+    const loadReturns = async () => {
+      try {
+        const [ar, mr] = await Promise.all([getAvailableReturnOrders(), getMyReturnOrders()]);
+        setAvailableReturns(ar.data);
+        setMyReturns(mr.data);
+      } catch {}
+    };
+    loadReturns();
+    const iv = setInterval(loadReturns, 10000);
+    return () => clearInterval(iv);
+  }, []);
+
   // Lazy-load completed orders only when that tab is first opened
   useEffect(() => {
     if (tab === "completed" && !completedLoaded) {
@@ -369,6 +386,8 @@ export default function DeliveryDashboard() {
       getDeliveryOrders().then((r) => setOrders(r.data)).catch(() => {}),
       getDeliveryStats().then((r) => setStats(r.data)).catch(() => {}),
       getAvailableDeliveryOrders().then((r) => setAvailable(r.data)).catch(() => {}),
+      getAvailableReturnOrders().then((r) => setAvailableReturns(r.data)).catch(() => {}),
+      getMyReturnOrders().then((r) => setMyReturns(r.data)).catch(() => {}),
     ]).finally(() => setLoading(false));
   };
 
@@ -511,12 +530,54 @@ export default function DeliveryDashboard() {
     }
   };
 
+  const [acceptingReturn, setAcceptingReturn] = useState({});
+  const handleAcceptReturn = async (orderId) => {
+    setAcceptingReturn((p) => ({ ...p, [orderId]: true }));
+    try {
+      await acceptReturnOrder(orderId);
+      toast.success("Return pickup accepted!");
+      loadCore();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Already claimed by another delivery person");
+      getAvailableReturnOrders().then((r) => setAvailableReturns(r.data)).catch(() => {});
+    } finally {
+      setAcceptingReturn((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
+  const [returningPickup, setReturningPickup] = useState({});
+  const handleReturnPickedUp = async (orderId) => {
+    setReturningPickup((p) => ({ ...p, [orderId]: "picking" }));
+    try {
+      await markReturnPickedUp(orderId);
+      toast.success("Marked: item collected from customer");
+      loadCore();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed");
+    } finally {
+      setReturningPickup((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
+  const handleReturnedToShop = async (orderId) => {
+    setReturningPickup((p) => ({ ...p, [orderId]: "returning" }));
+    try {
+      await markReturnedToShop(orderId);
+      toast.success("Return completed — item back at shop!");
+      loadCore();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed");
+    } finally {
+      setReturningPickup((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
   const readyCount  = orders.filter((o) => o.status === "ready_for_delivery").length;
   const pickedCount = orders.filter((o) => o.status === "picked_up").length;
 
   const DEL_NAV = [
     { key: "dashboard", label: "Dashboard", icon: <LayoutDashboard size={17} /> },
-    { key: "active",    label: "Active",    icon: <ListChecks size={17} />,  badge: (orders.length + available.length) || null },
+    { key: "active",    label: "Active",    icon: <ListChecks size={17} />,  badge: (orders.length + available.length + availableReturns.length + myReturns.length) || null },
     { key: "completed", label: "Completed", icon: <History size={17} />,     badge: completed.length || null },
     { key: "account",   label: "Account",   icon: <UserCircle size={17} />,  warn: !person.profile_complete },
   ];
@@ -886,6 +947,140 @@ export default function DeliveryDashboard() {
               </div>
             )}
 
+            {/* ── Available Return Pickups ── */}
+            {availableReturns.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.65rem" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#7C3AED", animation: "pulse 1.5s ease-in-out infinite" }} />
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: "0.78rem", color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                    Return Pickups — {availableReturns.length} Available
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {availableReturns.map((o) => (
+                    <div key={o.id} style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 16px rgba(124,58,237,0.12)", border: "1.5px solid #C4B5FD" }}>
+                      <div style={{ background: "#FAF5FF", padding: "0.6rem 1.1rem", display: "flex", alignItems: "center", gap: "0.5rem", borderBottom: "1px solid #EDE9FE" }}>
+                        <RotateCcw size={13} color="#7C3AED" />
+                        <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.06em" }}>Return Pickup</span>
+                      </div>
+                      <div style={{ padding: "0.9rem 1.1rem 0.6rem" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                          <div>
+                            <p style={{ margin: 0, fontWeight: 800, fontSize: "0.97rem", color: "#0F172A" }}>Order #{o.id}</p>
+                            <p style={{ margin: "0.1rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>{o.customer?.name}</p>
+                          </div>
+                          <p style={{ margin: 0, fontWeight: 800, color: "#0F172A", fontSize: "1rem" }}>₹{Number(o.total || 0).toLocaleString("en-IN")}</p>
+                        </div>
+                        {o.return_reason && (
+                          <p style={{ margin: "0 0 0.5rem", fontSize: "0.76rem", color: "#7C3AED", background: "#EDE9FE", borderRadius: 6, padding: "0.3rem 0.6rem" }}>
+                            Return reason: {o.return_reason}
+                          </p>
+                        )}
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`}
+                          target="_blank" rel="noopener noreferrer"
+                          style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", marginBottom: "0.75rem" }}
+                        >
+                          <div style={{ background: "#EDE9FE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
+                            <MapPin size={12} style={{ color: "#7C3AED" }} />
+                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap" }}>Collect from</span>
+                          </div>
+                          <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
+                        </a>
+                        <button
+                          onClick={() => handleAcceptReturn(o.id)}
+                          disabled={acceptingReturn[o.id]}
+                          style={{ width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: acceptingReturn[o.id] ? "not-allowed" : "pointer", background: acceptingReturn[o.id] ? "#C4B5FD" : "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "#fff", fontWeight: 800, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                        >
+                          <RotateCcw size={15} />
+                          {acceptingReturn[o.id] ? "Accepting…" : "Accept Return Pickup"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── My Active Return Pickups ── */}
+            {myReturns.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <p style={{ margin: "0 0 0.65rem", fontWeight: 800, fontSize: "0.75rem", color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                  My Return Pickups
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  {myReturns.map((o) => {
+                    const isCollected = o.return_delivery_status === "picked_up_from_customer";
+                    const busy = returningPickup[o.id];
+                    return (
+                      <div key={o.id} style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(124,58,237,0.1)", border: "1.5px solid #C4B5FD" }}>
+                        <div style={{ background: isCollected ? "#EDE9FE" : "#FAF5FF", padding: "0.6rem 1.1rem", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #EDE9FE" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                            <RotateCcw size={13} color="#7C3AED" />
+                            <span style={{ fontSize: "0.72rem", fontWeight: 800, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                              {isCollected ? "Heading to Shop" : "Collect from Customer"}
+                            </span>
+                          </div>
+                          <span style={{ fontSize: "0.68rem", fontWeight: 700, background: isCollected ? "#7C3AED" : "#EDE9FE", color: isCollected ? "#fff" : "#7C3AED", borderRadius: 20, padding: "0.15rem 0.55rem" }}>
+                            {isCollected ? "Collected" : "Pending Pickup"}
+                          </span>
+                        </div>
+                        <div style={{ padding: "0.9rem 1.1rem" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                            <div>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: "0.97rem", color: "#0F172A" }}>Order #{o.id}</p>
+                              <p style={{ margin: "0.1rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>{o.customer?.name} · {o.customer?.phone}</p>
+                            </div>
+                            <p style={{ margin: 0, fontWeight: 800, color: "#0F172A" }}>₹{Number(o.total || 0).toLocaleString("en-IN")}</p>
+                          </div>
+                          {o.return_reason && (
+                            <p style={{ margin: "0 0 0.6rem", fontSize: "0.76rem", color: "#7C3AED", background: "#EDE9FE", borderRadius: 6, padding: "0.3rem 0.6rem" }}>
+                              Return reason: {o.return_reason}
+                            </p>
+                          )}
+                          <a
+                            href={`https://maps.google.com/?q=${encodeURIComponent(isCollected ? (o.shop_address || o.shop_name || "") : o.delivery_address)}`}
+                            target="_blank" rel="noopener noreferrer"
+                            style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", marginBottom: "0.85rem" }}
+                          >
+                            <div style={{ background: "#EDE9FE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
+                              <MapPin size={12} style={{ color: "#7C3AED" }} />
+                              <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#7C3AED", whiteSpace: "nowrap" }}>{isCollected ? "Drop at shop" : "Collect from"}</span>
+                            </div>
+                            <div>
+                              {isCollected && o.shop_name && <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#5B21B6" }}>{o.shop_name}</p>}
+                              <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>
+                                {isCollected ? (o.shop_address || "Shop address not set — contact admin") : o.delivery_address}
+                              </p>
+                            </div>
+                          </a>
+                          {!isCollected ? (
+                            <button
+                              onClick={() => handleReturnPickedUp(o.id)}
+                              disabled={!!busy}
+                              style={{ width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: busy ? "not-allowed" : "pointer", background: busy ? "#C4B5FD" : "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "#fff", fontWeight: 800, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                            >
+                              <Package size={15} />
+                              {busy === "picking" ? "Updating…" : "Mark Collected from Customer"}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleReturnedToShop(o.id)}
+                              disabled={!!busy}
+                              style={{ width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: busy ? "not-allowed" : "pointer", background: busy ? "#C4B5FD" : "linear-gradient(135deg, #15803D, #166534)", color: "#fff", fontWeight: 800, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
+                            >
+                              <CheckCircle size={15} />
+                              {busy === "returning" ? "Completing…" : "Mark Returned to Shop"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* ── My Assigned Orders ── */}
             {orders.length > 0 && (
               <>
@@ -911,7 +1106,7 @@ export default function DeliveryDashboard() {
                   <div key={i} style={{ background: "#fff", borderRadius: 14, height: 140, animation: "pulse 1.5s ease-in-out infinite" }} />
                 ))}
               </div>
-            ) : orders.length === 0 && available.length === 0 ? (
+            ) : orders.length === 0 && available.length === 0 && availableReturns.length === 0 && myReturns.length === 0 ? (
               <div style={{ textAlign: "center", padding: "4rem 1rem", background: "#fff", borderRadius: 14, boxShadow: "0 2px 12px rgba(0,0,0,0.05)" }}>
                 <Truck size={44} style={{ color: "#CBD5E1", marginBottom: "1rem" }} />
                 <p style={{ fontWeight: 700, color: "#334155", margin: "0 0 0.35rem" }}>No active orders</p>
