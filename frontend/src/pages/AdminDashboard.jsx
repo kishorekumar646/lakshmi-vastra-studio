@@ -276,6 +276,7 @@ export default function AdminDashboard() {
     else if (tab === "delivery") loadDeliveryPersons();
     else if (tab === "shopowners") loadShopOwners();
     else if (tab === "customers") loadCustomers();
+    else if (tab === "payments") loadPayments();
   }, [tab]);
 
   // Re-fetch when user returns to this browser tab
@@ -284,10 +285,18 @@ export default function AdminDashboard() {
       if (document.hidden) return;
       if (tab === "products") loadProducts(1);
       else if (tab === "orders") loadOrders(orderStatusFilter);
+      else if (tab === "payments") loadPayments();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [tab, orderStatusFilter]);
+
+  // Auto-refresh payments every 30s when on payments tab
+  useEffect(() => {
+    if (tab !== "payments") return;
+    const iv = setInterval(loadPayments, 30000);
+    return () => clearInterval(iv);
+  }, [tab]);
 
   // Auto-refresh orders every 30s
   useEffect(() => {

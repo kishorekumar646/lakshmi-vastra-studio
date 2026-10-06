@@ -146,7 +146,7 @@ async def update_profile(
 
 def _order_dict(order: Order) -> dict:
     shop = order.items[0].shop_owner if order.items else None
-    shop_parts = [p for p in [getattr(shop, "address", None), getattr(shop, "city", None)] if p]
+    shop_parts = [p for p in [getattr(shop, "address", None), getattr(shop, "city", None), getattr(shop, "state", None), getattr(shop, "pincode", None)] if p]
     return {
         "id": order.id,
         "total": order.total,
@@ -156,6 +156,7 @@ def _order_dict(order: Order) -> dict:
         "delivery_otp": order.delivery_otp,
         "created_at": order.created_at,
         "shop_name": shop.shop_name if shop else None,
+        "shop_phone": shop.phone if shop else None,
         "shop_address": ", ".join(shop_parts) if shop_parts else None,
         "customer": {
             "name": order.customer.name if order.customer else "",

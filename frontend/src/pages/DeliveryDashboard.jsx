@@ -189,27 +189,33 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pi
       <div style={{ padding: "0.75rem 1.1rem" }}>
         {/* Address with Maps link — show SHOP address before pickup, CUSTOMER address after */}
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginBottom: "0.6rem" }}>
-          <a
-            href={`https://maps.google.com/?q=${encodeURIComponent(o.status === "ready_for_delivery" ? (o.shop_address || o.shop_name || o.delivery_address) : o.delivery_address)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", flex: 1 }}
-          >
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", flex: 1 }}>
             <div style={{ background: o.status === "ready_for_delivery" ? "#FEF3C7" : "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 1 }}>
               <MapPin size={12} style={{ color: o.status === "ready_for_delivery" ? "#D97706" : "#1D4ED8" }} />
               <span style={{ fontSize: "0.62rem", fontWeight: 700, color: o.status === "ready_for_delivery" ? "#D97706" : "#1D4ED8", whiteSpace: "nowrap" }}>
                 {o.status === "ready_for_delivery" ? "Shop Address" : "Customer Address"}
               </span>
             </div>
-            <div>
-              {o.status === "ready_for_delivery" && o.shop_name && (
-                <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400E" }}>{o.shop_name}</p>
-              )}
-              <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>
-                {o.status === "ready_for_delivery" ? (o.shop_address || "Shop address not set — contact shop") : o.delivery_address}
-              </p>
-            </div>
-          </a>
+            {o.status === "ready_for_delivery" ? (
+              <div>
+                {o.shop_name && <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400E" }}>{o.shop_name}</p>}
+                {o.shop_address ? (
+                  <a href={`https://maps.google.com/?q=${encodeURIComponent(o.shop_address)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                    <p style={{ margin: 0, fontSize: "0.8rem", color: "#1D4ED8", lineHeight: 1.5, textDecoration: "underline" }}>{o.shop_address}</p>
+                  </a>
+                ) : (
+                  <p style={{ margin: 0, fontSize: "0.8rem", color: "#DC2626", lineHeight: 1.5 }}>
+                    Address not set
+                    {o.shop_phone && <> — call <a href={`tel:${o.shop_phone}`} style={{ color: "#DC2626", fontWeight: 700 }}>{o.shop_phone}</a></>}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <a href={`https://maps.google.com/?q=${encodeURIComponent(o.delivery_address)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                <p style={{ margin: 0, fontSize: "0.8rem", color: "#1D4ED8", lineHeight: 1.5, textDecoration: "underline" }}>{o.delivery_address}</p>
+              </a>
+            )}
+          </div>
         </div>
 
         {/* Phone */}
@@ -252,19 +258,17 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pi
         )}
 
         {o.status === "ready_for_delivery" && (
-          <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.75rem 0.9rem" }}>
-            <p style={{ margin: "0 0 0.6rem", fontSize: "0.78rem", color: "#92400E", fontWeight: 700 }}>
-              📦 Order is packed and ready at the shop
+          <div style={{ background: "#FFFBEB", border: "1.5px solid #FCD34D", borderRadius: 10, padding: "0.75rem 0.9rem", textAlign: "center" }}>
+            <p style={{ margin: "0 0 0.55rem", fontSize: "0.76rem", color: "#92400E", fontWeight: 600 }}>
+              📦 Packed and ready at the shop
             </p>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button
-                onClick={() => onPickup(o.id)}
-                disabled={pickingUp?.[o.id]}
-                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", background: pickingUp?.[o.id] ? "#FCD34D" : "#D97706", color: "#fff", border: "none", borderRadius: 8, padding: "0.6rem 0.75rem", cursor: pickingUp?.[o.id] ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.82rem" }}
-              >
-                <Truck size={14} /> {pickingUp?.[o.id] ? "Updating…" : "Confirm Pickup"}
-              </button>
-            </div>
+            <button
+              onClick={() => onPickup(o.id)}
+              disabled={pickingUp?.[o.id]}
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: pickingUp?.[o.id] ? "#FCD34D" : "#D97706", color: "#fff", border: "none", borderRadius: 20, padding: "0.48rem 1.5rem", cursor: pickingUp?.[o.id] ? "not-allowed" : "pointer", fontWeight: 700, fontSize: "0.8rem", boxShadow: pickingUp?.[o.id] ? "none" : "0 3px 10px rgba(217,119,6,0.3)" }}
+            >
+              <Truck size={13} /> {pickingUp?.[o.id] ? "Updating…" : "Confirm Pickup"}
+            </button>
           </div>
         )}
       </div>
@@ -314,7 +318,7 @@ function CompletedOrderCard({ o, earningPerDelivery }) {
 export default function DeliveryDashboard() {
   const [tab, setTab] = useState("dashboard");
   const mainRef = useRef(null);
-  const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
+  const switchTab = (t) => { setTab(t); mainRef.current?.scrollTo({ top: 0, behavior: "instant" }); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("delivery_sidebar_collapsed") === "true");
   const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("delivery_sidebar_collapsed", !v); return !v; });
@@ -622,7 +626,11 @@ export default function DeliveryDashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button onClick={() => setNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
             <Bell size={18} color="#fff" />
-            {(orders.length > 0 || available.length > 0) && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #0f2460" }} />}
+            {(orders.length + available.length) > 0 && (
+              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, background: "#fbbf24", borderRadius: 10, border: "1.5px solid #0f2460", fontSize: "0.62rem", fontWeight: 800, color: "#7c2d12", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+                {(orders.length + available.length) > 9 ? "9+" : (orders.length + available.length)}
+              </span>
+            )}
           </button>
           <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
             {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
@@ -630,57 +638,86 @@ export default function DeliveryDashboard() {
         </div>
       </div>
 
-      {/* Delivery notification panel */}
+      {/* Delivery notification modal */}
       {notifOpen && (
-        <div style={{ position: "fixed", top: 52, right: 8, zIndex: 2500, background: "#fff", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", width: 300, maxHeight: 380, overflow: "auto", border: "1px solid #E2E8F0" }}>
-          <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#0F172A" }}>Notifications</span>
-            <button onClick={() => setNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
-          </div>
-          {(orders.length > 0 || available.length > 0) ? (
-            <div style={{ padding: "0.85rem 1rem", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
-              {available.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#F0FDF4", border: "1px solid #86EFAC" }}>
-                  <span style={{ fontSize: "1.2rem" }}>🟢</span>
-                  <div>
-                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#15803D" }}>{available.length} Order{available.length > 1 ? "s" : ""} Ready to Accept</p>
-                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#166534" }}>Go to Active tab to claim</p>
-                  </div>
+        <div
+          onClick={() => setNotifOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 380, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", overflow: "hidden" }}>
+            {/* Header */}
+            <div style={{ background: "linear-gradient(135deg, #0A1628, #1e3a6e)", padding: "1.1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Bell size={17} color="#fff" />
                 </div>
-              )}
-              {orders.length > 0 && (
-                <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
-                  <span style={{ fontSize: "1.2rem" }}>📦</span>
-                  <div>
-                    <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#1E40AF" }}>{orders.length} Active Order{orders.length > 1 ? "s" : ""}</p>
-                    <p style={{ margin: 0, fontSize: "0.72rem", color: "#1E3A8A" }}>Deliveries assigned to you</p>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: "0.95rem", color: "#fff" }}>Notifications</p>
+                  <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.7)" }}>{person.name || "Delivery Partner"}</p>
+                </div>
+              </div>
+              <button onClick={() => setNotifOpen(false)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+                <X size={15} />
+              </button>
+            </div>
+
+            {/* Items */}
+            <div style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.65rem", maxHeight: 320, overflowY: "auto" }}>
+              {(orders.length > 0 || available.length > 0) ? (
+                <>
+                  {available.length > 0 && (
+                    <div onClick={() => { setTab("available"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "#F0FDF4", border: "1px solid #86EFAC", cursor: "pointer" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>🟢</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#15803D" }}>
+                          {available.length} Order{available.length > 1 ? "s" : ""} Ready to Accept
+                        </p>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "#166534" }}>Tap to view available orders →</p>
+                      </div>
+                    </div>
+                  )}
+                  {orders.length > 0 && (
+                    <div onClick={() => { setTab("active"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "#EFF6FF", border: "1px solid #BFDBFE", cursor: "pointer" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#DBEAFE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>📦</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#1E40AF" }}>
+                          {orders.length} Active Order{orders.length > 1 ? "s" : ""}
+                        </p>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "#1E3A8A" }}>Tap to view your deliveries →</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ textAlign: "center", padding: "1.75rem 1rem", color: "#94A3B8" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.75rem" }}>
+                    <Bell size={22} style={{ opacity: 0.35 }} />
                   </div>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: "0.85rem", color: "#64748B" }}>All clear!</p>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem" }}>No active deliveries or available orders.</p>
                 </div>
               )}
             </div>
-          ) : (
-            <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#94A3B8" }}>
-              <Bell size={28} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
-              <p style={{ margin: 0, fontSize: "0.82rem" }}>No active assignments</p>
+
+            {/* Footer */}
+            <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid #F1F5F9", background: "#FAFAFA" }}>
+              <button
+                onClick={async () => {
+                  try {
+                    const reg = await navigator.serviceWorker?.ready;
+                    if (reg) {
+                      const perm = await Notification.requestPermission();
+                      if (perm === "granted") toast.success("Push notifications enabled!");
+                      else toast.error("Notification permission denied");
+                    }
+                  } catch { toast.error("Could not enable notifications"); }
+                  setNotifOpen(false);
+                }}
+                style={{ width: "100%", padding: "0.55rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+              >
+                <Bell size={13} /> Enable Push Notifications
+              </button>
             </div>
-          )}
-          <div style={{ padding: "0.6rem 1rem", borderTop: "1px solid #F1F5F9" }}>
-            <button
-              onClick={async () => {
-                try {
-                  const reg = await navigator.serviceWorker?.ready;
-                  if (reg) {
-                    const perm = await Notification.requestPermission();
-                    if (perm === "granted") toast.success("Push notifications enabled!");
-                    else toast.error("Notification permission denied");
-                  }
-                } catch { toast.error("Could not enable notifications"); }
-                setNotifOpen(false);
-              }}
-              style={{ width: "100%", padding: "0.55rem", border: "1px solid #E2E8F0", borderRadius: 8, background: "#F8FAFC", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}
-            >
-              🔔 Enable Push Notifications
-            </button>
           </div>
         </div>
       )}
@@ -726,8 +763,12 @@ export default function DeliveryDashboard() {
           style={{ position: "relative" }}
         >
           <Bell size={17} />
-          {(orders.length > 0 || available.length > 0) && <span style={{ position: "absolute", top: 6, left: 22, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #0A1628" }} />}
-          <span className="pnb-label"> Notifications{(orders.length + available.length) > 0 ? ` (${orders.length + available.length})` : ""}</span>
+          {(orders.length + available.length) > 0 && (
+            <span style={{ position: "absolute", top: 4, left: 22, minWidth: 17, height: 17, background: "#fbbf24", borderRadius: 10, border: "1.5px solid #0A1628", fontSize: "0.62rem", fontWeight: 800, color: "#7c2d12", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+              {(orders.length + available.length) > 9 ? "9+" : (orders.length + available.length)}
+            </span>
+          )}
+          <span className="pnb-label"> Notifications</span>
         </button>
         <a href="/help?app=delivery" className="portal-nav-btn" title={sidebarCollapsed ? "Help Center" : undefined} style={{ textDecoration: "none" }}>
           <HelpCircle size={17} /><span className="pnb-label"> Help Center</span>
@@ -936,22 +977,25 @@ export default function DeliveryDashboard() {
                         </div>
                       </div>
                       <div style={{ padding: "0.65rem 1.1rem 0.9rem" }}>
-                        <a
-                          href={`https://maps.google.com/?q=${encodeURIComponent(o.shop_address || o.shop_name || o.delivery_address)}`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", textDecoration: "none", marginBottom: "0.55rem" }}
-                        >
+                        <div style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem", marginBottom: "0.55rem" }}>
                           <div style={{ background: "#FEF3C7", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
                             <MapPin size={12} style={{ color: "#D97706" }} />
                             <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#D97706", whiteSpace: "nowrap" }}>Shop Address</span>
                           </div>
                           <div>
                             {o.shop_name && <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400E" }}>{o.shop_name}</p>}
-                            <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>
-                              {o.shop_address || "Shop address not set — contact shop"}
-                            </p>
+                            {o.shop_address ? (
+                              <a href={`https://maps.google.com/?q=${encodeURIComponent(o.shop_address)}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: "none" }}>
+                                <p style={{ margin: 0, fontSize: "0.8rem", color: "#1D4ED8", lineHeight: 1.5, textDecoration: "underline" }}>{o.shop_address}</p>
+                              </a>
+                            ) : (
+                              <p style={{ margin: 0, fontSize: "0.8rem", color: "#DC2626", lineHeight: 1.5 }}>
+                                Address not set
+                                {o.shop_phone && <> — call <a href={`tel:${o.shop_phone}`} style={{ color: "#DC2626", fontWeight: 700 }}>{o.shop_phone}</a></>}
+                              </p>
+                            )}
                           </div>
-                        </a>
+                        </div>
                         <div style={{ background: "#F8FAFC", borderRadius: 8, padding: "0.4rem 0.7rem", marginBottom: "0.75rem" }}>
                           {o.items?.map((item, i) => (
                             <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.76rem", color: "#64748B", padding: "0.1rem 0" }}>
@@ -960,20 +1004,22 @@ export default function DeliveryDashboard() {
                             </div>
                           ))}
                         </div>
-                        <button
-                          onClick={() => handleAccept(o.id)}
-                          disabled={accepting[o.id]}
-                          style={{
-                            width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: accepting[o.id] ? "not-allowed" : "pointer",
-                            background: accepting[o.id] ? "#86EFAC" : "linear-gradient(135deg, #16a34a, #15803d)",
-                            color: "#fff", fontWeight: 800, fontSize: "0.9rem",
-                            display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem",
-                            boxShadow: accepting[o.id] ? "none" : "0 4px 14px rgba(22,163,74,0.3)",
-                          }}
-                        >
-                          <Truck size={16} />
-                          {accepting[o.id] ? "Accepting…" : "Accept & Deliver"}
-                        </button>
+                        <div style={{ display: "flex", justifyContent: "center" }}>
+                          <button
+                            onClick={() => handleAccept(o.id)}
+                            disabled={accepting[o.id]}
+                            style={{
+                              padding: "0.5rem 1.75rem", border: "none", borderRadius: 20, cursor: accepting[o.id] ? "not-allowed" : "pointer",
+                              background: accepting[o.id] ? "#86EFAC" : "linear-gradient(135deg, #16a34a, #15803d)",
+                              color: "#fff", fontWeight: 700, fontSize: "0.82rem",
+                              display: "flex", alignItems: "center", gap: "0.4rem",
+                              boxShadow: accepting[o.id] ? "none" : "0 3px 10px rgba(22,163,74,0.3)",
+                            }}
+                          >
+                            <Truck size={14} />
+                            {accepting[o.id] ? "Accepting…" : "Accept & Deliver"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1021,14 +1067,16 @@ export default function DeliveryDashboard() {
                           </div>
                           <p style={{ margin: 0, fontSize: "0.8rem", color: "#475569", lineHeight: 1.5 }}>{o.delivery_address}</p>
                         </a>
-                        <button
-                          onClick={() => handleAcceptReturn(o.id)}
-                          disabled={acceptingReturn[o.id]}
-                          style={{ width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: acceptingReturn[o.id] ? "not-allowed" : "pointer", background: acceptingReturn[o.id] ? "#C4B5FD" : "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "#fff", fontWeight: 800, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
-                        >
-                          <RotateCcw size={15} />
-                          {acceptingReturn[o.id] ? "Accepting…" : "Accept Return Pickup"}
-                        </button>
+                        <div style={{ display: "flex", justifyContent: "center" }}>
+                          <button
+                            onClick={() => handleAcceptReturn(o.id)}
+                            disabled={acceptingReturn[o.id]}
+                            style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.48rem 1.5rem", border: "none", borderRadius: 20, cursor: acceptingReturn[o.id] ? "not-allowed" : "pointer", background: acceptingReturn[o.id] ? "#C4B5FD" : "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "#fff", fontWeight: 700, fontSize: "0.8rem", boxShadow: acceptingReturn[o.id] ? "none" : "0 3px 10px rgba(124,58,237,0.3)" }}
+                          >
+                            <RotateCcw size={13} />
+                            {acceptingReturn[o.id] ? "Accepting…" : "Accept Return Pickup"}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1088,25 +1136,27 @@ export default function DeliveryDashboard() {
                               </p>
                             </div>
                           </a>
-                          {!isCollected ? (
-                            <button
-                              onClick={() => handleReturnPickedUp(o.id)}
-                              disabled={!!busy}
-                              style={{ width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: busy ? "not-allowed" : "pointer", background: busy ? "#C4B5FD" : "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "#fff", fontWeight: 800, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
-                            >
-                              <Package size={15} />
-                              {busy === "picking" ? "Updating…" : "Mark Collected from Customer"}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleReturnedToShop(o.id)}
-                              disabled={!!busy}
-                              style={{ width: "100%", padding: "0.7rem", border: "none", borderRadius: 10, cursor: busy ? "not-allowed" : "pointer", background: busy ? "#C4B5FD" : "linear-gradient(135deg, #15803D, #166534)", color: "#fff", fontWeight: 800, fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}
-                            >
-                              <CheckCircle size={15} />
-                              {busy === "returning" ? "Completing…" : "Mark Returned to Shop"}
-                            </button>
-                          )}
+                          <div style={{ display: "flex", justifyContent: "center" }}>
+                            {!isCollected ? (
+                              <button
+                                onClick={() => handleReturnPickedUp(o.id)}
+                                disabled={!!busy}
+                                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.48rem 1.5rem", border: "none", borderRadius: 20, cursor: busy ? "not-allowed" : "pointer", background: busy ? "#C4B5FD" : "linear-gradient(135deg, #7C3AED, #5B21B6)", color: "#fff", fontWeight: 700, fontSize: "0.8rem", boxShadow: busy ? "none" : "0 3px 10px rgba(124,58,237,0.3)" }}
+                              >
+                                <Package size={13} />
+                                {busy === "picking" ? "Updating…" : "Mark Collected from Customer"}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleReturnedToShop(o.id)}
+                                disabled={!!busy}
+                                style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.48rem 1.5rem", border: "none", borderRadius: 20, cursor: busy ? "not-allowed" : "pointer", background: busy ? "#C4B5FD" : "linear-gradient(135deg, #15803D, #166534)", color: "#fff", fontWeight: 700, fontSize: "0.8rem", boxShadow: busy ? "none" : "0 3px 10px rgba(21,128,61,0.3)" }}
+                              >
+                                <CheckCircle size={13} />
+                                {busy === "returning" ? "Completing…" : "Mark Returned to Shop"}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

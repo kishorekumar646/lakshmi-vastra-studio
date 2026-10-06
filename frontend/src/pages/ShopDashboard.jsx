@@ -41,7 +41,7 @@ const STATUS_COLOR = {
 export default function ShopDashboard() {
   const [tab, setTab] = useState("products");
   const mainRef = useRef(null);
-  const scrollToTop = () => { window.scrollTo({ top: 0, behavior: "instant" }); };
+  const scrollToTop = () => { mainRef.current?.scrollTo({ top: 0, behavior: "instant" }); };
   const switchTab = (t) => { setTab(t); scrollToTop(); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("shop_sidebar_collapsed") === "true");
@@ -709,7 +709,11 @@ export default function ShopDashboard() {
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button onClick={() => setNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
             <Bell size={18} color="#fff" />
-            {pendingCount > 0 && <span style={{ position: "absolute", top: 2, right: 2, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid var(--primary)" }} />}
+            {pendingCount > 0 && (
+              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, background: "#fbbf24", borderRadius: 10, border: "1.5px solid var(--primary)", fontSize: "0.62rem", fontWeight: 800, color: "#7c2d12", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+                {pendingCount > 9 ? "9+" : pendingCount}
+              </span>
+            )}
           </button>
           <button className="portal-mobile-menu-btn" onClick={() => setSidebarOpen((v) => !v)}>
             {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
@@ -717,46 +721,86 @@ export default function ShopDashboard() {
         </div>
       </div>
 
-      {/* Notification panel */}
+      {/* Notification modal */}
       {notifOpen && (
-        <div style={{ position: "fixed", top: 52, right: 8, zIndex: 2500, background: "#fff", borderRadius: 14, boxShadow: "0 8px 32px rgba(0,0,0,0.15)", width: 300, maxHeight: 380, overflow: "auto", border: "1px solid #E2E8F0" }}>
-          <div style={{ padding: "0.85rem 1rem", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontWeight: 700, fontSize: "0.88rem", color: "#0F172A" }}>Notifications</span>
-            <button onClick={() => setNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={16} /></button>
-          </div>
-          {pendingCount > 0 ? (
-            <div style={{ padding: "0.85rem 1rem" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.65rem 0.85rem", borderRadius: 10, background: "#FFF7ED", border: "1px solid #FED7AA" }}>
-                <span style={{ fontSize: "1.2rem" }}>🛒</span>
+        <div
+          onClick={() => setNotifOpen(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 380, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", overflow: "hidden" }}>
+            {/* Header */}
+            <div style={{ background: "linear-gradient(135deg, var(--primary), #7B1D45)", padding: "1.1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Bell size={17} color="#fff" />
+                </div>
                 <div>
-                  <p style={{ margin: 0, fontSize: "0.82rem", fontWeight: 700, color: "#C2410C" }}>{pendingCount} Pending Order{pendingCount > 1 ? "s" : ""}</p>
-                  <p style={{ margin: 0, fontSize: "0.72rem", color: "#9A3412" }}>Orders waiting for your attention</p>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: "0.95rem", color: "#fff" }}>Notifications</p>
+                  <p style={{ margin: 0, fontSize: "0.7rem", color: "rgba(255,255,255,0.7)" }}>{owner.shop_name || "My Shop"}</p>
                 </div>
               </div>
+              <button onClick={() => setNotifOpen(false)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}>
+                <X size={15} />
+              </button>
             </div>
-          ) : (
-            <div style={{ padding: "2rem 1rem", textAlign: "center", color: "#94A3B8" }}>
-              <Bell size={28} style={{ opacity: 0.3, marginBottom: "0.5rem" }} />
-              <p style={{ margin: 0, fontSize: "0.82rem" }}>No new notifications</p>
+
+            {/* Items */}
+            <div style={{ padding: "1rem", display: "flex", flexDirection: "column", gap: "0.65rem", maxHeight: 320, overflowY: "auto" }}>
+              {pendingCount > 0 ? (
+                <>
+                  {orders.filter(o => o.status === "pending" || o.status === "confirmed").length > 0 && (
+                    <div onClick={() => { switchTab("orders"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "#FFF7ED", border: "1px solid #FED7AA", cursor: "pointer" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>🛒</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#92400E" }}>
+                          {orders.filter(o => o.status === "pending" || o.status === "confirmed").length} Order{orders.filter(o => o.status === "pending" || o.status === "confirmed").length > 1 ? "s" : ""} Need Action
+                        </p>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "#B45309" }}>Tap to view orders →</p>
+                      </div>
+                    </div>
+                  )}
+                  {orders.filter(o => o.return_status === "pending").length > 0 && (
+                    <div onClick={() => { switchTab("orders"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "#F5F3FF", border: "1px solid #DDD6FE", cursor: "pointer" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>↩</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#5B21B6" }}>
+                          {orders.filter(o => o.return_status === "pending").length} Return Request{orders.filter(o => o.return_status === "pending").length > 1 ? "s" : ""}
+                        </p>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "#6D28D9" }}>Waiting for your decision →</p>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ textAlign: "center", padding: "1.75rem 1rem", color: "#94A3B8" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.75rem" }}>
+                    <Bell size={22} style={{ opacity: 0.35 }} />
+                  </div>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: "0.85rem", color: "#64748B" }}>All caught up!</p>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem" }}>No pending actions right now.</p>
+                </div>
+              )}
             </div>
-          )}
-          <div style={{ padding: "0.6rem 1rem", borderTop: "1px solid #F1F5F9" }}>
-            <button
-              onClick={async () => {
-                try {
-                  const reg = await navigator.serviceWorker?.ready;
-                  if (reg) {
-                    const perm = await Notification.requestPermission();
-                    if (perm === "granted") toast.success("Push notifications enabled!");
-                    else toast.error("Notification permission denied");
-                  }
-                } catch { toast.error("Could not enable notifications"); }
-                setNotifOpen(false);
-              }}
-              style={{ width: "100%", padding: "0.55rem", border: "1px solid #E2E8F0", borderRadius: 8, background: "#F8FAFC", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569" }}
-            >
-              🔔 Enable Push Notifications
-            </button>
+
+            {/* Footer */}
+            <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid #F1F5F9", background: "#FAFAFA" }}>
+              <button
+                onClick={async () => {
+                  try {
+                    const reg = await navigator.serviceWorker?.ready;
+                    if (reg) {
+                      const perm = await Notification.requestPermission();
+                      if (perm === "granted") toast.success("Push notifications enabled!");
+                      else toast.error("Notification permission denied");
+                    }
+                  } catch { toast.error("Could not enable notifications"); }
+                  setNotifOpen(false);
+                }}
+                style={{ width: "100%", padding: "0.55rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+              >
+                <Bell size={13} /> Enable Push Notifications
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -812,8 +856,12 @@ export default function ShopDashboard() {
           style={{ position: "relative" }}
         >
           <Bell size={17} />
-          {pendingCount > 0 && <span style={{ position: "absolute", top: 6, left: 22, width: 8, height: 8, background: "#fbbf24", borderRadius: "50%", border: "1.5px solid #1A0812" }} />}
-          <span className="pnb-label"> Notifications{pendingCount > 0 ? ` (${pendingCount})` : ""}</span>
+          {pendingCount > 0 && (
+            <span style={{ position: "absolute", top: 4, left: 22, minWidth: 17, height: 17, background: "#fbbf24", borderRadius: 10, border: "1.5px solid #1A0812", fontSize: "0.62rem", fontWeight: 800, color: "#7c2d12", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+              {pendingCount > 9 ? "9+" : pendingCount}
+            </span>
+          )}
+          <span className="pnb-label"> Notifications</span>
         </button>
         <a href="/help?app=shop" className="portal-nav-btn" title={sidebarCollapsed ? "Help Center" : undefined} style={{ textDecoration: "none" }}>
           <HelpCircle size={17} /><span className="pnb-label"> Help Center</span>
@@ -1232,16 +1280,16 @@ export default function ShopDashboard() {
 
                     {/* Pending → shop confirms the order */}
                     {o.status === "pending" && (
-                      <div style={{ marginTop: "0.75rem", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "0.65rem 0.85rem" }}>
-                        <p style={{ margin: "0 0 0.55rem", fontSize: "0.78rem", color: "#92400E", fontWeight: 600 }}>
+                      <div style={{ marginTop: "0.75rem", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "0.65rem 0.85rem", textAlign: "center" }}>
+                        <p style={{ margin: "0 0 0.5rem", fontSize: "0.76rem", color: "#92400E", fontWeight: 600 }}>
                           🛒 New order — confirm to start preparing
                         </p>
                         <button
                           onClick={() => handleConfirmOrder(o.id)}
                           disabled={confirmingOrder[o.id]}
-                          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", background: confirmingOrder[o.id] ? "#FED7AA" : "#D97706", color: "#fff", border: "none", borderRadius: 8, padding: "0.55rem 1rem", cursor: confirmingOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.84rem", fontWeight: 700 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: confirmingOrder[o.id] ? "#FED7AA" : "#D97706", color: "#fff", border: "none", borderRadius: 20, padding: "0.48rem 1.5rem", cursor: confirmingOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 700, boxShadow: confirmingOrder[o.id] ? "none" : "0 3px 10px rgba(217,119,6,0.3)" }}
                         >
-                          <CheckCircle size={14} />
+                          <CheckCircle size={13} />
                           {confirmingOrder[o.id] ? "Confirming…" : "Accept & Confirm Order"}
                         </button>
                       </div>
@@ -1249,18 +1297,18 @@ export default function ShopDashboard() {
 
                     {/* Confirmed → shop packs and marks ready */}
                     {o.status === "confirmed" && (
-                      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+                      <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                         <button
                           onClick={() => handleMarkReady(o.id)}
                           disabled={markingReady[o.id]}
-                          style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", background: markingReady[o.id] ? "#86EFAC" : "#16A34A", color: "#fff", border: "none", borderRadius: 8, padding: "0.55rem 1rem", cursor: markingReady[o.id] ? "not-allowed" : "pointer", fontSize: "0.82rem", fontWeight: 700 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: markingReady[o.id] ? "#86EFAC" : "#16A34A", color: "#fff", border: "none", borderRadius: 20, padding: "0.48rem 1.5rem", cursor: markingReady[o.id] ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 700, boxShadow: markingReady[o.id] ? "none" : "0 3px 10px rgba(22,163,74,0.3)" }}
                         >
-                          <CheckCircle size={14} />
+                          <CheckCircle size={13} />
                           {markingReady[o.id] ? "Updating…" : "Packed & Ready"}
                         </button>
                         <button
                           onClick={() => showQr(o.id, o.status)}
-                          style={{ display: "flex", alignItems: "center", gap: "0.35rem", background: "transparent", color: "#94A3B8", border: "1px solid #E2E8F0", borderRadius: 8, padding: "0.55rem 0.85rem", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "transparent", color: "#94A3B8", border: "1px solid #E2E8F0", borderRadius: 20, padding: "0.48rem 1rem", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}
                         >
                           <QrCode size={13} /> QR
                         </button>
@@ -1269,9 +1317,11 @@ export default function ShopDashboard() {
 
                     {/* Ready for delivery → show QR for delivery partner pickup */}
                     {o.status === "ready_for_delivery" && (
-                      <button onClick={() => showQr(o.id, o.status)} style={{ marginTop: "0.75rem", display: "flex", alignItems: "center", gap: "0.4rem", background: "#0f2460", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 1rem", cursor: "pointer", fontSize: "0.82rem", fontWeight: 600 }}>
-                        <QrCode size={14} /> Show QR for Pickup
-                      </button>
+                      <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "center" }}>
+                        <button onClick={() => showQr(o.id, o.status)} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", background: "#0f2460", color: "#fff", border: "none", borderRadius: 20, padding: "0.48rem 1.5rem", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600, boxShadow: "0 3px 10px rgba(15,36,96,0.3)" }}>
+                          <QrCode size={13} /> Show QR for Pickup
+                        </button>
+                      </div>
                     )}
 
                     {/* Pending return → accept or reject */}
@@ -1279,17 +1329,17 @@ export default function ShopDashboard() {
                       <div style={{ marginTop: "0.75rem", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 10, padding: "0.65rem 0.85rem" }}>
                         <p style={{ margin: "0 0 0.3rem", fontSize: "0.78rem", color: "#5B21B6", fontWeight: 700 }}>↩ Customer requested a return</p>
                         <p style={{ margin: "0 0 0.55rem", fontSize: "0.76rem", color: "#6D28D9" }}>Reason: {o.return_reason || "—"}</p>
-                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <div style={{ display: "flex", justifyContent: "center", gap: "0.6rem" }}>
                           <button
                             onClick={() => { setReturnNoteModal({ orderId: o.id, action: "accept" }); setReturnNote(""); }}
                             disabled={returningOrder[o.id]}
-                            style={{ flex: 1, background: returningOrder[o.id] ? "#86EFAC" : "#16A34A", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 0.7rem", cursor: returningOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 700 }}
-                          >Accept</button>
+                            style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: returningOrder[o.id] ? "#86EFAC" : "#16A34A", color: "#fff", border: "none", borderRadius: 20, padding: "0.45rem 1.25rem", cursor: returningOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.78rem", fontWeight: 700 }}
+                          >✓ Accept</button>
                           <button
                             onClick={() => { setReturnNoteModal({ orderId: o.id, action: "reject" }); setReturnNote(""); }}
                             disabled={returningOrder[o.id]}
-                            style={{ flex: 1, background: returningOrder[o.id] ? "#FCA5A5" : "#DC2626", color: "#fff", border: "none", borderRadius: 8, padding: "0.45rem 0.7rem", cursor: returningOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.8rem", fontWeight: 700 }}
-                          >Reject</button>
+                            style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: returningOrder[o.id] ? "#FCA5A5" : "#DC2626", color: "#fff", border: "none", borderRadius: 20, padding: "0.45rem 1.25rem", cursor: returningOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.78rem", fontWeight: 700 }}
+                          >✗ Reject</button>
                         </div>
                       </div>
                     )}
@@ -1332,13 +1382,15 @@ export default function ShopDashboard() {
                             : `₹${o.total.toLocaleString("en-IN")} — process refund via Razorpay/bank and mark below.`}
                         </p>
                         {o.refund_status !== "refunded" && (
-                          <button
-                            onClick={() => handleMarkRefundSent(o.id)}
-                            disabled={refundingOrder[o.id]}
-                            style={{ width: "100%", padding: "0.5rem", border: "none", borderRadius: 8, cursor: refundingOrder[o.id] ? "not-allowed" : "pointer", background: refundingOrder[o.id] ? "#FED7AA" : "#D97706", color: "#fff", fontWeight: 700, fontSize: "0.8rem" }}
-                          >
-                            {refundingOrder[o.id] ? "Updating…" : "✓ Mark Refund as Sent"}
-                          </button>
+                          <div style={{ display: "flex", justifyContent: "center" }}>
+                            <button
+                              onClick={() => handleMarkRefundSent(o.id)}
+                              disabled={refundingOrder[o.id]}
+                              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.45rem 1.25rem", border: "none", borderRadius: 20, cursor: refundingOrder[o.id] ? "not-allowed" : "pointer", background: refundingOrder[o.id] ? "#FED7AA" : "#D97706", color: "#fff", fontWeight: 700, fontSize: "0.78rem", boxShadow: refundingOrder[o.id] ? "none" : "0 3px 10px rgba(217,119,6,0.25)" }}
+                            >
+                              {refundingOrder[o.id] ? "Updating…" : "✓ Mark Refund as Sent"}
+                            </button>
+                          </div>
                         )}
                       </div>
                     )}

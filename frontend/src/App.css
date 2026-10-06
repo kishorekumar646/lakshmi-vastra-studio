@@ -2525,9 +2525,9 @@ img {
 @media (max-width: 768px) {
   .portal-page {
     flex-direction: column;
-    height: 100%;
-    min-height: 100vh;
-    overflow: visible;
+    height: 100vh;    /* fallback for browsers without dvh */
+    height: 100dvh;   /* dynamic viewport: doesn't expand when browser chrome hides */
+    overflow: hidden; /* body must not scroll — keeps fixed bottom-nav stable */
   }
   .portal-mobile-header { display: flex; }
   .portal-sidebar {
@@ -2542,8 +2542,8 @@ img {
   .portal-overlay.open { display: block; }
   .portal-main {
     padding: 1rem 0.85rem calc(58px + env(safe-area-inset-bottom, 0px) + 0.75rem);
-    overflow-y: visible;
-    height: auto;
+    overflow-y: auto;            /* scroll here, not on body */
+    overscroll-behavior-y: contain; /* prevent elastic scroll from bubbling to body */
   }
   .portal-bottom-nav { display: flex; }
 }
