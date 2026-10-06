@@ -15,6 +15,17 @@ import InstallGuideSheet from "../components/InstallGuideSheet";
 
 const EMPTY = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 
+const INDIAN_BANKS = [
+  "State Bank of India", "HDFC Bank", "ICICI Bank", "Axis Bank",
+  "Punjab National Bank", "Bank of Baroda", "Canara Bank", "Union Bank of India",
+  "Indian Bank", "Bank of India", "IDBI Bank", "Kotak Mahindra Bank",
+  "Yes Bank", "IndusInd Bank", "Federal Bank", "South Indian Bank",
+  "RBL Bank", "Bandhan Bank", "UCO Bank", "Central Bank of India",
+  "Indian Overseas Bank", "Punjab & Sind Bank", "Karnataka Bank",
+  "Karur Vysya Bank", "City Union Bank", "Tamilnad Mercantile Bank",
+  "Dhanlaxmi Bank", "Nainital Bank", "Saraswat Bank", "Other",
+];
+
 const STATUS_LABEL = {
   awaiting_payment: "Awaiting Payment",
   pending: "Order Placed", confirmed: "Confirmed",
@@ -1384,24 +1395,53 @@ export default function ShopDashboard() {
               {/* ═══ SECTION: BANK DETAILS (editable) ═══ */}
               <SL>Bank Details</SL>
               <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-                {[
-                  { label: "Account Holder Name", key: "bank_account_holder", placeholder: "As per bank records" },
-                  { label: "Bank Name",            key: "bank_name",           placeholder: "e.g. State Bank of India" },
-                  { label: "Account Number",       key: "bank_account_number", placeholder: "XXXXXXXXXXXX" },
-                  { label: "IFSC Code",            key: "bank_ifsc",           placeholder: "e.g. SBIN0001234", upper: true },
-                ].map(({ label, key, placeholder, upper }, i) => (
-                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
-                    <input
-                      type={key === "bank_account_number" ? "text" : "text"}
-                      inputMode={key === "bank_account_number" ? "numeric" : undefined}
-                      value={accountForm[key]}
-                      onChange={(e) => setAccountForm((p) => ({ ...p, [key]: upper ? e.target.value.toUpperCase() : e.target.value }))}
-                      placeholder={placeholder}
-                      style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
-                    />
-                  </div>
-                ))}
+                {/* Account Holder Name — force uppercase like delivery app */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Holder Name</p>
+                  <input
+                    type="text"
+                    value={accountForm.bank_account_holder}
+                    onChange={(e) => setAccountForm((p) => ({ ...p, bank_account_holder: e.target.value.toUpperCase() }))}
+                    placeholder="AS PER BANK RECORDS"
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                  />
+                </div>
+                {/* Bank Name — dropdown list like delivery app */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Bank Name</p>
+                  <select
+                    value={accountForm.bank_name}
+                    onChange={(e) => setAccountForm((p) => ({ ...p, bank_name: e.target.value }))}
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: accountForm.bank_name ? "#0F172A" : "#94A3B8", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box", cursor: "pointer" }}
+                  >
+                    <option value="">Select bank…</option>
+                    {INDIAN_BANKS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+                {/* Account Number — digits only */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Number</p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={accountForm.bank_account_number}
+                    onChange={(e) => setAccountForm((p) => ({ ...p, bank_account_number: e.target.value.replace(/\D/g, "") }))}
+                    placeholder="XXXXXXXXXXXX"
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                  />
+                </div>
+                {/* IFSC — uppercase */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>IFSC Code</p>
+                  <input
+                    type="text"
+                    value={accountForm.bank_ifsc}
+                    onChange={(e) => setAccountForm((p) => ({ ...p, bank_ifsc: e.target.value.toUpperCase() }))}
+                    placeholder="e.g. SBIN0001234"
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                  />
+                </div>
+                {/* Account Type */}
                 <div style={{ padding: "0.85rem 1.1rem" }}>
                   <p style={{ margin: "0 0 0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Type</p>
                   <div style={{ display: "flex", gap: "0.65rem" }}>

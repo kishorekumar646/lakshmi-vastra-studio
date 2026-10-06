@@ -2480,7 +2480,13 @@ img {
   background: #fff;
   border-top: 1px solid #E2E8F0;
   box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* fixed height prevents any layout shift when active tab changes */
+  height: calc(58px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  /* stabilise on iOS Safari — prevents fixed-element jitter on content height changes */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform;
 }
 .portal-bottom-tab {
   flex: 1;
@@ -2488,19 +2494,24 @@ img {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.2rem;
-  padding: 0.65rem 0.5rem;
+  gap: 0.22rem;
+  padding: 0 0.5rem;
+  /* explicit height = same 58px logical area all tabs; eliminates font-driven shift */
+  height: 58px;
   border: none;
   background: none;
   cursor: pointer;
   transition: color 0.18s;
   position: relative;
+  box-sizing: border-box;
 }
 .portal-bottom-tab span.pbt-label {
-  font-size: 0.63rem;
+  font-size: 0.68rem;   /* increased from 0.63 — more readable */
   font-weight: 500;
+  line-height: 1;
 }
-.portal-bottom-tab.active span.pbt-label { font-weight: 800; font-size: 0.66rem; }
+/* keep SAME font-size on active so no height reflow; only weight + colour change */
+.portal-bottom-tab.active span.pbt-label { font-weight: 800; font-size: 0.68rem; }
 .portal-bottom-tab.active::before {
   content: '';
   position: absolute;
@@ -2531,7 +2542,7 @@ img {
   .portal-sidebar.open { transform: translateX(0); }
   .portal-overlay.open { display: block; }
   .portal-main {
-    padding: 1rem 0.85rem 5.5rem;
+    padding: 1rem 0.85rem calc(58px + env(safe-area-inset-bottom, 0px) + 0.75rem);
     overflow-y: visible;
     height: auto;
   }
