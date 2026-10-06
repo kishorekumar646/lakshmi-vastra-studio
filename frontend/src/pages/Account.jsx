@@ -9,11 +9,11 @@ function useIsMobile(breakpoint = 640) {
   }, [breakpoint]);
   return isMobile;
 }
-import { Link, useNavigate } from "react-router-dom";
-import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle, Camera } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { User, Lock, Mail, Phone, LogOut, ShoppingBag, Eye, EyeOff, ArrowRight, Package, MapPin, Edit2, Check, X, Truck, XCircle, Camera, CreditCard } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../context/AuthContext";
-import { getOrders, cancelOrder, updateProfile, uploadCustomerAvatar } from "../api";
+import { getOrders, cancelOrder, updateProfile, uploadCustomerAvatar, retryPayment, verifyPayment } from "../api";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 import { stripPhone, formatPhone, phoneError } from "../utils/phone";
 
@@ -226,8 +226,9 @@ function RegisterForm({ onSwitch, onGoogleSuccess }) {
 
 /* ── Order history ───────────────────────────────────────── */
 const STATUS_STYLE = {
-  pending:            { bg: "#FEF9C3", color: "#854D0E", label: "Pending" },
-  confirmed:          { bg: "#DBEAFE", color: "#1E40AF", label: "Confirmed" },
+  awaiting_payment:   { bg: "#FFF7ED", color: "#C2410C", label: "Awaiting Payment" },
+  pending:            { bg: "#D1FAE5", color: "#065F46", label: "Order Placed" },
+  confirmed:          { bg: "#DBEAFE", color: "#1E40AF", label: "Confirmed by Shop" },
   ready_for_delivery: { bg: "#D1FAE5", color: "#065F46", label: "Packed & Ready" },
   picked_up:          { bg: "#EDE9FE", color: "#5B21B6", label: "Out for Delivery" },
   delivered:          { bg: "#D1FAE5", color: "#065F46", label: "Delivered" },
@@ -235,12 +236,29 @@ const STATUS_STYLE = {
 };
 
 const CANCELLABLE = ["pending", "confirmed"];
+const RAZORPAY_KEY_ID = import.meta.env.VITE_RAZORPAY_KEY_ID || "";
+
+function openRazorpayModal(options) {
+  return new Promise((resolve, reject) => {
+    if (!window.Razorpay) { reject(new Error("Razorpay not loaded")); return; }
+    const rzp = new window.Razorpay({
+      ...options,
+      handler: resolve,
+      modal: { ondismiss: () => reject(new Error("dismissed")) },
+    });
+    rzp.on("payment.failed", (r) => reject(new Error(r.error?.description || "Payment failed")));
+    rzp.open();
+  });
+}
 
 function OrderHistory() {
   const navigate = useNavigate();
+  const { customer } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(null);
+  const [retrying, setRetrying] = useState(null);
+  const [expanded, setExpanded] = useState({});
 
   const load = () => {
     getOrders()
@@ -262,6 +280,40 @@ function OrderHistory() {
       toast.error(err.response?.data?.detail || "Cannot cancel this order");
     } finally {
       setCancelling(null);
+    }
+  };
+
+  const handleRetryPayment = async (order) => {
+    setRetrying(order.id);
+    try {
+      const { data } = await retryPayment(order.id);
+      const payment = await openRazorpayModal({
+        key:         data.key_id || RAZORPAY_KEY_ID,
+        amount:      data.amount,
+        currency:    data.currency || "INR",
+        name:        "Lakshmi Vastra Studio",
+        description: `Order #${order.id}`,
+        order_id:    data.razorpay_order_id,
+        prefill:     { name: customer?.name || "", email: customer?.email || "" },
+        theme:       { color: "#7B1D45" },
+        modal:       { escape: false },
+      });
+      await verifyPayment({
+        order_id:             order.id,
+        razorpay_order_id:    payment.razorpay_order_id,
+        razorpay_payment_id:  payment.razorpay_payment_id,
+        razorpay_signature:   payment.razorpay_signature,
+      });
+      toast.success("Payment successful! Order confirmed.");
+      load();
+    } catch (err) {
+      if (err.message === "dismissed") {
+        toast("Payment cancelled.", { icon: "ℹ️" });
+      } else {
+        toast.error(err.response?.data?.detail || err.message || "Payment failed. Please try again.");
+      }
+    } finally {
+      setRetrying(null);
     }
   };
 
@@ -293,16 +345,28 @@ function OrderHistory() {
       {orders.map((order, idx) => {
         const st = STATUS_STYLE[order.status] || { bg: "#F1F5F9", color: "#64748B", label: order.status };
         const canCancel = CANCELLABLE.includes(order.status);
-        const canTrack = order.status !== "cancelled";
+        const canTrack  = !["cancelled", "awaiting_payment"].includes(order.status);
+        const isAwaiting = order.status === "awaiting_payment";
+        const showHistory = expanded[order.id];
+
         return (
           <div
             key={order.id}
             style={{
-              background: "#fff", borderRadius: 10, padding: "1.5rem",
-              border: "1px solid var(--border-light)", boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+              background: "#fff", borderRadius: 12, padding: "1.4rem 1.5rem",
+              border: isAwaiting ? "1.5px solid #FED7AA" : "1px solid var(--border-light)",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
               animation: `slideUp 0.3s ease ${idx * 0.06}s both`,
             }}
           >
+            {/* Awaiting payment banner */}
+            {isAwaiting && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 8, padding: "0.55rem 0.85rem", marginBottom: "1rem", fontSize: "0.82rem", color: "#C2410C", fontWeight: 600 }}>
+                <CreditCard size={14} />
+                Payment not completed — complete payment to confirm your order.
+              </div>
+            )}
+
             {/* Top row */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
@@ -311,7 +375,7 @@ function OrderHistory() {
                 </div>
                 <div>
                   <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.92rem", margin: 0 }}>Order #{order.id}</p>
-                  <p style={{ color: "var(--text-muted)", fontSize: "0.76rem", marginTop: "0.1rem", margin: 0 }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: "0.76rem", margin: "0.1rem 0 0" }}>
                     {new Date(order.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
                     {" · "}{order.payment_method === "cod" ? "Cash on Delivery" : "Paid Online"}
                   </p>
@@ -321,28 +385,74 @@ function OrderHistory() {
                 <span style={{ display: "inline-block", padding: "0.22rem 0.8rem", borderRadius: 20, background: st.bg, color: st.color, fontSize: "0.72rem", fontWeight: 700 }}>
                   {st.label}
                 </span>
-                <p style={{ fontWeight: 700, color: "var(--text)", marginTop: "0.35rem", fontSize: "1.05rem", margin: "0.35rem 0 0" }}>
+                <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "1.05rem", margin: "0.35rem 0 0" }}>
                   ₹{order.total.toLocaleString("en-IN")}
                 </p>
               </div>
             </div>
 
             {/* Items */}
-            <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+            <div style={{ borderTop: "1px solid var(--border-light)", paddingTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
               {order.items?.map((item, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.83rem", color: "var(--text-muted)" }}>
-                  <span>{item.name} × {item.quantity}</span>
-                  <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.83rem" }}>
+                  {item.image_url && (
+                    <img src={item.image_url} alt={item.name} style={{ width: 36, height: 36, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
+                  )}
+                  <span style={{ flex: 1, color: "var(--text)", fontWeight: 500 }}>{item.name}</span>
+                  <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}>× {item.quantity}</span>
+                  <span style={{ color: "var(--text)", fontWeight: 600, whiteSpace: "nowrap" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
                 </div>
               ))}
             </div>
 
+            {/* Status timeline (collapsible) */}
+            {order.status_history?.length > 0 && (
+              <div style={{ marginTop: "0.85rem" }}>
+                <button
+                  onClick={() => setExpanded(e => ({ ...e, [order.id]: !e[order.id] }))}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--primary)", fontSize: "0.78rem", fontWeight: 700, padding: 0, display: "flex", alignItems: "center", gap: "0.3rem" }}
+                >
+                  {showHistory ? "Hide" : "View"} Order History
+                </button>
+                {showHistory && (
+                  <div style={{ marginTop: "0.75rem", paddingLeft: "0.5rem", borderLeft: "2px solid var(--border-light)", display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+                    {[...(order.status !== "awaiting_payment"
+                      ? order.status_history.filter(h => h.status !== "awaiting_payment")
+                      : order.status_history
+                    )].reverse().map((h, i) => (
+                      <div key={i} style={{ display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: i === 0 ? "var(--primary)" : "var(--border)", marginTop: 5, flexShrink: 0 }} />
+                        <div>
+                          <p style={{ fontSize: "0.8rem", fontWeight: 600, color: "var(--text)", margin: 0 }}>
+                            {STATUS_STYLE[h.status]?.label || h.status}
+                          </p>
+                          {h.note && <p style={{ fontSize: "0.74rem", color: "var(--text-muted)", margin: "0.1rem 0 0" }}>{h.note}</p>}
+                          <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", margin: "0.1rem 0 0" }}>
+                            {new Date(h.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Action buttons */}
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--border-light)", flexWrap: "wrap" }}>
+              {isAwaiting && (
+                <button
+                  onClick={() => handleRetryPayment(order)}
+                  disabled={retrying === order.id}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1.1rem", background: "#C2410C", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700, opacity: retrying === order.id ? 0.7 : 1 }}
+                >
+                  <CreditCard size={14} /> {retrying === order.id ? "Opening…" : "Complete Payment"}
+                </button>
+              )}
               {canTrack && (
                 <button
                   onClick={() => navigate(`/track/${order.id}`)}
-                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 1rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700 }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1.1rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700 }}
                 >
                   <Truck size={14} /> Track Order
                 </button>
@@ -351,7 +461,7 @@ function OrderHistory() {
                 <button
                   onClick={() => handleCancel(order.id)}
                   disabled={cancelling === order.id}
-                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.45rem 1rem", background: "#fff", color: "#c0392b", border: "1px solid #fca5a5", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700, opacity: cancelling === order.id ? 0.6 : 1 }}
+                  style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.5rem 1.1rem", background: "#fff", color: "#c0392b", border: "1px solid #fca5a5", borderRadius: 7, cursor: "pointer", fontSize: "0.82rem", fontWeight: 700, opacity: cancelling === order.id ? 0.6 : 1 }}
                 >
                   <XCircle size={14} /> {cancelling === order.id ? "Cancelling…" : "Cancel Order"}
                 </button>
@@ -574,9 +684,12 @@ function ProfileSection({ customer }) {
 export default function Account() {
   const { customer, logout, googleAuth, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [tab, setTab] = useState("login");
-  const [activeSection, setActiveSection] = useState("profile");
+  const [activeSection, setActiveSection] = useState(
+    searchParams.get("tab") === "orders" ? "orders" : "profile"
+  );
 
   const handleGoogleCredential = useCallback(async (credential) => {
     try {

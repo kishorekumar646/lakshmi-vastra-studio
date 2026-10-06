@@ -140,16 +140,19 @@ def create_order(body: CreateOrderBody, background: BackgroundTasks, customer: C
 
     if body.payment_method == "razorpay":
         rzp_order = _razorpay_create_order(total, f"cust_{customer.id}")
+        # Status is 'awaiting_payment' — cart is NOT cleared yet.
+        # Cart is only cleared after payment is verified successfully.
         order = Order(
             customer_id=customer.id,
             total=total,
-            status="pending",
+            status="awaiting_payment",
             payment_method="razorpay",
             razorpay_order_id=rzp_order["id"],
             delivery_address=body.delivery_address,
             qr_token=qr_token,
         )
     else:
+        # COD: confirm immediately and clear cart
         order = Order(
             customer_id=customer.id,
             total=total,
@@ -167,28 +170,24 @@ def create_order(body: CreateOrderBody, background: BackgroundTasks, customer: C
             db.add(OrderItem(
                 order_id=order.id,
                 product_id=item.product_id,
-                shop_owner_id=item.product.shop_owner_id,  # snapshot which shop owns this item
+                shop_owner_id=item.product.shop_owner_id,
                 quantity=item.quantity,
                 price=item.product.price,
             ))
 
-    db.add(OrderStatusHistory(order_id=order.id, status="pending", note="Order placed"))
-    db.query(CartItem).filter(CartItem.customer_id == customer.id).delete()
+    if body.payment_method == "razorpay":
+        db.add(OrderStatusHistory(order_id=order.id, status="awaiting_payment", note="Payment initiated — awaiting confirmation"))
+        # Cart stays intact until payment verified
+    else:
+        db.add(OrderStatusHistory(order_id=order.id, status="pending", note="Order placed (Cash on Delivery)"))
+        db.query(CartItem).filter(CartItem.customer_id == customer.id).delete()
+
     db.commit()
     db.refresh(order)
 
-    # Notify admin + relevant shop owners
-    from notifications.push import notify
-    from models import OrderItem as OI, Product as P
-    items_q = db.query(OI).filter(OI.order_id == order.id).all()
-    shop_owner_ids = set(
-        db.query(P.shop_owner_id).filter(P.id.in_([i.product_id for i in items_q]), P.shop_owner_id.isnot(None)).all()
-    )
-    def _notify():
-        notify(db, "admin", None, "New Order", f"Order #{order.id} placed by {customer.name} · ₹{order.total:,.0f}", "/admin/dashboard")
-        for (sid,) in shop_owner_ids:
-            notify(db, "shop_owner", sid, "New Order for Your Shop", f"Order #{order.id} includes your products · ₹{order.total:,.0f}", "/shop/dashboard")
-    background.add_task(_notify)
+    if body.payment_method == "cod":
+        # Notify for COD orders immediately
+        _send_order_notifications(background, db, order, customer)
 
     if body.payment_method == "razorpay":
         return {
@@ -201,8 +200,22 @@ def create_order(body: CreateOrderBody, background: BackgroundTasks, customer: C
     return {"order_id": order.id, "status": "pending", "payment_method": "cod"}
 
 
+def _send_order_notifications(background: BackgroundTasks, db: Session, order, customer):
+    from notifications.push import notify
+    from models import OrderItem as OI, Product as P
+    items_q = db.query(OI).filter(OI.order_id == order.id).all()
+    shop_owner_ids = set(
+        db.query(P.shop_owner_id).filter(P.id.in_([i.product_id for i in items_q]), P.shop_owner_id.isnot(None)).all()
+    )
+    def _notify():
+        notify(db, "admin", None, "New Order", f"Order #{order.id} placed by {customer.name} · ₹{order.total:,.0f}", "/admin/dashboard")
+        for (sid,) in shop_owner_ids:
+            notify(db, "shop_owner", sid, "New Order for Your Shop", f"Order #{order.id} includes your products · ₹{order.total:,.0f}", "/shop/dashboard")
+    background.add_task(_notify)
+
+
 @router.post("/verify")
-def verify_payment(body: VerifyPaymentBody, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+def verify_payment(body: VerifyPaymentBody, background: BackgroundTasks, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
     if not _verify_signature(body.razorpay_order_id, body.razorpay_payment_id, body.razorpay_signature):
         raise HTTPException(status_code=400, detail="Payment signature verification failed")
 
@@ -210,12 +223,45 @@ def verify_payment(body: VerifyPaymentBody, customer: Customer = Depends(get_cur
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    order.status = "confirmed"
+    if order.status not in ("awaiting_payment",):
+        raise HTTPException(status_code=400, detail="Order is not awaiting payment")
+
+    order.status = "pending"
     order.razorpay_payment_id = body.razorpay_payment_id
-    db.add(OrderStatusHistory(order_id=order.id, status="confirmed", note="Payment received via Razorpay"))
+    db.add(OrderStatusHistory(order_id=order.id, status="pending", note="Payment received via Razorpay — order placed"))
+
+    # Now it is safe to clear the customer's cart
+    db.query(CartItem).filter(CartItem.customer_id == customer.id).delete()
+
     db.commit()
 
-    return {"success": True, "order_id": order.id, "status": "confirmed"}
+    _send_order_notifications(background, db, order, customer)
+
+    return {"success": True, "order_id": order.id, "status": "pending"}
+
+
+@router.post("/{order_id}/retry-payment")
+def retry_payment(order_id: int, customer: Customer = Depends(get_current_customer), db: Session = Depends(get_db)):
+    """Create a fresh Razorpay order for an existing awaiting_payment order."""
+    order = db.query(Order).filter(Order.id == order_id, Order.customer_id == customer.id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    if order.status != "awaiting_payment":
+        raise HTTPException(status_code=400, detail="Order is not awaiting payment")
+
+    rzp_order = _razorpay_create_order(order.total, f"retry_{order.id}")
+    order.razorpay_order_id = rzp_order["id"]
+    db.commit()
+
+    return {
+        "order_id": order.id,
+        "razorpay_order_id": rzp_order["id"],
+        "amount": rzp_order["amount"],
+        "currency": rzp_order["currency"],
+        "key_id": RAZORPAY_KEY_ID,
+        "delivery_address": order.delivery_address,
+        "total": order.total,
+    }
 
 
 @router.get("/{order_id}/qr")

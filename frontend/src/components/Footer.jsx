@@ -27,7 +27,7 @@ export default function Footer() {
             Quick Links
           </h4>
           <ul style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: "0.7rem" }}>
-            {[{ to: "/", label: "Home" }, { to: "/catalog", label: "Collection" }, { to: "/contact", label: "Contact Us" }, { to: "/install", label: "Install App" }].map((l) => (
+            {[{ to: "/", label: "Home" }, { to: "/catalog", label: "Collection" }, { to: "/contact", label: "Contact Us" }].map((l) => (
               <li key={l.to}>
                 <Link
                   to={l.to}

@@ -19,6 +19,7 @@ import Install from "./pages/Install";
 import Shop from "./pages/Shop";
 import Wishlist from "./pages/Wishlist";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import Account from "./pages/Account";
 import ApiDocs from "./pages/ApiDocs";
 import HelpCenter from "./pages/HelpCenter";
@@ -160,6 +161,7 @@ export default function App() {
                       <Route path="/contact" element={<Contact />} />
                       <Route path="/wishlist" element={<Wishlist />} />
                       <Route path="/cart" element={<Cart />} />
+                      <Route path="/checkout" element={<Checkout />} />
                       <Route path="/account" element={<Account />} />
                       <Route path="/about" element={<About />} />
                       <Route path="/track/:orderId" element={<OrderTracking />} />

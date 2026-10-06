@@ -9,13 +9,13 @@ const STEPS = [
     key: "pending",
     label: "Order Placed",
     icon: ShoppingBag,
-    desc: "Your order has been received and is awaiting confirmation.",
+    desc: "Payment received. Your order is placed and the shop will start preparing it shortly.",
   },
   {
     key: "confirmed",
-    label: "Order Confirmed",
+    label: "Confirmed by Shop",
     icon: CheckCircle,
-    desc: "Payment confirmed. The shop is now preparing your package.",
+    desc: "The shop has confirmed your order and is now preparing your package.",
   },
   {
     key: "ready_for_delivery",
@@ -38,7 +38,7 @@ const STEPS = [
 ];
 
 const STATUS_BANNER = {
-  pending: { bg: "#FEF9C3", color: "#854D0E", border: "#FDE047", emoji: "🕐", msg: "Waiting for confirmation" },
+  pending: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "✅", msg: "Payment received — order placed!" },
   confirmed: { bg: "#DBEAFE", color: "#1E40AF", border: "#93C5FD", emoji: "📦", msg: "Shop is packing your order" },
   ready_for_delivery: { bg: "#D1FAE5", color: "#065F46", border: "#6EE7B7", emoji: "✅", msg: "Packed & waiting for pickup" },
   picked_up: { bg: "#EDE9FE", color: "#5B21B6", border: "#C4B5FD", emoji: "🚚", msg: "Out for delivery" },

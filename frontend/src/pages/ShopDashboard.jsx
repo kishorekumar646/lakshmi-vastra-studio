@@ -15,11 +15,13 @@ import InstallGuideSheet from "../components/InstallGuideSheet";
 const EMPTY = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
 
 const STATUS_LABEL = {
-  pending: "Pending", confirmed: "Confirmed",
+  awaiting_payment: "Awaiting Payment",
+  pending: "Order Placed", confirmed: "Confirmed",
   ready_for_delivery: "Ready for Delivery", picked_up: "Picked Up", delivered: "Delivered",
 };
 const STATUS_COLOR = {
-  pending: "#888", confirmed: "#2563eb",
+  awaiting_payment: "#C2410C",
+  pending: "#16a34a", confirmed: "#2563eb",
   ready_for_delivery: "#d97706", picked_up: "#7c3aed", delivered: "#16a34a",
 };
 
@@ -306,7 +308,7 @@ export default function ShopDashboard() {
     }
   };
 
-  const pendingCount = orders.filter((o) => o.status === "pending").length;
+  const pendingCount = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
   const SHOP_NAV = [
     { key: "products", label: "Products", icon: <Package size={17} /> },
     { key: "orders",   label: "Orders",   icon: <ShoppingBag size={17} />, badge: pendingCount || null },

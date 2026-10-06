@@ -477,7 +477,7 @@ export default function AdminDashboard() {
     ? allProducts.slice((productPage - 1) * PER_PAGE, productPage * PER_PAGE)
     : allProducts;
 
-  const pendingOrders = orders.filter((o) => o.status === "pending").length;
+  const pendingOrders = orders.filter((o) => o.status === "pending" || o.status === "awaiting_payment").length;
   const pendingApprovals = shopOwners.filter((s) => !s.is_approved).length;
 
   const NAV_ITEMS = [
@@ -1221,7 +1221,8 @@ export default function AdminDashboard() {
         {/* ── Orders Tab ─────────────────── */}
         {tab === "orders" && (() => {
           const ORDER_STATUS = {
-            pending:              { bg: "#FEF3C7", color: "#92400E",  border: "#FDE047", label: "Pending",            dot: "#F59E0B" },
+            awaiting_payment:     { bg: "#FFF7ED", color: "#C2410C",  border: "#FED7AA", label: "Awaiting Payment",  dot: "#F97316" },
+            pending:              { bg: "#FEF3C7", color: "#92400E",  border: "#FDE047", label: "Order Placed",       dot: "#F59E0B" },
             confirmed:            { bg: "#DBEAFE", color: "#1E40AF",  border: "#93C5FD", label: "Confirmed",          dot: "#3B82F6" },
             ready_for_delivery:   { bg: "#D1FAE5", color: "#065F46",  border: "#6EE7B7", label: "Ready for Delivery", dot: "#10B981" },
             picked_up:            { bg: "#EDE9FE", color: "#5B21B6",  border: "#C4B5FD", label: "Picked Up",          dot: "#7C3AED" },
@@ -1389,6 +1390,19 @@ export default function AdminDashboard() {
                             <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "var(--primary)" }}>₹{o.total?.toLocaleString("en-IN")}</p>
                             <p style={{ margin: 0, fontSize: "0.7rem", color: "#94A3B8" }}>{o.payment_method === "cod" ? "💵 COD" : "💳 Paid"}</p>
                           </div>
+
+                          {/* Created date */}
+                          {o.created_at && (
+                            <div style={{ flexShrink: 0, textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                              <p style={{ margin: 0, fontSize: "0.73rem", color: "#64748B", fontWeight: 600, display: "flex", alignItems: "center", gap: "0.25rem" }}>
+                                <Calendar size={11} />
+                                {new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                              </p>
+                              <p style={{ margin: 0, fontSize: "0.67rem", color: "#94A3B8" }}>
+                                {new Date(o.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                          )}
 
                           {/* Status badge */}
                           <span style={{

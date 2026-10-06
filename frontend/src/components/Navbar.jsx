@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Menu, X, ShoppingCart, Heart, User, ChevronRight } from "lucide-react";
+import { Menu, X, ShoppingCart, Heart, User, ChevronRight, Download } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
 import { WHATSAPP_NUMBER } from "../api";
+import { getInstallPrompt, clearInstallPrompt } from "../pwaInstall";
 
 const WA_SVG = (
   <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: 19, height: 19 }}>
@@ -28,6 +29,26 @@ export default function Navbar() {
   const navigate = useNavigate();
 
   const close = () => setOpen(false);
+
+  // Show install button only if not already running as standalone PWA
+  const [showInstall, setShowInstall] = useState(false);
+  useEffect(() => {
+    const isStandalone = window.matchMedia("(display-mode: standalone)").matches
+      || window.navigator.standalone === true;
+    if (!isStandalone) setShowInstall(true);
+  }, []);
+
+  const handleInstall = async () => {
+    close();
+    const prompt = getInstallPrompt();
+    if (prompt) {
+      prompt.prompt();
+      const { outcome } = await prompt.userChoice;
+      if (outcome === "accepted") clearInstallPrompt();
+    } else {
+      navigate("/install");
+    }
+  };
 
   return (
     <nav className="navbar">
@@ -89,6 +110,17 @@ export default function Navbar() {
           >
             {WA_SVG}
           </a>
+
+          {showInstall && (
+            <button
+              onClick={handleInstall}
+              className="nav-install-btn"
+              title="Install App"
+            >
+              <Download size={14} />
+              Install App
+            </button>
+          )}
 
           <div className="nav-divider" />
 
@@ -154,6 +186,16 @@ export default function Navbar() {
             {customer ? customer.name : "Sign In / Register"}
             <ChevronRight size={15} style={{ opacity: 0.4 }} />
           </NavLink>
+
+          {showInstall && (
+            <button
+              className="nav-mobile-link nav-mobile-install"
+              onClick={handleInstall}
+            >
+              <Download size={16} /> Install App
+              <ChevronRight size={15} style={{ opacity: 0.4 }} />
+            </button>
+          )}
 
           <a
             href={`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent("Hi! I need help with Lakshmi Vastra Studio. ")}`}
