@@ -350,90 +350,171 @@ export default function ShopDashboard() {
       {/* ── Product Detail Modal ── */}
       {productModal && (() => {
         const { item, product } = productModal;
-        const images = product?.images?.length ? product.images.map(i => i.url) : (item.image_url ? [item.image_url] : []);
+        const images = product?.images?.length ? product.images.map(img => img.url) : (item.image_url ? [item.image_url] : []);
         const mainSrc = images[productModalImg] || item.image_url;
+        const name = product?.name || item.name;
+        const price = Number(product?.price ?? item.price);
+        const totalPrice = Number(item.price) * item.quantity;
         return (
           <div
             onClick={() => setProductModal(null)}
-            style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+            style={{
+              position: "fixed", inset: 0, zIndex: 9000,
+              background: "rgba(15,23,42,0.65)",
+              backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              padding: "1rem",
+            }}
           >
             <div
               onClick={(e) => e.stopPropagation()}
-              style={{ background: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}
+              style={{
+                background: "#fff",
+                borderRadius: 20,
+                width: "100%", maxWidth: 430,
+                maxHeight: "88vh",
+                display: "flex", flexDirection: "column",
+                boxShadow: "0 32px 80px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.15)",
+                overflow: "hidden",
+              }}
             >
-              {/* Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0.75rem", borderBottom: "1px solid #F1F5F9" }}>
-                <p style={{ margin: 0, fontWeight: 800, fontSize: "0.95rem", color: "#0F172A" }}>Product Details</p>
-                <button onClick={() => setProductModal(null)} style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                  <X size={16} color="#64748B" />
+              {/* ── Image zone ── */}
+              <div style={{ position: "relative", flexShrink: 0, background: "#F8FAFC", height: 260 }}>
+                {mainSrc ? (
+                  <img
+                    src={mainSrc} alt={name}
+                    style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+                  />
+                ) : (
+                  <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Package size={52} color="#CBD5E1" />
+                  </div>
+                )}
+
+                {/* Price badge floating over image */}
+                <div style={{
+                  position: "absolute", bottom: 12, left: 14,
+                  background: "linear-gradient(135deg,#7B1D45,#a82257)",
+                  color: "#fff", borderRadius: 10,
+                  padding: "0.3rem 0.85rem",
+                  fontSize: "1rem", fontWeight: 900,
+                  boxShadow: "0 4px 14px rgba(123,29,69,0.4)",
+                }}>
+                  ₹{price.toLocaleString("en-IN")}
+                </div>
+
+                {/* Image nav arrows */}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setProductModalImg((i) => (i - 1 + images.length) % images.length)}
+                      style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.88)", border: "none", borderRadius: "50%", width: 34, height: 34, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}
+                    >
+                      <ChevronLeft size={17} color="#0F172A" />
+                    </button>
+                    <button
+                      onClick={() => setProductModalImg((i) => (i + 1) % images.length)}
+                      style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "rgba(255,255,255,0.88)", border: "none", borderRadius: "50%", width: 34, height: 34, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 8px rgba(0,0,0,0.18)" }}
+                    >
+                      <ChevronRight size={17} color="#0F172A" />
+                    </button>
+                    {/* Dot indicators */}
+                    <div style={{ position: "absolute", bottom: 14, right: 14, display: "flex", gap: "0.3rem", alignItems: "center" }}>
+                      {images.map((_, i) => (
+                        <div
+                          key={i} onClick={() => setProductModalImg(i)}
+                          style={{ width: i === productModalImg ? 18 : 6, height: 6, borderRadius: 3, background: i === productModalImg ? "#fff" : "rgba(255,255,255,0.5)", cursor: "pointer", transition: "all 0.2s", boxShadow: "0 1px 3px rgba(0,0,0,0.2)" }}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {/* Close button */}
+                <button
+                  onClick={() => setProductModal(null)}
+                  style={{
+                    position: "absolute", top: 12, right: 12,
+                    background: "rgba(255,255,255,0.9)", backdropFilter: "blur(4px)",
+                    border: "none", borderRadius: "50%", width: 34, height: 34,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  <X size={16} color="#334155" />
                 </button>
               </div>
 
-              {/* Image */}
-              {mainSrc && (
-                <div style={{ position: "relative", background: "#F8FAFC" }}>
-                  <img src={mainSrc} alt={item.name} style={{ width: "100%", height: 240, objectFit: "contain", display: "block" }} />
-                  {images.length > 1 && (
-                    <>
-                      <button onClick={() => setProductModalImg((i) => (i - 1 + images.length) % images.length)} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.35)", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <ChevronLeft size={18} />
-                      </button>
-                      <button onClick={() => setProductModalImg((i) => (i + 1) % images.length)} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.35)", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <ChevronRight size={18} />
-                      </button>
-                      <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: "0.3rem" }}>
-                        {images.map((_, i) => (
-                          <div key={i} onClick={() => setProductModalImg(i)} style={{ width: i === productModalImg ? 20 : 6, height: 6, borderRadius: 3, background: i === productModalImg ? "#7B1D45" : "rgba(255,255,255,0.6)", cursor: "pointer", transition: "all 0.2s" }} />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Thumbnails */}
+              {/* Thumbnail strip */}
               {images.length > 1 && (
-                <div style={{ display: "flex", gap: "0.4rem", padding: "0.65rem 1.25rem", overflowX: "auto" }}>
+                <div style={{ display: "flex", gap: "0.4rem", padding: "0.6rem 1rem", overflowX: "auto", borderBottom: "1px solid #F1F5F9", flexShrink: 0 }}>
                   {images.map((src, i) => (
-                    <img key={i} src={src} alt="" onClick={() => setProductModalImg(i)} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `2px solid ${i === productModalImg ? "#7B1D45" : "transparent"}`, cursor: "pointer", opacity: i === productModalImg ? 1 : 0.65 }} />
+                    <img
+                      key={i} src={src} alt="" onClick={() => setProductModalImg(i)}
+                      style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `2.5px solid ${i === productModalImg ? "#7B1D45" : "#E2E8F0"}`, cursor: "pointer", opacity: i === productModalImg ? 1 : 0.6, transition: "all 0.18s" }}
+                    />
                   ))}
                 </div>
               )}
 
-              {/* Info */}
-              <div style={{ padding: "1rem 1.25rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                  <p style={{ margin: 0, fontWeight: 800, fontSize: "1.05rem", color: "#0F172A", flex: 1, marginRight: "0.5rem" }}>{product?.name || item.name}</p>
-                  <p style={{ margin: 0, fontWeight: 900, fontSize: "1.1rem", color: "#7B1D45", flexShrink: 0 }}>₹{Number(product?.price || item.price).toLocaleString("en-IN")}</p>
-                </div>
+              {/* ── Scrollable content ── */}
+              <div style={{ overflowY: "auto", flex: 1, padding: "1.1rem 1.25rem 1.25rem" }}>
+
+                {/* Name + category */}
+                <p style={{ margin: "0 0 0.35rem", fontWeight: 800, fontSize: "1.1rem", color: "#0F172A", lineHeight: 1.35 }}>{name}</p>
                 {product?.category_name && (
-                  <span style={{ display: "inline-block", fontSize: "0.72rem", fontWeight: 700, background: "#F1F5F9", color: "#475569", borderRadius: 20, padding: "0.18rem 0.6rem", marginBottom: "0.75rem" }}>
-                    {product.category_name}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.72rem", fontWeight: 700, background: "#F1F5F9", color: "#475569", borderRadius: 20, padding: "0.2rem 0.65rem", marginBottom: "0.85rem" }}>
+                    🏷️ {product.category_name}
                   </span>
                 )}
+
+                {/* Description */}
                 {product?.description && (
-                  <p style={{ margin: "0.6rem 0 0.85rem", fontSize: "0.85rem", color: "#475569", lineHeight: 1.65 }}>{product.description}</p>
+                  <>
+                    <p style={{ margin: "0 0 0.35rem", fontSize: "0.7rem", fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em" }}>Description</p>
+                    <p style={{ margin: "0 0 1rem", fontSize: "0.85rem", color: "#475569", lineHeight: 1.7 }}>{product.description}</p>
+                  </>
                 )}
 
                 {/* Attribute badges */}
                 {(product?.is_handloom || product?.has_multiple_colours || product?.custom_orders || product?.is_featured) && (
-                  <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
-                    {product.is_featured && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Featured</span>}
-                    {product.is_handloom && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Handloom</span>}
-                    {product.has_multiple_colours && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#DBEAFE", color: "#1E40AF", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Multi-colour</span>}
-                    {product.custom_orders && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Custom Orders</span>}
+                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                    {product.is_featured && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E", borderRadius: 20, padding: "0.22rem 0.6rem" }}>⭐ Featured</span>
+                    )}
+                    {product.is_handloom && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46", borderRadius: 20, padding: "0.22rem 0.6rem" }}>🧵 Handloom</span>
+                    )}
+                    {product.has_multiple_colours && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#DBEAFE", color: "#1E40AF", borderRadius: 20, padding: "0.22rem 0.6rem" }}>🎨 Multi-colour</span>
+                    )}
+                    {product.custom_orders && (
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6", borderRadius: 20, padding: "0.22rem 0.6rem" }}>✂️ Custom Orders</span>
+                    )}
                   </div>
                 )}
 
-                {/* Order summary */}
-                <div style={{ background: "#FDF8F0", border: "1px solid #FDDCB0", borderRadius: 10, padding: "0.75rem 1rem" }}>
-                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.06em" }}>Ordered</p>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.88rem", color: "#475569" }}>Qty: <strong>{item.quantity}</strong></span>
-                    <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0F172A" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                {/* Divider */}
+                <div style={{ height: 1, background: "#F1F5F9", margin: "0.1rem 0 1rem" }} />
+
+                {/* Order summary card */}
+                <div style={{ background: "linear-gradient(135deg,#FDF8F0,#FFF7ED)", border: "1.5px solid #FDE68A", borderRadius: 14, padding: "0.9rem 1rem" }}>
+                  <p style={{ margin: "0 0 0.65rem", fontSize: "0.68rem", fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.08em" }}>📦 Order Summary</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                    <span style={{ fontSize: "0.83rem", color: "#64748B" }}>Unit price</span>
+                    <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0F172A" }}>₹{Number(item.price).toLocaleString("en-IN")}</span>
                   </div>
-                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>Unit price: ₹{Number(item.price).toLocaleString("en-IN")}</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.55rem" }}>
+                    <span style={{ fontSize: "0.83rem", color: "#64748B" }}>Quantity</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", background: "#7B1D45", color: "#fff", borderRadius: 8, padding: "0.15rem 0.65rem", fontSize: "0.83rem", fontWeight: 800 }}>×{item.quantity}</span>
+                  </div>
+                  <div style={{ height: 1, background: "#FDE68A", marginBottom: "0.55rem" }} />
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#92400E" }}>Total</span>
+                    <span style={{ fontSize: "1.1rem", fontWeight: 900, color: "#7B1D45" }}>₹{totalPrice.toLocaleString("en-IN")}</span>
+                  </div>
                 </div>
+
               </div>
             </div>
           </div>
