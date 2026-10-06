@@ -2500,7 +2500,17 @@ img {
   font-size: 0.63rem;
   font-weight: 500;
 }
-.portal-bottom-tab.active span.pbt-label { font-weight: 800; }
+.portal-bottom-tab.active span.pbt-label { font-weight: 800; font-size: 0.66rem; }
+.portal-bottom-tab.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 3px;
+  border-radius: 0 0 4px 4px;
+  background: currentColor;
+}
 
 @media (max-width: 768px) {
   .portal-page {

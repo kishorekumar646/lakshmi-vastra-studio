@@ -286,9 +286,9 @@ export default function ShopDashboard() {
 
   const openProductModal = async (item) => {
     setProductModalImg(0);
-    const local = products.find((p) => p.id === item.product_id) || null;
+    const local = products.find((p) => String(p.id) === String(item.product_id)) || null;
     setProductModal({ item, product: local });
-    if (!local && item.product_id) {
+    if (item.product_id) {
       try {
         const { data } = await getPublicProduct(item.product_id);
         setProductModal((prev) => prev ? { ...prev, product: data } : null);
@@ -371,7 +371,7 @@ export default function ShopDashboard() {
 
   const pendingCount = orders.filter((o) => o.status === "pending" || o.status === "confirmed").length;
   const SHOP_NAV = [
-    { key: "products", label: "Products", icon: <Package size={17} /> },
+    { key: "products", label: "Products", icon: <Package size={17} />, badge: products.length || null },
     { key: "orders",   label: "Orders",   icon: <ShoppingBag size={17} />, badge: pendingCount || null },
     { key: "account",  label: "Account",  icon: <UserCircle size={17} /> },
   ];
