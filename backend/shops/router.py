@@ -422,7 +422,7 @@ def list_orders(owner: ShopOwner = Depends(get_current_shop_owner), db: Session 
                 (Product.shop_owner_id == owner.id)
             )
         )
-        .filter(Order.status.in_(["confirmed", "ready_for_delivery", "picked_up", "delivered"]))
+        .filter(Order.status.in_(["pending", "confirmed", "ready_for_delivery", "picked_up", "delivered"]))
         .options(
             joinedload(Order.items).joinedload(OrderItem.product),
             joinedload(Order.customer),
@@ -482,6 +482,32 @@ def scan_qr_ready(body: ScanBody, background: BackgroundTasks, owner: ShopOwner 
     order_id = order.id
     background.add_task(notify, db, "delivery_person", None,
         "New Order Ready for Pickup", f"Order #{order_id} is packed and ready. Open the app to accept.", "/delivery/dashboard")
+
+    return {"success": True, "order_id": order.id, "status": order.status}
+
+
+@router.put("/orders/{order_id}/confirm")
+def confirm_order(order_id: int, background: BackgroundTasks, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    has_item = (
+        db.query(OrderItem)
+        .join(OrderItem.product)
+        .filter(OrderItem.order_id == order.id, Product.shop_owner_id == owner.id)
+        .first()
+    )
+    if not has_item:
+        raise HTTPException(status_code=403, detail="This order does not belong to your shop")
+    if order.status != "pending":
+        raise HTTPException(status_code=400, detail=f"Order is already '{order.status}'")
+    order.status = "confirmed"
+    db.add(OrderStatusHistory(order_id=order.id, status="confirmed", note=f"Confirmed by {owner.shop_name}"))
+    db.commit()
+
+    from notifications.push import notify
+    background.add_task(notify, db, "customer", order.customer_id,
+        "Order Confirmed", f"Your order #{order.id} has been confirmed by the shop and is being prepared.", "/account/orders")
 
     return {"success": True, "order_id": order.id, "status": order.status}
 

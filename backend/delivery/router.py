@@ -264,7 +264,7 @@ def accept_order(order_id: int, person: DeliveryPerson = Depends(get_current_del
     if not order:
         raise HTTPException(status_code=409, detail="Order already taken by another delivery person")
     order.delivery_person_id = person.id
-    db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Accepted by {person.name}"))
+    db.add(OrderStatusHistory(order_id=order.id, status="ready_for_delivery", note=f"Accepted for delivery by {person.name}"))
     db.commit()
     return {"success": True, "order_id": order.id, "status": order.status}
 

@@ -139,6 +139,8 @@ export const deleteShopProductImage = (productId, imageId) => api.delete(`/api/s
 export const getShopOrders = () => api.get("/api/shops/orders");
 export const getShopOrderQr = (orderId) => api.get(`/api/shops/orders/${orderId}/qr`);
 export const shopScanQr = (qr_token) => api.post("/api/shops/orders/scan", { qr_token });
+export const shopConfirmOrder = (orderId) => api.put(`/api/shops/orders/${orderId}/confirm`);
+export const getPublicProduct = (id) => api.get(`/api/products/${id}`);
 
 // ── Delivery Person ───────────────────────────────────────────────────────────
 export const deliveryLogin = (data) => api.post("/api/delivery/login", data);

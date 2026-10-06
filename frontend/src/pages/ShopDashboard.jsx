@@ -4,9 +4,10 @@ import toast from "react-hot-toast";
 import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   deleteShopProductImage,
-  getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, uploadShopAvatar, updateShopMe, changeShopPassword,
+  getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, shopConfirmOrder, getPublicProduct,
+  uploadShopAvatar, updateShopMe, changeShopPassword,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, ExternalLink, CheckCircle, Bell } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, CheckCircle, Bell, Eye, ChevronRight } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -66,6 +67,9 @@ export default function ShopDashboard() {
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [productModal, setProductModal] = useState(null); // { item, product }
+  const [productModalImg, setProductModalImg] = useState(0);
+  const [confirmingOrder, setConfirmingOrder] = useState({});
 
   useEffect(() => {
     getCategories().then((r) => setCategories(r.data)).catch(() => {});
@@ -266,6 +270,31 @@ export default function ShopDashboard() {
     }
   };
 
+  const handleConfirmOrder = async (orderId) => {
+    setConfirmingOrder((p) => ({ ...p, [orderId]: true }));
+    try {
+      await shopConfirmOrder(orderId);
+      toast.success("Order confirmed!");
+      loadOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed to confirm order");
+    } finally {
+      setConfirmingOrder((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
+  const openProductModal = async (item) => {
+    setProductModalImg(0);
+    const local = products.find((p) => p.id === item.product_id) || null;
+    setProductModal({ item, product: local });
+    if (!local && item.product_id) {
+      try {
+        const { data } = await getPublicProduct(item.product_id);
+        setProductModal((prev) => prev ? { ...prev, product: data } : null);
+      } catch {}
+    }
+  };
+
   const S = { // inline style helpers
     card: { background: "#fff", borderRadius: 10, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: "0.75rem" },
     badge: (status) => ({ display: "inline-block", padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, background: STATUS_COLOR[status] + "18", color: STATUS_COLOR[status] }),
@@ -317,6 +346,100 @@ export default function ShopDashboard() {
 
   return (
     <div className="portal-page">
+
+      {/* ── Product Detail Modal ── */}
+      {productModal && (() => {
+        const { item, product } = productModal;
+        const images = product?.images?.length ? product.images.map(i => i.url) : (item.image_url ? [item.image_url] : []);
+        const mainSrc = images[productModalImg] || item.image_url;
+        return (
+          <div
+            onClick={() => setProductModal(null)}
+            style={{ position: "fixed", inset: 0, zIndex: 9000, background: "rgba(0,0,0,0.55)", display: "flex", alignItems: "flex-end", justifyContent: "center" }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ background: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 520, maxHeight: "90vh", overflowY: "auto", paddingBottom: "env(safe-area-inset-bottom)" }}
+            >
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem 1.25rem 0.75rem", borderBottom: "1px solid #F1F5F9" }}>
+                <p style={{ margin: 0, fontWeight: 800, fontSize: "0.95rem", color: "#0F172A" }}>Product Details</p>
+                <button onClick={() => setProductModal(null)} style={{ background: "#F1F5F9", border: "none", borderRadius: "50%", width: 30, height: 30, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                  <X size={16} color="#64748B" />
+                </button>
+              </div>
+
+              {/* Image */}
+              {mainSrc && (
+                <div style={{ position: "relative", background: "#F8FAFC" }}>
+                  <img src={mainSrc} alt={item.name} style={{ width: "100%", height: 240, objectFit: "contain", display: "block" }} />
+                  {images.length > 1 && (
+                    <>
+                      <button onClick={() => setProductModalImg((i) => (i - 1 + images.length) % images.length)} style={{ position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.35)", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <ChevronLeft size={18} />
+                      </button>
+                      <button onClick={() => setProductModalImg((i) => (i + 1) % images.length)} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "rgba(0,0,0,0.35)", border: "none", borderRadius: "50%", width: 32, height: 32, color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <ChevronRight size={18} />
+                      </button>
+                      <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: "0.3rem" }}>
+                        {images.map((_, i) => (
+                          <div key={i} onClick={() => setProductModalImg(i)} style={{ width: i === productModalImg ? 20 : 6, height: 6, borderRadius: 3, background: i === productModalImg ? "#7B1D45" : "rgba(255,255,255,0.6)", cursor: "pointer", transition: "all 0.2s" }} />
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Thumbnails */}
+              {images.length > 1 && (
+                <div style={{ display: "flex", gap: "0.4rem", padding: "0.65rem 1.25rem", overflowX: "auto" }}>
+                  {images.map((src, i) => (
+                    <img key={i} src={src} alt="" onClick={() => setProductModalImg(i)} style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 8, flexShrink: 0, border: `2px solid ${i === productModalImg ? "#7B1D45" : "transparent"}`, cursor: "pointer", opacity: i === productModalImg ? 1 : 0.65 }} />
+                  ))}
+                </div>
+              )}
+
+              {/* Info */}
+              <div style={{ padding: "1rem 1.25rem" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: "1.05rem", color: "#0F172A", flex: 1, marginRight: "0.5rem" }}>{product?.name || item.name}</p>
+                  <p style={{ margin: 0, fontWeight: 900, fontSize: "1.1rem", color: "#7B1D45", flexShrink: 0 }}>₹{Number(product?.price || item.price).toLocaleString("en-IN")}</p>
+                </div>
+                {product?.category_name && (
+                  <span style={{ display: "inline-block", fontSize: "0.72rem", fontWeight: 700, background: "#F1F5F9", color: "#475569", borderRadius: 20, padding: "0.18rem 0.6rem", marginBottom: "0.75rem" }}>
+                    {product.category_name}
+                  </span>
+                )}
+                {product?.description && (
+                  <p style={{ margin: "0.6rem 0 0.85rem", fontSize: "0.85rem", color: "#475569", lineHeight: 1.65 }}>{product.description}</p>
+                )}
+
+                {/* Attribute badges */}
+                {(product?.is_handloom || product?.has_multiple_colours || product?.custom_orders || product?.is_featured) && (
+                  <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
+                    {product.is_featured && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Featured</span>}
+                    {product.is_handloom && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Handloom</span>}
+                    {product.has_multiple_colours && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#DBEAFE", color: "#1E40AF", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Multi-colour</span>}
+                    {product.custom_orders && <span style={{ fontSize: "0.68rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6", borderRadius: 20, padding: "0.15rem 0.5rem" }}>Custom Orders</span>}
+                  </div>
+                )}
+
+                {/* Order summary */}
+                <div style={{ background: "#FDF8F0", border: "1px solid #FDDCB0", borderRadius: 10, padding: "0.75rem 1rem" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.06em" }}>Ordered</p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.88rem", color: "#475569" }}>Qty: <strong>{item.quantity}</strong></span>
+                    <span style={{ fontSize: "0.95rem", fontWeight: 800, color: "#0F172A" }}>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
+                  </div>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>Unit price: ₹{Number(item.price).toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Sidebar overlay (mobile) */}
       <div className={`portal-overlay ${sidebarOpen ? "open" : ""}`} onClick={() => setSidebarOpen(false)} />
 
@@ -798,11 +921,9 @@ export default function ShopDashboard() {
                     {/* Product image cards */}
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginBottom: "0.75rem" }}>
                       {o.items.map((item, i) => (
-                        <a key={i}
-                          href={item.product_id ? `/product/${item.product_id}` : undefined}
-                          target={item.product_id ? "_blank" : undefined}
-                          rel="noopener noreferrer"
-                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", textDecoration: "none", color: "inherit", background: "#FAFAF8", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid #F1F5F9", cursor: item.product_id ? "pointer" : "default" }}
+                        <div key={i}
+                          onClick={() => openProductModal(item)}
+                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", background: "#FAFAF8", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid #F1F5F9", cursor: "pointer" }}
                         >
                           {item.image_url ? (
                             <img src={item.image_url} alt={item.name}
@@ -816,12 +937,29 @@ export default function ShopDashboard() {
                             <p style={{ margin: 0, fontSize: "0.83rem", fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
                             <p style={{ margin: "0.1rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>Qty {item.quantity} · ₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
                           </div>
-                          <ExternalLink size={12} color="#CBD5E1" style={{ flexShrink: 0 }} />
-                        </a>
+                          <Eye size={13} color="#94A3B8" style={{ flexShrink: 0 }} />
+                        </div>
                       ))}
                     </div>
 
                     <p style={{ margin: 0, fontSize: "0.78rem", color: "#888" }}>📍 {o.delivery_address}</p>
+
+                    {/* Pending → shop confirms the order */}
+                    {o.status === "pending" && (
+                      <div style={{ marginTop: "0.75rem", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "0.65rem 0.85rem" }}>
+                        <p style={{ margin: "0 0 0.55rem", fontSize: "0.78rem", color: "#92400E", fontWeight: 600 }}>
+                          🛒 New order — confirm to start preparing
+                        </p>
+                        <button
+                          onClick={() => handleConfirmOrder(o.id)}
+                          disabled={confirmingOrder[o.id]}
+                          style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", background: confirmingOrder[o.id] ? "#FED7AA" : "#D97706", color: "#fff", border: "none", borderRadius: 8, padding: "0.55rem 1rem", cursor: confirmingOrder[o.id] ? "not-allowed" : "pointer", fontSize: "0.84rem", fontWeight: 700 }}
+                        >
+                          <CheckCircle size={14} />
+                          {confirmingOrder[o.id] ? "Confirming…" : "Accept & Confirm Order"}
+                        </button>
+                      </div>
+                    )}
 
                     {/* Confirmed → shop packs and marks ready */}
                     {o.status === "confirmed" && (
