@@ -265,33 +265,36 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pi
 
 /* ── Completed order card ────────────────────────────────── */
 function CompletedOrderCard({ o, earningPerDelivery }) {
-  const deliveredEntry = o.status_history?.find((h) => h.status === "delivered");
+  const isReturn = o.return_delivery_status === "returned_to_shop";
+  const completedEntry = o.status_history?.find((h) => h.status === (isReturn ? "return_completed" : "delivered"));
   const earned = earningPerDelivery || 50;
   return (
-    <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", borderLeft: "4px solid #16a34a" }}>
+    <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", borderLeft: `4px solid ${isReturn ? "#7C3AED" : "#16a34a"}` }}>
       <div style={{ padding: "0.9rem 1.1rem", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.2rem" }}>
-            <CheckCircle size={14} color="#16a34a" />
+            <CheckCircle size={14} color={isReturn ? "#7C3AED" : "#16a34a"} />
             <p style={{ margin: 0, fontWeight: 800, fontSize: "0.92rem", color: "#0F172A" }}>Order #{o.id}</p>
           </div>
           <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748B" }}>{o.customer?.name}</p>
           <p style={{ margin: "0.2rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>
-            {deliveredEntry ? fmtDate(deliveredEntry.created_at) : fmtDate(o.created_at)}
+            {completedEntry ? fmtDate(completedEntry.created_at) : fmtDate(o.created_at)}
           </p>
         </div>
         <div style={{ textAlign: "right" }}>
           <p style={{ margin: 0, fontWeight: 900, color: "#1a4080", fontSize: "1rem" }}>₹{fmt(earned)}</p>
           <p style={{ margin: "0.1rem 0 0", fontSize: "0.65rem", color: "#94A3B8" }}>Order ₹{fmt(o.total)}</p>
-          <span style={{ fontSize: "0.68rem", fontWeight: 600, color: "#16a34a", background: "#D1FAE5", padding: "0.15rem 0.55rem", borderRadius: 20, display: "inline-block", marginTop: "0.25rem" }}>
-            Delivered
+          <span style={{ fontSize: "0.68rem", fontWeight: 600, color: isReturn ? "#7C3AED" : "#16a34a", background: isReturn ? "#EDE9FE" : "#D1FAE5", padding: "0.15rem 0.55rem", borderRadius: 20, display: "inline-block", marginTop: "0.25rem" }}>
+            {isReturn ? "↩ Return Done" : "Delivered"}
           </span>
         </div>
       </div>
       <div style={{ padding: "0 1.1rem 0.75rem" }}>
         <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
           <Package size={11} style={{ color: "#94A3B8", flexShrink: 0 }} />
-          <p style={{ margin: 0, fontSize: "0.73rem", color: "#94A3B8" }}>{o.items?.length || 1} item{(o.items?.length || 1) !== 1 ? "s" : ""} delivered</p>
+          <p style={{ margin: 0, fontSize: "0.73rem", color: "#94A3B8" }}>
+            {isReturn ? `Item returned to ${o.shop_name || "shop"}` : `${o.items?.length || 1} item${(o.items?.length || 1) !== 1 ? "s" : ""} delivered`}
+          </p>
         </div>
       </div>
     </div>
@@ -565,6 +568,7 @@ export default function DeliveryDashboard() {
     try {
       await markReturnedToShop(orderId);
       toast.success("Return completed — item back at shop!");
+      setCompletedLoaded(false); // force reload so it appears in Completed tab
       loadCore();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Failed");

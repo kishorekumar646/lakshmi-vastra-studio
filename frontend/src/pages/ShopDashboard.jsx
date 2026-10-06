@@ -1170,6 +1170,9 @@ export default function ShopDashboard() {
                         {o.return_status === "rejected" && (
                           <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#FEE2E2", color: "#991B1B" }}>✗ Return Rejected</span>
                         )}
+                        {o.return_status === "returned" && (
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }}>📦 Item Returned to Shop</span>
+                        )}
                       </div>
                     </div>
 
@@ -1264,14 +1267,14 @@ export default function ShopDashboard() {
                     )}
 
                     {/* Accepted/rejected return note */}
-                    {(o.return_status === "accepted" || o.return_status === "rejected") && o.return_note && (
+                    {(o.return_status === "accepted" || o.return_status === "rejected" || o.return_status === "returned") && o.return_note && (
                       <p style={{ margin: "0.55rem 0 0", fontSize: "0.76rem", color: "#64748B" }}>
                         Note: {o.return_note}
                       </p>
                     )}
 
-                    {/* Return delivery progress — shown once accepted */}
-                    {o.return_status === "accepted" && (() => {
+                    {/* Return delivery progress — shown once accepted or returned */}
+                    {(o.return_status === "accepted" || o.return_status === "returned") && (() => {
                       const rds = o.return_delivery_status;
                       const rdp = o.return_delivery_person;
                       const statusLabel = !rds ? "Waiting for delivery person" : rds === "pickup_accepted" ? "Delivery person on the way to customer" : rds === "picked_up_from_customer" ? "Item collected — heading to shop" : rds === "returned_to_shop" ? "Returned to shop ✓" : rds;

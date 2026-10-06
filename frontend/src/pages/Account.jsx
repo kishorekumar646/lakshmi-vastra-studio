@@ -431,9 +431,9 @@ function OrderHistory() {
 
             {/* Return status note */}
             {order.return_status && (
-              <div style={{ marginTop: "0.65rem", background: order.return_status === "accepted" ? "#F0FDF4" : order.return_status === "rejected" ? "#FEF2F2" : "#FAF5FF", border: `1px solid ${order.return_status === "accepted" ? "#86EFAC" : order.return_status === "rejected" ? "#FCA5A5" : "#C4B5FD"}`, borderRadius: 8, padding: "0.65rem 0.85rem", fontSize: "0.8rem" }}>
-                <p style={{ margin: "0 0 0.2rem", fontWeight: 700, color: order.return_status === "accepted" ? "#15803D" : order.return_status === "rejected" ? "#991B1B" : "#5B21B6" }}>
-                  {order.return_status === "pending" ? "⏳ Return request under review" : order.return_status === "accepted" ? "✅ Return accepted" : "❌ Return rejected"}
+              <div style={{ marginTop: "0.65rem", background: (order.return_status === "accepted" || order.return_status === "returned") ? "#F0FDF4" : order.return_status === "rejected" ? "#FEF2F2" : "#FAF5FF", border: `1px solid ${(order.return_status === "accepted" || order.return_status === "returned") ? "#86EFAC" : order.return_status === "rejected" ? "#FCA5A5" : "#C4B5FD"}`, borderRadius: 8, padding: "0.65rem 0.85rem", fontSize: "0.8rem" }}>
+                <p style={{ margin: "0 0 0.2rem", fontWeight: 700, color: (order.return_status === "accepted" || order.return_status === "returned") ? "#15803D" : order.return_status === "rejected" ? "#991B1B" : "#5B21B6" }}>
+                  {order.return_status === "pending" ? "⏳ Return request under review" : order.return_status === "accepted" ? "✅ Return accepted — item being collected" : order.return_status === "returned" ? "📦 Item returned to shop" : "❌ Return rejected"}
                 </p>
                 {order.return_reason && <p style={{ margin: "0.15rem 0 0", color: "#64748B" }}>Reason: {order.return_reason}</p>}
                 {order.return_note && <p style={{ margin: "0.15rem 0 0", color: "#475569", fontWeight: 600 }}>Shop note: {order.return_note}</p>}

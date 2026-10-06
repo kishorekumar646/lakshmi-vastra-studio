@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
+from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session, joinedload
 import cloudinary
 import cloudinary.uploader
@@ -290,10 +291,15 @@ def list_assigned_orders(person: DeliveryPerson = Depends(get_current_delivery_p
 def list_completed_orders(person: DeliveryPerson = Depends(get_current_delivery_person), db: Session = Depends(get_db)):
     orders = (
         db.query(Order)
-        .filter(Order.delivery_person_id == person.id)
-        .filter(Order.status == "delivered")
+        .filter(
+            or_(
+                and_(Order.delivery_person_id == person.id, Order.status == "delivered"),
+                and_(Order.return_delivery_person_id == person.id, Order.return_delivery_status == "returned_to_shop"),
+            )
+        )
         .options(
             joinedload(Order.items).joinedload(OrderItem.product),
+            joinedload(Order.items).joinedload(OrderItem.shop_owner),
             joinedload(Order.customer),
             joinedload(Order.status_history),
         )
@@ -301,7 +307,7 @@ def list_completed_orders(person: DeliveryPerson = Depends(get_current_delivery_
         .limit(50)
         .all()
     )
-    return [_order_dict(o) for o in orders]
+    return [_return_order_dict(o) for o in orders]
 
 
 class ScanBody(BaseModel):
