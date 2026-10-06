@@ -198,7 +198,7 @@ function ActiveOrderCard({ o, otpInputs, setOtpInputs, delivering, onDeliver, pi
             <div style={{ background: o.status === "ready_for_delivery" ? "#FEF3C7" : "#DBEAFE", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 1 }}>
               <MapPin size={12} style={{ color: o.status === "ready_for_delivery" ? "#D97706" : "#1D4ED8" }} />
               <span style={{ fontSize: "0.62rem", fontWeight: 700, color: o.status === "ready_for_delivery" ? "#D97706" : "#1D4ED8", whiteSpace: "nowrap" }}>
-                {o.status === "ready_for_delivery" ? "Pick up" : "Deliver to"}
+                {o.status === "ready_for_delivery" ? "Shop Address" : "Customer Address"}
               </span>
             </div>
             <div>
@@ -943,7 +943,7 @@ export default function DeliveryDashboard() {
                         >
                           <div style={{ background: "#FEF3C7", borderRadius: 6, padding: "0.2rem 0.35rem", display: "flex", alignItems: "center", gap: "0.25rem", flexShrink: 0, marginTop: 2 }}>
                             <MapPin size={12} style={{ color: "#D97706" }} />
-                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#D97706", whiteSpace: "nowrap" }}>Pick up</span>
+                            <span style={{ fontSize: "0.62rem", fontWeight: 700, color: "#D97706", whiteSpace: "nowrap" }}>Shop Address</span>
                           </div>
                           <div>
                             {o.shop_name && <p style={{ margin: "0 0 0.1rem", fontSize: "0.75rem", fontWeight: 700, color: "#92400E" }}>{o.shop_name}</p>}
