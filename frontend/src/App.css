@@ -2528,6 +2528,12 @@ img {
   .portal-bottom-nav { display: flex; }
 }
 
+/* ── Payment transactions responsive ─────── */
+@media (max-width: 640px) {
+  .payment-tx-table { display: none !important; }
+  .payment-tx-cards { display: block !important; }
+}
+
 /* ── Product form action bars ─────────────── */
 .form-top-bar {
   display: flex;

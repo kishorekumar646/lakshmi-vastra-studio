@@ -21,7 +21,7 @@ import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
   ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp, MapPin,
-  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle, Bell,
+  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle, Bell, Eye,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -30,6 +30,10 @@ import { usePwaInstall } from "../hooks/usePwaInstall";
 import InstallGuideSheet from "../components/InstallGuideSheet";
 
 const EMPTY_FORM = { name: "", description: "", price: "", category_id: "", is_featured: false, is_handloom: false, has_multiple_colours: false, custom_orders: false };
+const PAYMENT_STATUS_COLOR = {
+  confirmed: "#3B82F6", ready_for_delivery: "#10B981", picked_up: "#8B5CF6",
+  delivered: "#22C55E", pending: "#F59E0B", cancelled: "#EF4444",
+};
 const PER_PAGE = 10;
 
 function getPageNumbers(currentPage, totalPages) {
@@ -126,6 +130,9 @@ export default function AdminDashboard() {
   const [paymentsData, setPaymentsData] = useState(null);
   const [paymentsLoading, setPaymentsLoading] = useState(false);
   const [paymentSearch, setPaymentSearch] = useState("");
+  const [txDetailModal, setTxDetailModal] = useState(null);
+  const [txDeleteModal, setTxDeleteModal] = useState(null);
+  const [txDeleting, setTxDeleting] = useState(false);
   const [expandedCustomer, setExpandedCustomer] = useState(null);
   const [expandedDelivery, setExpandedDelivery] = useState(null);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -227,6 +234,21 @@ export default function AdminDashboard() {
   const loadPayments = () => {
     setPaymentsLoading(true);
     getAdminPayments().then((r) => setPaymentsData(r.data)).catch(() => {}).finally(() => setPaymentsLoading(false));
+  };
+
+  const handleDeleteTx = async () => {
+    if (!txDeleteModal) return;
+    setTxDeleting(true);
+    try {
+      await deleteOrders([txDeleteModal.id]);
+      setPaymentsData((prev) => ({ ...prev, orders: prev.orders.filter((o) => o.id !== txDeleteModal.id) }));
+      toast.success(`Transaction #${txDeleteModal.id} deleted`);
+      setTxDeleteModal(null);
+    } catch {
+      toast.error("Failed to delete transaction");
+    } finally {
+      setTxDeleting(false);
+    }
   };
 
   const loadAll = () => {
@@ -2440,11 +2462,6 @@ export default function AdminDashboard() {
               const statusCounts = {};
               paymentsData.orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
 
-              const PAYMENT_STATUS_COLOR = {
-                confirmed: "#3B82F6", ready_for_delivery: "#10B981", picked_up: "#8B5CF6",
-                delivered: "#22C55E", pending: "#F59E0B", cancelled: "#EF4444",
-              };
-
               return (
                 <>
                   {/* Stat cards */}
@@ -2533,54 +2550,115 @@ export default function AdminDashboard() {
                       <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--text)", margin: 0 }}>Recent Transactions (Last 50)</p>
                       <input value={paymentSearch} onChange={(e) => setPaymentSearch(e.target.value)} placeholder="Search customer or order ID…" style={{ width: "100%", maxWidth: 240, fontSize: "0.82rem" }} />
                     </div>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.83rem" }}>
-                        <thead>
-                          <tr style={{ background: "var(--cream)" }}>
-                            {["Order ID", "Customer", "Amount", "Method", "Status", "Payment ID", "Date"].map((h) => (
-                              <th key={h} style={{ padding: "0.65rem 1rem", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paymentsData.orders
-                            .filter((o) => {
-                              const q = paymentSearch.toLowerCase();
-                              return !q || o.customer?.toLowerCase().includes(q) || String(o.id).includes(q) || o.email?.toLowerCase().includes(q);
-                            })
-                            .map((o, i) => {
+
+                    {(() => {
+                      const filtered = paymentsData.orders.filter((o) => {
+                        const q = paymentSearch.toLowerCase();
+                        return !q || o.customer?.toLowerCase().includes(q) || String(o.id).includes(q) || o.email?.toLowerCase().includes(q);
+                      });
+
+                      const ActionBtns = ({ o }) => (
+                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                          <button
+                            onClick={() => setTxDetailModal(o)}
+                            title="View details"
+                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 6, border: "1px solid #DBEAFE", background: "#EFF6FF", color: "#1E40AF", cursor: "pointer" }}
+                          >
+                            <Eye size={14} />
+                          </button>
+                          <button
+                            onClick={() => setTxDeleteModal(o)}
+                            title="Delete transaction"
+                            style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 6, border: "1px solid #FEE2E2", background: "#FEF2F2", color: "#DC2626", cursor: "pointer" }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      );
+
+                      return (
+                        <>
+                          {/* Desktop table */}
+                          <div className="payment-tx-table" style={{ overflowX: "auto" }}>
+                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.83rem" }}>
+                              <thead>
+                                <tr style={{ background: "var(--cream)" }}>
+                                  {["Order ID", "Customer", "Amount", "Method", "Status", "Payment ID", "Date", "Actions"].map((h) => (
+                                    <th key={h} style={{ padding: "0.65rem 1rem", textAlign: "left", fontWeight: 700, color: "var(--text-muted)", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>{h}</th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {filtered.map((o, i) => {
+                                  const color = PAYMENT_STATUS_COLOR[o.status] || "#64748B";
+                                  const isPaid = ["confirmed", "ready_for_delivery", "picked_up", "delivered"].includes(o.status);
+                                  return (
+                                    <tr key={o.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--border-light)", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
+                                      <td style={{ padding: "0.7rem 1rem", fontWeight: 700, color: "var(--primary)" }}>#{o.id}</td>
+                                      <td style={{ padding: "0.7rem 1rem" }}>
+                                        <p style={{ margin: 0, fontWeight: 600 }}>{o.customer}</p>
+                                        <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)" }}>{o.email}</p>
+                                      </td>
+                                      <td style={{ padding: "0.7rem 1rem", fontWeight: 700, color: isPaid ? "#065F46" : o.status === "cancelled" ? "#991B1B" : "var(--text)" }}>
+                                        {fmt(o.total)}
+                                      </td>
+                                      <td style={{ padding: "0.7rem 1rem" }}>
+                                        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.18rem 0.6rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: o.payment_method === "razorpay" ? "#DBEAFE" : "#FEF9C3", color: o.payment_method === "razorpay" ? "#1E40AF" : "#854D0E" }}>
+                                          {o.payment_method === "razorpay" ? <><CreditCard size={10} /> Online</> : <><Banknote size={10} /> COD</>}
+                                        </span>
+                                      </td>
+                                      <td style={{ padding: "0.7rem 1rem" }}>
+                                        <span style={{ padding: "0.18rem 0.6rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: color + "22", color }}>{o.status.replace(/_/g, " ")}</span>
+                                      </td>
+                                      <td style={{ padding: "0.7rem 1rem", color: "var(--text-muted)", fontSize: "0.75rem", fontFamily: "monospace" }}>
+                                        {o.razorpay_payment_id || (o.payment_method === "cod" ? "COD" : "—")}
+                                      </td>
+                                      <td style={{ padding: "0.7rem 1rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
+                                        {new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                                      </td>
+                                      <td style={{ padding: "0.7rem 1rem" }}>
+                                        <ActionBtns o={o} />
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+
+                          {/* Mobile cards */}
+                          <div className="payment-tx-cards" style={{ display: "none" }}>
+                            {filtered.map((o) => {
                               const color = PAYMENT_STATUS_COLOR[o.status] || "#64748B";
                               const isPaid = ["confirmed", "ready_for_delivery", "picked_up", "delivered"].includes(o.status);
                               return (
-                                <tr key={o.id} style={{ borderTop: i === 0 ? "none" : "1px solid var(--border-light)", background: i % 2 === 0 ? "#fff" : "#FAFAFA" }}>
-                                  <td style={{ padding: "0.7rem 1rem", fontWeight: 700, color: "var(--primary)" }}>#{o.id}</td>
-                                  <td style={{ padding: "0.7rem 1rem" }}>
-                                    <p style={{ margin: 0, fontWeight: 600 }}>{o.customer}</p>
-                                    <p style={{ margin: 0, fontSize: "0.72rem", color: "var(--text-muted)" }}>{o.email}</p>
-                                  </td>
-                                  <td style={{ padding: "0.7rem 1rem", fontWeight: 700, color: isPaid ? "#065F46" : o.status === "cancelled" ? "#991B1B" : "var(--text)" }}>
-                                    {fmt(o.total)}
-                                  </td>
-                                  <td style={{ padding: "0.7rem 1rem" }}>
+                                <div key={o.id} style={{ padding: "1rem", borderBottom: "1px solid var(--border-light)" }}>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                                    <div>
+                                      <span style={{ fontWeight: 700, color: "var(--primary)", fontSize: "0.88rem" }}>#{o.id}</span>
+                                      <span style={{ marginLeft: "0.6rem", padding: "0.15rem 0.5rem", borderRadius: 20, fontSize: "0.68rem", fontWeight: 700, background: color + "22", color }}>{o.status.replace(/_/g, " ")}</span>
+                                    </div>
+                                    <ActionBtns o={o} />
+                                  </div>
+                                  <p style={{ margin: "0 0 0.2rem", fontWeight: 600, fontSize: "0.85rem" }}>{o.customer}</p>
+                                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>{o.email}</p>
+                                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.4rem" }}>
+                                    <span style={{ fontWeight: 800, fontSize: "1rem", color: isPaid ? "#065F46" : o.status === "cancelled" ? "#991B1B" : "var(--text)" }}>{fmt(o.total)}</span>
                                     <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", padding: "0.18rem 0.6rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: o.payment_method === "razorpay" ? "#DBEAFE" : "#FEF9C3", color: o.payment_method === "razorpay" ? "#1E40AF" : "#854D0E" }}>
                                       {o.payment_method === "razorpay" ? <><CreditCard size={10} /> Online</> : <><Banknote size={10} /> COD</>}
                                     </span>
-                                  </td>
-                                  <td style={{ padding: "0.7rem 1rem" }}>
-                                    <span style={{ padding: "0.18rem 0.6rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: color + "22", color }}>{o.status.replace(/_/g, " ")}</span>
-                                  </td>
-                                  <td style={{ padding: "0.7rem 1rem", color: "var(--text-muted)", fontSize: "0.75rem", fontFamily: "monospace" }}>
-                                    {o.razorpay_payment_id || (o.payment_method === "cod" ? "COD" : "—")}
-                                  </td>
-                                  <td style={{ padding: "0.7rem 1rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>
-                                    {new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                                  </td>
-                                </tr>
+                                    <span style={{ fontSize: "0.73rem", color: "var(--text-muted)" }}>{new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
+                                  </div>
+                                  {o.razorpay_payment_id && (
+                                    <p style={{ margin: "0.4rem 0 0", fontSize: "0.72rem", color: "var(--text-muted)", fontFamily: "monospace" }}>ID: {o.razorpay_payment_id}</p>
+                                  )}
+                                </div>
                               );
                             })}
-                        </tbody>
-                      </table>
-                    </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </>
               );
@@ -2672,6 +2750,75 @@ export default function AdminDashboard() {
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <button onClick={() => setAdminDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>Cancel</button>
               <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Transaction Detail Modal ── */}
+      {txDetailModal && (
+        <div onClick={() => setTxDetailModal(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, width: "100%", maxWidth: 460, maxHeight: "90vh", overflow: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
+            {/* Header */}
+            <div style={{ padding: "1.25rem 1.5rem", borderBottom: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                <div style={{ width: 36, height: 36, borderRadius: 8, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", color: "#1E40AF" }}><CreditCard size={18} /></div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: "1rem", color: "#0F172A" }}>Transaction #{txDetailModal.id}</p>
+                  <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748B" }}>{new Date(txDetailModal.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+                </div>
+              </div>
+              <button onClick={() => setTxDetailModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: "0.25rem" }}><X size={20} /></button>
+            </div>
+            {/* Body */}
+            <div style={{ padding: "1.25rem 1.5rem" }}>
+              {[
+                { label: "Customer", value: txDetailModal.customer },
+                { label: "Email", value: txDetailModal.email || "—" },
+                { label: "Amount", value: `₹${Number(txDetailModal.total).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`, bold: true, color: ["confirmed","ready_for_delivery","picked_up","delivered"].includes(txDetailModal.status) ? "#065F46" : txDetailModal.status === "cancelled" ? "#991B1B" : "#0F172A" },
+                { label: "Payment Method", value: txDetailModal.payment_method === "razorpay" ? "Online (Razorpay)" : "Cash on Delivery" },
+                { label: "Payment ID", value: txDetailModal.razorpay_payment_id || (txDetailModal.payment_method === "cod" ? "COD — No ID" : "—"), mono: true },
+                { label: "Order Status", value: txDetailModal.status.replace(/_/g, " "), status: true, color: PAYMENT_STATUS_COLOR[txDetailModal.status] || "#64748B" },
+              ].map(({ label, value, bold, color, mono, status }) => (
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.65rem 0", borderBottom: "1px solid #F1F5F9" }}>
+                  <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</span>
+                  {status ? (
+                    <span style={{ padding: "0.18rem 0.65rem", borderRadius: 20, fontSize: "0.75rem", fontWeight: 700, background: (color || "#64748B") + "22", color: color || "#64748B" }}>{value}</span>
+                  ) : (
+                    <span style={{ fontSize: "0.88rem", fontWeight: bold ? 800 : 500, color: color || "#0F172A", fontFamily: mono ? "monospace" : undefined, wordBreak: "break-all", textAlign: "right", maxWidth: "60%" }}>{value}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            {/* Footer */}
+            <div style={{ padding: "1rem 1.5rem", borderTop: "1px solid var(--border-light)", display: "flex", gap: "0.75rem" }}>
+              <button onClick={() => setTxDetailModal(null)} style={{ flex: 1, padding: "0.7rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>Close</button>
+              <button
+                onClick={() => { setTxDeleteModal(txDetailModal); setTxDetailModal(null); }}
+                style={{ flex: 1, padding: "0.7rem", border: "none", borderRadius: 10, background: "#FEF2F2", color: "#DC2626", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+              >
+                <Trash2 size={15} /> Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Transaction Delete Confirm Modal ── */}
+      {txDeleteModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div style={{ background: "#fff", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "#0F172A" }}>Delete Transaction?</h3>
+            <p style={{ margin: "0 0 0.4rem", fontSize: "0.88rem", color: "#64748B", lineHeight: 1.5 }}>
+              Order <strong>#{txDeleteModal.id}</strong> from <strong>{txDeleteModal.customer}</strong> (₹{Number(txDeleteModal.total).toLocaleString("en-IN")}) will be permanently deleted.
+            </p>
+            <p style={{ margin: "0 0 1.5rem", fontSize: "0.8rem", color: "#EF4444" }}>This cannot be undone.</p>
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button onClick={() => setTxDeleteModal(null)} disabled={txDeleting} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>Cancel</button>
+              <button onClick={handleDeleteTx} disabled={txDeleting} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem", opacity: txDeleting ? 0.7 : 1 }}>
+                {txDeleting ? "Deleting…" : "Delete"}
+              </button>
             </div>
           </div>
         </div>
