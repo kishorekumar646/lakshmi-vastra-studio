@@ -481,6 +481,8 @@ def mark_returned_to_shop(order_id: int, background: BackgroundTasks, person: De
         raise HTTPException(status_code=400, detail=f"Return is already '{order.return_delivery_status}'")
     order.return_delivery_status = "returned_to_shop"
     order.return_status = "returned"
+    if order.payment_method != "cod":
+        order.refund_status = "pending"
     db.add(OrderStatusHistory(order_id=order.id, status="return_completed", note=f"Item returned to shop by {person.name}"))
     db.commit()
     shop_ids = list({item.shop_owner_id for item in order.items if item.shop_owner_id})

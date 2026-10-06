@@ -391,6 +391,7 @@ def _order_dict(order: Order) -> dict:
         "return_note": order.return_note,
         "return_requested_at": order.return_requested_at,
         "return_delivery_status": order.return_delivery_status,
+        "refund_status": order.refund_status,
         "return_delivery_person": {
             "name": order.return_delivery_person.name if order.return_delivery_person else None,
             "phone": order.return_delivery_person.phone if order.return_delivery_person else None,
@@ -615,3 +616,35 @@ def reject_return(order_id: int, body: ReturnDecisionBody, background: Backgroun
         notify(db, "customer", cid, "Return Rejected", f"Order #{oid} — your return request was rejected. {note_text}", "/account")
     background.add_task(_notify_rejected)
     return {"order_id": order.id, "return_status": "rejected"}
+
+
+@router.put("/orders/{order_id}/refund")
+def mark_refund_sent(order_id: int, background: BackgroundTasks, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    order = (
+        db.query(Order)
+        .join(Order.items)
+        .filter(
+            Order.id == order_id,
+            Order.refund_status == "pending",
+            (OrderItem.shop_owner_id == owner.id) |
+            (
+                (OrderItem.shop_owner_id == None) &
+                (OrderItem.product_id == Product.id) &
+                (Product.shop_owner_id == owner.id)
+            ),
+        )
+        .first()
+    )
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found or refund already processed")
+    order.refund_status = "refunded"
+    db.add(OrderStatusHistory(order_id=order.id, status="refund_sent", note="Refund marked as sent by shop"))
+    db.commit()
+    cid = order.customer_id
+    oid = order.id
+    total = order.total
+    def _notify():
+        from notifications.push import notify
+        notify(db, "customer", cid, "Refund Sent ✓", f"Order #{oid} — ₹{total:,.0f} refund has been processed by the shop. Check your bank/UPI within 3–5 business days.", "/account")
+    background.add_task(_notify)
+    return {"order_id": order.id, "refund_status": "refunded"}

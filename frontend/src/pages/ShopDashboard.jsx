@@ -5,7 +5,7 @@ import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
   deleteShopProductImage,
   getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, shopConfirmOrder, getPublicProduct,
-  uploadShopAvatar, getShopMe, updateShopMe, changeShopPassword, shopAcceptReturn, shopRejectReturn,
+  uploadShopAvatar, getShopMe, updateShopMe, changeShopPassword, shopAcceptReturn, shopRejectReturn, shopMarkRefundSent,
 } from "../api";
 import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, CheckCircle, Bell, Eye, ChevronRight } from "lucide-react";
 import QrScanner from "../components/QrScanner";
@@ -86,6 +86,7 @@ export default function ShopDashboard() {
   const [productModalUserInteracted, setProductModalUserInteracted] = useState(false);
   const [confirmingOrder, setConfirmingOrder] = useState({});
   const [returningOrder, setReturningOrder] = useState({});
+  const [refundingOrder, setRefundingOrder] = useState({});
   const [returnNoteModal, setReturnNoteModal] = useState(null);
   const [returnNote, setReturnNote] = useState("");
 
@@ -331,6 +332,20 @@ export default function ShopDashboard() {
       toast.error(err.response?.data?.detail || "Failed");
     } finally {
       setReturningOrder((p) => ({ ...p, [orderId]: false }));
+    }
+  };
+
+  const handleMarkRefundSent = async (orderId) => {
+    if (!window.confirm("Confirm you have sent the refund to the customer?")) return;
+    setRefundingOrder((p) => ({ ...p, [orderId]: true }));
+    try {
+      await shopMarkRefundSent(orderId);
+      toast.success("Refund marked as sent");
+      loadOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Failed");
+    } finally {
+      setRefundingOrder((p) => ({ ...p, [orderId]: false }));
     }
   };
 
@@ -1304,6 +1319,34 @@ export default function ShopDashboard() {
                         </div>
                       );
                     })()}
+
+                    {/* Refund section — shown when item is returned and payment was online */}
+                    {o.return_status === "returned" && o.payment_method !== "cod" && (
+                      <div style={{ marginTop: "0.65rem", background: o.refund_status === "refunded" ? "#F0FDF4" : "#FFF7ED", border: `1px solid ${o.refund_status === "refunded" ? "#86EFAC" : "#FED7AA"}`, borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                        <p style={{ margin: "0 0 0.25rem", fontSize: "0.73rem", fontWeight: 700, color: o.refund_status === "refunded" ? "#15803D" : "#92400E" }}>
+                          {o.refund_status === "refunded" ? "✓ Refund Sent" : "💰 Refund Pending"}
+                        </p>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.71rem", color: "#64748B" }}>
+                          {o.refund_status === "refunded"
+                            ? `₹${o.total.toLocaleString("en-IN")} refund marked as sent to customer.`
+                            : `₹${o.total.toLocaleString("en-IN")} — process refund via Razorpay/bank and mark below.`}
+                        </p>
+                        {o.refund_status !== "refunded" && (
+                          <button
+                            onClick={() => handleMarkRefundSent(o.id)}
+                            disabled={refundingOrder[o.id]}
+                            style={{ width: "100%", padding: "0.5rem", border: "none", borderRadius: 8, cursor: refundingOrder[o.id] ? "not-allowed" : "pointer", background: refundingOrder[o.id] ? "#FED7AA" : "#D97706", color: "#fff", fontWeight: 700, fontSize: "0.8rem" }}
+                          >
+                            {refundingOrder[o.id] ? "Updating…" : "✓ Mark Refund as Sent"}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {o.return_status === "returned" && o.payment_method === "cod" && (
+                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.72rem", color: "#64748B", background: "#F8FAFC", borderRadius: 6, padding: "0.4rem 0.6rem" }}>
+                        💵 Cash on Delivery — no refund needed.
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

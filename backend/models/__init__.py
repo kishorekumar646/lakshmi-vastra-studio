@@ -202,6 +202,7 @@ class Order(Base):
     return_requested_at = Column(DateTime(timezone=True), nullable=True)
     return_delivery_person_id = Column(Integer, ForeignKey("delivery_persons.id"), nullable=True)
     return_delivery_status = Column(String(30), nullable=True)  # pickup_accepted | picked_up_from_customer | returned_to_shop
+    refund_status = Column(String(20), nullable=True)   # pending | refunded (null = no refund needed / COD)
 
     customer = relationship("Customer", back_populates="orders")
     delivery_person = relationship("DeliveryPerson", foreign_keys=[delivery_person_id], back_populates="assigned_orders")

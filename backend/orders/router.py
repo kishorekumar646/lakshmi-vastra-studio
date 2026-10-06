@@ -56,6 +56,7 @@ def _order_dict(order: Order) -> dict:
         "return_reason": order.return_reason,
         "return_note": order.return_note,
         "return_requested_at": order.return_requested_at,
+        "refund_status": order.refund_status,
         "items": [
             {
                 "product_id": item.product_id,

@@ -129,6 +129,7 @@ export const cancelOrder = (orderId) => api.put(`/api/orders/${orderId}/cancel`)
 export const requestReturn = (orderId, reason) => api.post(`/api/orders/${orderId}/request-return`, { reason });
 export const shopAcceptReturn = (orderId, note) => api.put(`/api/shops/orders/${orderId}/return/accept`, { note });
 export const shopRejectReturn = (orderId, note) => api.put(`/api/shops/orders/${orderId}/return/reject`, { note });
+export const shopMarkRefundSent = (orderId) => api.put(`/api/shops/orders/${orderId}/refund`);
 
 // ── Shop Owner ────────────────────────────────────────────────────────────────
 export const shopRegister = (data) => api.post("/api/shops/register", data);

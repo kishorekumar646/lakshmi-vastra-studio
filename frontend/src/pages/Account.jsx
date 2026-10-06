@@ -447,6 +447,20 @@ function OrderHistory() {
               </div>
             )}
 
+            {/* Refund status — only for returned online-paid orders */}
+            {order.return_status === "returned" && order.payment_method !== "cod" && (
+              <div style={{ marginTop: "0.55rem", background: order.refund_status === "refunded" ? "#F0FDF4" : "#FFF7ED", border: `1px solid ${order.refund_status === "refunded" ? "#86EFAC" : "#FED7AA"}`, borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                <p style={{ margin: 0, fontWeight: 700, fontSize: "0.8rem", color: order.refund_status === "refunded" ? "#15803D" : "#92400E" }}>
+                  {order.refund_status === "refunded" ? "✅ Refund Sent" : "⏳ Refund Pending"}
+                </p>
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.75rem", color: "#64748B" }}>
+                  {order.refund_status === "refunded"
+                    ? `₹${order.total.toLocaleString("en-IN")} has been refunded. Check your bank/UPI within 3–5 business days.`
+                    : `₹${order.total.toLocaleString("en-IN")} refund is being processed by the shop. You'll be notified once sent.`}
+                </p>
+              </div>
+            )}
+
             {/* Status timeline (collapsible) */}
             {order.status_history?.length > 0 && (
               <div style={{ marginTop: "0.85rem" }}>
