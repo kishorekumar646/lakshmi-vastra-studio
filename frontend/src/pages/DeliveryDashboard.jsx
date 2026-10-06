@@ -305,7 +305,7 @@ function CompletedOrderCard({ o, earningPerDelivery }) {
 export default function DeliveryDashboard() {
   const [tab, setTab] = useState("dashboard");
   const mainRef = useRef(null);
-  const switchTab = (t) => { setTab(t); if (mainRef.current) mainRef.current.scrollTop = 0; };
+  const switchTab = (t) => { setTab(t); window.scrollTo({ top: 0, behavior: "instant" }); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("delivery_sidebar_collapsed") === "true");
   const toggleCollapse = () => setSidebarCollapsed((v) => { localStorage.setItem("delivery_sidebar_collapsed", !v); return !v; });

@@ -40,7 +40,7 @@ const STATUS_COLOR = {
 export default function ShopDashboard() {
   const [tab, setTab] = useState("products");
   const mainRef = useRef(null);
-  const scrollToTop = () => { if (mainRef.current) mainRef.current.scrollTop = 0; };
+  const scrollToTop = () => { window.scrollTo({ top: 0, behavior: "instant" }); };
   const switchTab = (t) => { setTab(t); scrollToTop(); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("shop_sidebar_collapsed") === "true");

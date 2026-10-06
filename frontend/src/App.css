@@ -2525,7 +2525,9 @@ img {
 @media (max-width: 768px) {
   .portal-page {
     flex-direction: column;
-    /* height: 100vh and overflow: hidden inherited from base — no page-level scrolling */
+    height: 100%;
+    min-height: 100vh;
+    overflow: visible;
   }
   .portal-mobile-header { display: flex; }
   .portal-sidebar {
@@ -2539,18 +2541,11 @@ img {
   .portal-sidebar.open { transform: translateX(0); }
   .portal-overlay.open { display: block; }
   .portal-main {
-    flex: 1;
-    min-height: 0; /* allow flex item to shrink so internal scroll works */
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: 1rem 0.85rem 1.5rem;
+    padding: 1rem 0.85rem calc(58px + env(safe-area-inset-bottom, 0px) + 0.75rem);
+    overflow-y: visible;
     height: auto;
   }
-  /* Bottom nav sits in the flex column as a stable footer — no fixed positioning on mobile */
-  .portal-bottom-nav {
-    display: flex;
-    position: static;
-  }
+  .portal-bottom-nav { display: flex; }
 }
 
 /* ── Payment transactions responsive ─────── */
