@@ -510,6 +510,7 @@ export default function AdminDashboard() {
           ? productPage - 1
           : productPage;
         loadProducts(targetPage);
+        loadDeletedProducts();
       }
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to delete");

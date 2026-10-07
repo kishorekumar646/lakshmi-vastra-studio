@@ -87,7 +87,6 @@ export default function ShopDashboard() {
   const [orderStatusFilter, setOrderStatusFilter] = useState("all");
   const [productModal, setProductModal] = useState(null); // { item, product }
   const [productModalImg, setProductModalImg] = useState(0);
-  const [productModalUserInteracted, setProductModalUserInteracted] = useState(false);
   const [confirmingOrder, setConfirmingOrder] = useState({});
   const [returningOrder, setReturningOrder] = useState({});
   const [refundingOrder, setRefundingOrder] = useState({});
@@ -308,6 +307,7 @@ export default function ShopDashboard() {
       await deleteShopProduct(deleteModal.id);
       toast.success("Moved to Trash");
       loadProducts();
+      loadDeletedProducts();
     } catch (err) { toast.error(err?.response?.data?.detail || "Failed to delete"); }
     setDeleteModal(null);
   };
@@ -409,32 +409,11 @@ export default function ShopDashboard() {
   useEffect(() => {
     if (productModal) {
       setProductModalImg(0);
-      setProductModalUserInteracted(false);
       const prev = document.body.style.overflow;
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = prev; };
     }
   }, [productModal]);
-
-  // Auto-slide product modal images every 3s
-  useEffect(() => {
-    if (!productModal) return;
-    const images = productModal.product?.images?.length
-      ? productModal.product.images.map(img => img.url)
-      : (productModal.item?.image_url ? [productModal.item.image_url] : []);
-    if (images.length <= 1 || productModalUserInteracted) return;
-    const timer = setInterval(() => {
-      setProductModalImg((prev) => (prev + 1) % images.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [productModal, productModalUserInteracted]);
-
-  // Resume auto-slide 5s after user manually taps arrow/dot in product modal
-  useEffect(() => {
-    if (!productModalUserInteracted) return;
-    const t = setTimeout(() => setProductModalUserInteracted(false), 5000);
-    return () => clearTimeout(t);
-  }, [productModalUserInteracted]);
 
   const S = { // inline style helpers
     card: { background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.25rem", border: "1px solid rgba(184,137,42,0.12)", marginBottom: "0.75rem" },
@@ -577,7 +556,7 @@ export default function ShopDashboard() {
                 {images.length > 1 && (
                   <>
                     <button
-                      onClick={() => { setProductModalImg((i) => (i - 1 + images.length) % images.length); setProductModalUserInteracted(true); }}
+                      onClick={() => { setProductModalImg((i) => (i - 1 + images.length) % images.length); }}
                       style={{
                         position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
                         background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%",
@@ -589,7 +568,7 @@ export default function ShopDashboard() {
                       <ChevronLeft size={20} color="#0F172A" />
                     </button>
                     <button
-                      onClick={() => { setProductModalImg((i) => (i + 1) % images.length); setProductModalUserInteracted(true); }}
+                      onClick={() => { setProductModalImg((i) => (i + 1) % images.length); }}
                       style={{
                         position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
                         background: "rgba(255,255,255,0.92)", border: "none", borderRadius: "50%",
@@ -604,7 +583,7 @@ export default function ShopDashboard() {
                     <div style={{ position: "absolute", bottom: 12, left: 0, right: 0, display: "flex", justifyContent: "center", gap: "0.3rem" }}>
                       {images.map((_, i) => (
                         <div
-                          key={i} onClick={() => { setProductModalImg(i); setProductModalUserInteracted(true); }}
+                          key={i} onClick={() => { setProductModalImg(i); }}
                           style={{
                             width: i === productModalImg ? 18 : 6, height: 6, borderRadius: 3,
                             background: i === productModalImg ? "#fff" : "rgba(255,255,255,0.5)",
@@ -1217,6 +1196,51 @@ export default function ShopDashboard() {
           </>
         )}
 
+        {/* Trash Tab */}
+        {tab === "trash" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <div>
+                <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "#D4A94A", fontSize: "1.2rem" }}>Trash</h2>
+                <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.45)" }}>Restore products to make them visible to customers</p>
+              </div>
+            </div>
+
+            {deletedLoading ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}><p>Loading…</p></div>
+            ) : deletedProducts.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
+                <Trash2 size={40} style={{ opacity: 0.25, marginBottom: "0.75rem" }} />
+                <p style={{ fontWeight: 600 }}>Trash is empty</p>
+                <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>Deleted products will appear here</p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: "0.75rem" }}>
+                {deletedProducts.map((p) => (
+                  <div key={p.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1rem", border: "1px solid rgba(220,38,38,0.15)", display: "flex", gap: "0.85rem", alignItems: "center" }}>
+                    {p.image_url
+                      ? <img src={p.image_url} alt={p.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, flexShrink: 0, opacity: 0.7 }} />
+                      : <div style={{ width: 60, height: 60, borderRadius: 8, background: "rgba(255,255,255,0.05)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} style={{ opacity: 0.25 }} /></div>
+                    }
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                      <p style={{ margin: "0.15rem 0 0", fontSize: "0.76rem", color: "rgba(255,255,255,0.4)" }}>
+                        {p.category_name} · <span style={{ color: "#D4A94A" }}>₹{p.price.toLocaleString("en-IN")}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleRestoreProduct(p.id, p.name)}
+                      style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.5rem 0.9rem", border: "1.5px solid rgba(34,197,94,0.4)", borderRadius: 8, background: "rgba(34,197,94,0.1)", color: "#4ade80", cursor: "pointer", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0 }}
+                    >
+                      <RotateCcw size={13} /> Restore
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Orders Tab */}
         {tab === "orders" && (() => {
           const filtered = orders.filter((o) => {
@@ -1816,51 +1840,6 @@ export default function ShopDashboard() {
               Done
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Trash Tab */}
-      {tab === "trash" && (
-        <div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <div>
-              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "#D4A94A", fontSize: "1.2rem" }}>Trash</h2>
-              <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.45)" }}>Restore products to make them visible to customers</p>
-            </div>
-          </div>
-
-          {deletedLoading ? (
-            <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}><p>Loading…</p></div>
-          ) : deletedProducts.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
-              <Trash2 size={40} style={{ opacity: 0.25, marginBottom: "0.75rem" }} />
-              <p style={{ fontWeight: 600 }}>Trash is empty</p>
-              <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>Deleted products will appear here</p>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gap: "0.75rem" }}>
-              {deletedProducts.map((p) => (
-                <div key={p.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1rem", border: "1px solid rgba(220,38,38,0.15)", display: "flex", gap: "0.85rem", alignItems: "center" }}>
-                  {p.image_url
-                    ? <img src={p.image_url} alt={p.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, flexShrink: 0, opacity: 0.7 }} />
-                    : <div style={{ width: 60, height: 60, borderRadius: 8, background: "rgba(255,255,255,0.05)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} style={{ opacity: 0.25 }} /></div>
-                  }
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                    <p style={{ margin: "0.15rem 0 0", fontSize: "0.76rem", color: "rgba(255,255,255,0.4)" }}>
-                      {p.category_name} · <span style={{ color: "#D4A94A" }}>₹{p.price.toLocaleString("en-IN")}</span>
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleRestoreProduct(p.id, p.name)}
-                    style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.5rem 0.9rem", border: "1.5px solid rgba(34,197,94,0.4)", borderRadius: 8, background: "rgba(34,197,94,0.1)", color: "#4ade80", cursor: "pointer", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0 }}
-                  >
-                    <RotateCcw size={13} /> Restore
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       )}
 

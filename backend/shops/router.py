@@ -218,7 +218,7 @@ def list_shop_products(
 ):
     items = (
         db.query(Product)
-        .filter(Product.shop_owner_id == owner.id, Product.deleted_at == None)
+        .filter(Product.shop_owner_id == owner.id, Product.deleted_at.is_(None))
         .options(joinedload(Product.category), selectinload(Product.images))
         .order_by(Product.created_at.desc())
         .all()
@@ -356,7 +356,7 @@ def delete_product_image(
 @router.delete("/products/{product_id}")
 def delete_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     product = db.query(Product).filter(
-        Product.id == product_id, Product.shop_owner_id == owner.id, Product.deleted_at == None
+        Product.id == product_id, Product.shop_owner_id == owner.id, Product.deleted_at.is_(None)
     ).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
@@ -377,7 +377,7 @@ def delete_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_
 def list_deleted_products(owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     items = (
         db.query(Product)
-        .filter(Product.shop_owner_id == owner.id, Product.deleted_at != None)
+        .filter(Product.shop_owner_id == owner.id, Product.deleted_at.isnot(None))
         .options(joinedload(Product.category), selectinload(Product.images))
         .order_by(Product.deleted_at.desc())
         .all()
@@ -388,7 +388,7 @@ def list_deleted_products(owner: ShopOwner = Depends(get_current_shop_owner), db
 @router.put("/products/{product_id}/restore")
 def restore_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
     product = db.query(Product).filter(
-        Product.id == product_id, Product.shop_owner_id == owner.id, Product.deleted_at != None
+        Product.id == product_id, Product.shop_owner_id == owner.id, Product.deleted_at.isnot(None)
     ).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found in Trash")

@@ -53,7 +53,7 @@ def _active_product_filter(query):
         query
         .outerjoin(ShopOwner, Product.shop_owner_id == ShopOwner.id)
         .filter(
-            Product.deleted_at == None,
+            Product.deleted_at.is_(None),
             or_(Product.shop_owner_id == None, ShopOwner.is_active == True),
         )
     )
@@ -101,7 +101,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
     p = (
         db.query(Product)
         .options(joinedload(Product.category), selectinload(Product.images), joinedload(Product.shop_owner))
-        .filter(Product.id == product_id, Product.deleted_at == None)
+        .filter(Product.id == product_id, Product.deleted_at.is_(None))
         .first()
     )
     if not p:

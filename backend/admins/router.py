@@ -51,7 +51,7 @@ def admin_list_products(
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
-    base = db.query(Product).filter(Product.deleted_at == None)
+    base = db.query(Product).filter(Product.deleted_at.is_(None))
     total = base.count()
     offset = (page - 1) * per_page
     items = (
@@ -78,7 +78,7 @@ def admin_list_deleted_products(
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
-    base = db.query(Product).filter(Product.deleted_at != None)
+    base = db.query(Product).filter(Product.deleted_at.isnot(None))
     total = base.count()
     offset = (page - 1) * per_page
     items = (
@@ -108,7 +108,7 @@ def admin_restore_product(
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
-    product = db.query(Product).filter(Product.id == product_id, Product.deleted_at != None).first()
+    product = db.query(Product).filter(Product.id == product_id, Product.deleted_at.isnot(None)).first()
     if not product:
         raise HTTPException(status_code=404, detail="Deleted product not found")
     product.deleted_at = None
@@ -260,7 +260,7 @@ def admin_delete_product_permanent(
     product = (
         db.query(Product)
         .options(selectinload(Product.images))
-        .filter(Product.id == product_id, Product.deleted_at != None)
+        .filter(Product.id == product_id, Product.deleted_at.isnot(None))
         .first()
     )
     if not product:
@@ -287,7 +287,7 @@ def admin_delete_product(
     """Soft-delete a product — moves it to Trash (recoverable)."""
     product = (
         db.query(Product)
-        .filter(Product.id == product_id, Product.deleted_at == None)
+        .filter(Product.id == product_id, Product.deleted_at.is_(None))
         .first()
     )
     if not product:
