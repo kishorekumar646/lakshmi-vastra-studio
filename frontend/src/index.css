@@ -1,5 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap');
 
+/* ── Luxury home responsive overrides ───────────────────── */
+@media (max-width: 1023px) {
+  .arrivals-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .occasion-bento { grid-template-columns: 1fr 1fr !important; grid-template-rows: auto !important; }
+  .occasion-bento a:first-child { grid-row: auto !important; min-height: 280px !important; }
+}
+@media (max-width: 767px) {
+  .arrivals-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .occasion-bento { grid-template-columns: 1fr !important; }
+  .occasion-bento a { min-height: 220px !important; }
+}
+@media (max-width: 480px) {
+  .arrivals-grid { grid-template-columns: 1fr 1fr !important; gap: 0.75rem !important; }
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {

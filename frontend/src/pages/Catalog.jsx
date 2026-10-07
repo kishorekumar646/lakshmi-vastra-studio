@@ -4,6 +4,7 @@ import { getProducts, getCategories } from "../api";
 import ProductCard from "../components/ProductCard";
 import { ProductCardSkeleton } from "../components/Skeleton";
 import { Search } from "lucide-react";
+import PageBanner from "../components/luxury/PageBanner";
 
 export default function Catalog() {
   const [products, setProducts] = useState([]);
@@ -53,96 +54,86 @@ export default function Catalog() {
     else setSearchParams({});
   };
 
+  const chipBase = {
+    padding: "0.45rem 1.1rem",
+    borderRadius: 9999,
+    fontSize: "0.82rem",
+    fontWeight: 600,
+    cursor: "pointer",
+    border: "1.5px solid",
+    transition: "all 0.18s",
+    letterSpacing: "0.02em",
+    whiteSpace: "nowrap",
+  };
+
   return (
-    <div style={{ padding: "0 0 5rem" }}>
-      <div className="container">
-        <div className="catalog-header">
-          <span className="section-tag">Explore our range</span>
-          <h1 className="section-title" style={{ marginBottom: "0.75rem" }}>Our Collection</h1>
-          <div className="section-divider" style={{ marginBottom: "1.5rem" }} />
-          <p style={{ color: "var(--text-muted)", fontSize: "1rem" }}>
-            Discover beautiful sarees and ethnic wear for every occasion
-          </p>
+    <div style={{ paddingBottom: "5rem" }}>
+      <PageBanner
+        eyebrow="Lakshmi Vastra Studio"
+        title="The Collection"
+        subtitle="Handcrafted sarees & ethnic wear for every occasion"
+      />
+
+      <div className="container" style={{ paddingTop: "2.5rem" }}>
+        {/* Search + Sort + Handloom row */}
+        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", marginBottom: "1.25rem" }}>
+          <div style={{ position: "relative", flex: "1 1 260px", maxWidth: 420 }}>
+            <Search size={16} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+            <input
+              type="text"
+              placeholder="Search sarees…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ paddingLeft: "2.6rem", width: "100%", boxSizing: "border-box" }}
+            />
+          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value)}
+            style={{
+              padding: "0.6rem 1rem",
+              border: "1.5px solid var(--border-light)",
+              borderRadius: 10,
+              fontSize: "0.875rem",
+              color: "var(--text)",
+              background: "#fff",
+              cursor: "pointer",
+            }}
+          >
+            <option value="newest">Newest First</option>
+            <option value="price_asc">Price: Low → High</option>
+            <option value="price_desc">Price: High → Low</option>
+          </select>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer", fontSize: "0.875rem", color: "var(--text-muted)", fontWeight: 500, whiteSpace: "nowrap" }}>
+            <input
+              type="checkbox"
+              checked={handloomOnly}
+              onChange={(e) => setHandloomOnly(e.target.checked)}
+              style={{ width: 16, height: 16, accentColor: "var(--primary)", cursor: "pointer" }}
+            />
+            Handloom Only
+          </label>
         </div>
 
-        {/* Filters */}
-        <div style={{ marginBottom: "2.5rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Search + Sort row */}
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ position: "relative", flex: "1 1 260px", maxWidth: 420 }}>
-              <Search size={18} style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: "#6B5744" }} />
-              <input
-                type="text"
-                placeholder="Search sarees..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ paddingLeft: "2.75rem", width: "100%", boxSizing: "border-box" }}
-              />
-            </div>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              style={{
-                padding: "0.6rem 1rem", border: "1.5px solid #ddd", borderRadius: 8,
-                fontSize: "0.875rem", color: "#6B5744", background: "#fff", cursor: "pointer",
-              }}
-            >
-              <option value="newest">Newest First</option>
-              <option value="price_asc">Price: Low → High</option>
-              <option value="price_desc">Price: High → Low</option>
-            </select>
-            <label style={{ display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer",
-                            fontSize: "0.875rem", color: "#6B5744", fontWeight: 500, whiteSpace: "nowrap" }}>
-              <input
-                type="checkbox"
-                checked={handloomOnly}
-                onChange={(e) => setHandloomOnly(e.target.checked)}
-                style={{ width: 16, height: 16, accentColor: "#8B1A1A", cursor: "pointer" }}
-              />
-              Handloom Only
-            </label>
-          </div>
-          <div className="cat-filter-scroll">
-            <button
-              onClick={() => setCategory(null)}
-              style={{
-                padding: "0.5rem 1.25rem",
-                border: "1.5px solid",
-                borderColor: selectedCategory === null ? "#8B1A1A" : "#ddd",
-                borderRadius: 20,
-                background: selectedCategory === null ? "#8B1A1A" : "#fff",
-                cursor: "pointer",
-                fontSize: "0.875rem",
-                color: selectedCategory === null ? "#fff" : "#6B5744",
-                fontWeight: selectedCategory === null ? 600 : 400,
-                transition: "all 0.2s",
-                whiteSpace: "nowrap",
-              }}
-            >
-              All
-            </button>
-            {categories.map((cat) => (
+        {/* Category chips */}
+        <div className="cat-filter-scroll" style={{ marginBottom: "2.5rem" }}>
+          {[{ id: null, name: "All" }, ...categories].map((cat) => {
+            const active = selectedCategory === cat.id;
+            return (
               <button
-                key={cat.id}
+                key={cat.id ?? "all"}
                 onClick={() => setCategory(cat.id)}
                 style={{
-                  padding: "0.5rem 1.25rem",
-                  border: "1.5px solid",
-                  borderColor: selectedCategory === cat.id ? "#8B1A1A" : "#ddd",
-                  borderRadius: 20,
-                  background: selectedCategory === cat.id ? "#8B1A1A" : "#fff",
-                  cursor: "pointer",
-                  fontSize: "0.875rem",
-                  color: selectedCategory === cat.id ? "#fff" : "#6B5744",
-                  fontWeight: selectedCategory === cat.id ? 600 : 400,
-                  transition: "all 0.2s",
-                  whiteSpace: "nowrap",
+                  ...chipBase,
+                  borderColor: active ? "var(--primary)" : "var(--border-light)",
+                  background: active ? "var(--primary)" : "transparent",
+                  color: active ? "#fff" : "var(--text-muted)",
                 }}
               >
                 {cat.name}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
         {loading ? (
@@ -151,16 +142,16 @@ export default function Catalog() {
           </div>
         ) : filtered.length > 0 ? (
           <>
-            <p style={{ color: "#6B5744", marginBottom: "1rem", fontSize: "0.9rem" }}>
-              {filtered.length} product{filtered.length !== 1 ? "s" : ""} found
+            <p style={{ color: "var(--text-muted)", marginBottom: "1rem", fontSize: "0.88rem" }}>
+              {filtered.length} piece{filtered.length !== 1 ? "s" : ""} found
             </p>
             <div className="catalog-grid">
               {filtered.map((p) => <ProductCard key={p.id} product={p} />)}
             </div>
           </>
         ) : (
-          <div style={{ textAlign: "center", padding: "5rem 0", color: "#6B5744", fontSize: "1.1rem" }}>
-            <p>No products found. Try a different category or search term.</p>
+          <div style={{ textAlign: "center", padding: "5rem 0", color: "var(--text-muted)", fontSize: "1.05rem" }}>
+            <p>No products match your search. Try a different category or term.</p>
           </div>
         )}
       </div>

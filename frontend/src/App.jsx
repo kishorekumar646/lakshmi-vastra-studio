@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -108,6 +108,38 @@ function AdminApp() {
   );
 }
 
+// Customer shell — hides Navbar/Footer on home so the luxury layout can own the full page
+function CustomerLayout() {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
+
+  return (
+    <>
+      {!isHome && <Navbar />}
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/catalog" element={<Catalog />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/account" element={<Account />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/track/:orderId" element={<OrderTracking />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+      {!isHome && <Footer />}
+      <BackToTop />
+      <BottomNav />
+      <CookieBanner />
+    </>
+  );
+}
+
 export default function App() {
   // Portal-specific standalone builds — minimal, no customer shell
   if (PORTAL === "shop") return <ShopApp />;
@@ -149,31 +181,7 @@ export default function App() {
               <Route path="/delivery/dashboard" element={<DeliveryProtectedRoute><DeliveryDashboard /></DeliveryProtectedRoute>} />
 
               {/* Customer-facing pages — with Navbar/Footer */}
-              <Route path="*" element={
-                <>
-                  <Navbar />
-                  <main className="flex-1">
-                    <Routes>
-                      <Route path="/" element={<Home />} />
-                      <Route path="/shop" element={<Shop />} />
-                      <Route path="/catalog" element={<Catalog />} />
-                      <Route path="/product/:id" element={<ProductDetail />} />
-                      <Route path="/contact" element={<Contact />} />
-                      <Route path="/wishlist" element={<Wishlist />} />
-                      <Route path="/cart" element={<Cart />} />
-                      <Route path="/checkout" element={<Checkout />} />
-                      <Route path="/account" element={<Account />} />
-                      <Route path="/about" element={<About />} />
-                      <Route path="/track/:orderId" element={<OrderTracking />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </main>
-                  <Footer />
-                  <BackToTop />
-                  <BottomNav />
-                  <CookieBanner />
-                </>
-              } />
+              <Route path="*" element={<CustomerLayout />} />
             </Routes>
           </div>
         </WishlistProvider>

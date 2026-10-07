@@ -1,236 +1,42 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { getProducts, getCategories, getRecentReviews } from "../api";
-import ProductCard from "../components/ProductCard";
-import { ProductCardSkeleton, CategoryCardSkeleton, ReviewCardSkeleton } from "../components/Skeleton";
-import TrustBadges from "../components/TrustBadges";
-import StarRating from "../components/StarRating";
-
-const WHY_US = [
-  { icon: "🪡", title: "Authentic Handlooms", desc: "Sourced directly from master weavers across India — every piece tells a story." },
-  { icon: "✨", title: "Curated Quality", desc: "Each saree is handpicked for its craftsmanship, colour, and finish." },
-  { icon: "💬", title: "Personal Guidance", desc: "Our team is always ready to help you find the perfect match for any occasion." },
-  { icon: "🚚", title: "Local Delivery", desc: "Fast, safe delivery within our local area — right to your doorstep." },
-];
+import { useState, useEffect } from "react";
+import HeroSection from "../components/luxury/HeroSection";
+import DressShowcase from "../components/luxury/DressShowcase";
+import NewArrivals from "../components/luxury/NewArrivals";
+import ShopByOccasion from "../components/luxury/ShopByOccasion";
+import FabricCraft from "../components/luxury/FabricCraft";
+import Lookbook from "../components/luxury/Lookbook";
+import Testimonials from "../components/luxury/Testimonials";
+import InstagramStrip from "../components/luxury/InstagramStrip";
+import NewsletterFooter from "../components/luxury/NewsletterFooter";
+import CartDrawer from "../components/CartDrawer";
+import SizeGuideModal from "../components/SizeGuideModal";
 
 export default function Home() {
-  const [featured, setFeatured] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
-  const [featuredLoading, setFeaturedLoading] = useState(true);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Lakshmi Vastra Studio — Sarees & Ethnic Wear";
-    getProducts({ featured: true })
-      .then((r) => setFeatured(r.data.slice(0, 6)))
-      .finally(() => setFeaturedLoading(false));
-    getCategories()
-      .then((r) => setCategories(r.data))
-      .finally(() => setCategoriesLoading(false));
-    getRecentReviews(6)
-      .then((r) => setTestimonials(r.data))
-      .catch(() => {})
-      .finally(() => setTestimonialsLoading(false));
-    const onVisible = () => {
-      if (!document.hidden) {
-        getProducts({ featured: true }).then((r) => setFeatured(r.data.slice(0, 6))).catch(() => {});
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   return (
     <>
-      {/* ── Hero ────────────────────── */}
-      <section className="hero-section">
-        <div className="hero-content">
-          <span className="hero-eyebrow">Est. with love for Indian craft</span>
-          <h1 className="hero-title">Lakshmi Vastra Studio</h1>
-          <div className="hero-divider" />
-          <p className="hero-tagline">
-            Exquisite sarees & ethnic wear — tradition woven in every thread
-          </p>
-          <div className="hero-btns">
-            <Link to="/catalog" className="btn-gold">Explore Collection</Link>
-            <Link to="/shop" className="btn-outline">Shop Now</Link>
-          </div>
+      <HeroSection />
+      <DressShowcase />
+      <NewArrivals />
+      <ShopByOccasion />
+      <FabricCraft />
+      <Lookbook />
+      <Testimonials />
+      <InstagramStrip />
+      <NewsletterFooter />
 
-          {/* Trust pills */}
-          <div className="trust-strip">
-            <span className="trust-pill">✓ Genuine Handlooms</span>
-            <span className="trust-pill">✓ 500+ Happy Customers</span>
-            <span className="trust-pill">✓ Local Delivery</span>
-          </div>
-        </div>
-      </section>
-
-      <TrustBadges />
-
-      {/* ── Categories ──────────────── */}
-      {(categoriesLoading || categories.length > 0) && (
-        <section className="page-section page-section-cream">
-          <div className="container">
-            <span className="section-tag">Browse by type</span>
-            <h2 className="section-title">Shop by Category</h2>
-            <div className="section-divider" />
-            <div className="cat-grid">
-              {categoriesLoading
-                ? Array.from({ length: 4 }, (_, i) => <CategoryCardSkeleton key={i} />)
-                : categories.map((cat) => (
-                    <Link key={cat.id} to={`/catalog?category=${cat.id}`} className="cat-card">
-                      <span className="cat-name">{cat.name}</span>
-                    </Link>
-                  ))
-              }
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Featured Products ────────── */}
-      <section className="page-section">
-        <div className="container">
-          <span className="section-tag">Handpicked for you</span>
-          <h2 className="section-title">Featured Collection</h2>
-          <div className="section-divider" />
-          {featuredLoading ? (
-            <div className="product-grid">
-              {Array.from({ length: 6 }, (_, i) => <ProductCardSkeleton key={i} />)}
-            </div>
-          ) : featured.length > 0 ? (
-            <>
-              <div className="product-grid">
-                {featured.map((p) => <ProductCard key={p.id} product={p} />)}
-              </div>
-              <div style={{ textAlign: "center", marginTop: "3rem" }}>
-                <Link to="/catalog" className="btn-primary">View All Products</Link>
-              </div>
-            </>
-          ) : (
-            <p style={{ textAlign: "center", color: "var(--text-muted)", fontSize: "1.05rem", padding: "3rem 0" }}>
-              New arrivals coming soon.{" "}
-              <Link to="/contact" style={{ color: "var(--primary)" }}>Contact us</Link> to inquire.
-            </p>
-          )}
-        </div>
-      </section>
-
-      {/* ── Why Us ──────────────────── */}
-      <section className="page-section page-section-deep">
-        <div className="container">
-          <span className="section-tag">Our promise</span>
-          <h2 className="section-title">Why Choose Us</h2>
-          <div className="section-divider" />
-          <div className="why-grid">
-            {WHY_US.map((item) => (
-              <div key={item.title} className="why-card">
-                <div className="why-icon-wrap">{item.icon}</div>
-                <h3 className="why-title">{item.title}</h3>
-                <p className="why-desc">{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ────────────── */}
-      {(testimonialsLoading || testimonials.length > 0) && (
-        <section className="page-section page-section-cream">
-          <div className="container">
-            <span className="section-tag">What our customers say</span>
-            <h2 className="section-title">Customer Reviews</h2>
-            <div className="section-divider" />
-            <div style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: "1.25rem",
-            }}>
-              {testimonialsLoading
-                ? Array.from({ length: 3 }, (_, i) => <ReviewCardSkeleton key={i} />)
-                : testimonials.map((r) => (
-                <div key={r.id} style={{
-                  background: "#fff",
-                  borderRadius: 8,
-                  padding: "1.5rem",
-                  border: "1px solid var(--border-light)",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.05)",
-                }}>
-                  <StarRating value={r.rating} size={18} />
-                  <p style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: "1.05rem",
-                    fontStyle: "italic",
-                    color: "var(--text)",
-                    lineHeight: 1.7,
-                    margin: "0.75rem 0",
-                  }}>
-                    "{r.comment}"
-                  </p>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <div style={{
-                      width: 32, height: 32, borderRadius: "50%",
-                      background: "var(--primary)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      color: "#fff", fontSize: "0.85rem", fontWeight: 700, flexShrink: 0,
-                    }}>
-                      {r.reviewer_name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p style={{ fontWeight: 700, color: "var(--text)", fontSize: "0.88rem" }}>{r.reviewer_name}</p>
-                      {r.product_name && (
-                        <p style={{ color: "var(--gold)", fontSize: "0.72rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-                          on {r.product_name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── CTA ─────────────────────── */}
-      <section style={{ background: "linear-gradient(150deg, #0D0611 0%, #28092A 45%, #7B1D45 100%)", padding: "5.5rem 0" }}>
-        <div className="container" style={{ textAlign: "center" }}>
-          <span style={{
-            display: "block",
-            fontFamily: "'Cormorant Garamond', serif",
-            fontStyle: "italic",
-            fontSize: "1.15rem",
-            color: "var(--gold-light)",
-            marginBottom: "1rem",
-            letterSpacing: "0.04em",
-          }}>
-            Find your perfect saree today
-          </span>
-          <h2 style={{
-            fontFamily: "'Playfair Display', serif",
-            fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
-            color: "#fff",
-            marginBottom: "1rem",
-            fontWeight: 700,
-          }}>
-            Ready to Drape in Elegance?
-          </h2>
-          <div style={{ width: 60, height: 1, background: "var(--gold)", margin: "0 auto 1.75rem", opacity: 0.6 }} />
-          <p style={{
-            color: "rgba(255,255,255,0.72)",
-            marginBottom: "2.25rem",
-            fontSize: "1rem",
-            lineHeight: 1.7,
-            maxWidth: 500,
-            margin: "0 auto 2.25rem",
-          }}>
-            Browse our curated collection and find the perfect piece for any occasion.
-          </p>
-          <Link to="/shop" className="btn-gold">Shop Collection</Link>
-        </div>
-      </section>
+      {/* Global overlays — available site-wide from the home page */}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
+      <SizeGuideModal
+        open={sizeGuideOpen}
+        onClose={() => setSizeGuideOpen(false)}
+      />
     </>
   );
 }

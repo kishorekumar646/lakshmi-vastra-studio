@@ -4,6 +4,7 @@ import { submitInquiry, WHATSAPP_NUMBER, PHONE_NUMBER } from "../api";
 import toast from "react-hot-toast";
 import { Phone, MessageCircle, MapPin, Clock, Send, ArrowRight } from "lucide-react";
 import { stripPhone, phoneError } from "../utils/phone";
+import PageBanner from "../components/luxury/PageBanner";
 
 /* ── Scroll-in animation hook ── */
 function useVisible(threshold = 0.12) {
@@ -108,76 +109,11 @@ export default function Contact() {
   return (
     <div style={{ overflowX: "hidden" }}>
 
-      {/* ── Hero ── */}
-      <section style={{
-        background: "linear-gradient(135deg, #1A0E14 0%, #3D1028 50%, #7B1D45 100%)",
-        padding: "5rem 1.5rem 4.5rem",
-        textAlign: "center",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Decorative rings */}
-        {[...Array(3)].map((_, i) => (
-          <div key={i} style={{
-            position: "absolute", borderRadius: "50%",
-            border: "1px solid rgba(255,255,255,0.05)",
-            width: `${400 + i * 180}px`, height: `${400 + i * 180}px`,
-            top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-          }} />
-        ))}
-
-        <div style={{ position: "relative", maxWidth: 680, margin: "0 auto" }}>
-          <span style={{
-            display: "inline-block", padding: "0.3rem 1rem", borderRadius: 20,
-            background: "rgba(184,137,42,0.2)", border: "1px solid rgba(184,137,42,0.4)",
-            color: "#D4A94A", fontSize: "0.78rem", fontWeight: 700,
-            letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "1.25rem",
-          }}>We're here to help</span>
-
-          <h1 style={{
-            fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 900, color: "#fff",
-            margin: "0 0 1.25rem", lineHeight: 1.15,
-          }}>
-            Get in <span style={{ color: "#D4A94A" }}>Touch</span>
-          </h1>
-
-          <p style={{
-            color: "rgba(255,255,255,0.72)", fontSize: "1.05rem",
-            lineHeight: 1.75, margin: "0 0 2.5rem",
-          }}>
-            We'd love to hear from you. Whether it's a custom order, a question about a saree, or just a hello — our team responds quickly.
-          </p>
-
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${waMsg}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "0.6rem",
-                padding: "0.8rem 1.6rem", borderRadius: 10,
-                background: "#25D366", color: "#fff",
-                fontWeight: 700, fontSize: "0.9rem", textDecoration: "none",
-                boxShadow: "0 4px 16px rgba(37,211,102,0.35)",
-              }}
-            >
-              {WA_ICON} WhatsApp Us
-            </a>
-            <a
-              href={`tel:${PHONE_NUMBER}`}
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                padding: "0.8rem 1.6rem", borderRadius: 10,
-                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff", fontWeight: 600, fontSize: "0.9rem", textDecoration: "none",
-              }}
-            >
-              <Phone size={16} /> {PHONE_NUMBER}
-            </a>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        eyebrow="We're here to help"
+        title="Get in Touch"
+        subtitle="Custom orders, queries, or just a hello — our team responds quickly."
+      />
 
       {/* ── Info Cards ── */}
       <section style={{ background: "var(--cream-deep)", padding: "4rem 1.5rem" }}>

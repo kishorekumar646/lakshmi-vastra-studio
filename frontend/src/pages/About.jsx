@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { PHONE_NUMBER, WHATSAPP_NUMBER } from "../api";
 import TrustBadges from "../components/TrustBadges";
+import PageBanner from "../components/luxury/PageBanner";
 
 /* ── Intersection-observer hook for scroll-in animations ── */
 function useVisible(threshold = 0.15) {
@@ -54,21 +55,23 @@ function ValueCard({ icon, title, desc, delay }) {
   const [ref, visible] = useVisible();
   return (
     <div ref={ref} style={{
-      background: "#fff", borderRadius: 14, padding: "1.75rem",
-      border: "1px solid var(--border-light)",
-      boxShadow: "0 2px 16px rgba(123,29,69,0.06)",
+      background: "linear-gradient(135deg, #0D0611 0%, #1A0B1C 100%)",
+      borderRadius: 16, padding: "1.75rem",
+      border: "1px solid rgba(184,137,42,0.18)",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.25)",
       opacity: visible ? 1 : 0,
       transform: visible ? "translateY(0)" : "translateY(24px)",
       transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`,
     }}>
       <div style={{
         width: 52, height: 52, borderRadius: 14,
-        background: "var(--cream-deep)", display: "flex",
-        alignItems: "center", justifyContent: "center",
-        fontSize: "1.6rem", marginBottom: "1rem",
+        background: "rgba(184,137,42,0.12)",
+        border: "1px solid rgba(184,137,42,0.25)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        fontSize: "1.6rem", marginBottom: "1.1rem",
       }}>{icon}</div>
-      <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", fontWeight: 700, color: "var(--text)" }}>{title}</h3>
-      <p style={{ margin: 0, fontSize: "0.87rem", color: "var(--text-muted)", lineHeight: 1.65 }}>{desc}</p>
+      <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", fontWeight: 700, color: "#fff", fontFamily: "'Playfair Display', serif" }}>{title}</h3>
+      <p style={{ margin: 0, fontSize: "0.87rem", color: "rgba(201,186,178,0.75)", lineHeight: 1.7 }}>{desc}</p>
     </div>
   );
 }
@@ -84,61 +87,11 @@ export default function About() {
   return (
     <div style={{ overflowX: "hidden" }}>
 
-      {/* ── Hero ── */}
-      <section style={{
-        background: "linear-gradient(135deg, #1A0E14 0%, #3D1028 50%, #7B1D45 100%)",
-        padding: "5rem 1.5rem 4rem", textAlign: "center", position: "relative", overflow: "hidden",
-      }}>
-        {/* Decorative pattern */}
-        {[...Array(3)].map((_, i) => (
-          <div key={i} style={{
-            position: "absolute", borderRadius: "50%",
-            border: `1px solid rgba(255,255,255,0.06)`,
-            width: `${400 + i * 180}px`, height: `${400 + i * 180}px`,
-            top: "50%", left: "50%",
-            transform: "translate(-50%, -50%)",
-            pointerEvents: "none",
-          }} />
-        ))}
-        <div style={{ position: "relative", maxWidth: 680, margin: "0 auto" }}>
-          <span style={{
-            display: "inline-block", padding: "0.3rem 1rem", borderRadius: 20,
-            background: "rgba(184,137,42,0.2)", border: "1px solid rgba(184,137,42,0.4)",
-            color: "#D4A94A", fontSize: "0.78rem", fontWeight: 700,
-            letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: "1.25rem",
-          }}>Our Story</span>
-          <h1 style={{
-            fontSize: "clamp(2rem,5vw,3rem)", fontWeight: 900, color: "#fff",
-            margin: "0 0 1.25rem", lineHeight: 1.15,
-          }}>
-            Weaving Tradition into<br />
-            <span style={{ color: "#D4A94A" }}>Every Thread</span>
-          </h1>
-          <p style={{
-            color: "rgba(255,255,255,0.72)", fontSize: "1.05rem",
-            lineHeight: 1.75, margin: "0 0 2rem",
-          }}>
-            Lakshmi Vastra Studio was founded with one purpose — to bring the finest handloom and traditional sarees from Indian weavers directly to your doorstep, at honest prices, with zero compromise on authenticity.
-          </p>
-          <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
-            <Link to="/shop" className="btn-gold" style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
-              Shop Collection
-            </Link>
-            <a
-              href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMsg}`}
-              target="_blank" rel="noopener noreferrer"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: "0.5rem",
-                padding: "0.7rem 1.4rem", borderRadius: 8,
-                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.25)",
-                color: "#fff", fontWeight: 600, fontSize: "0.9rem", textDecoration: "none",
-              }}
-            >
-              💬 Chat with Us
-            </a>
-          </div>
-        </div>
-      </section>
+      <PageBanner
+        eyebrow="Our Story"
+        title="Weaving Tradition into Every Thread"
+        subtitle="Lakshmi Vastra Studio — founded to bring the finest handloom sarees from Indian weavers directly to your doorstep."
+      />
 
       {/* ── Trust Badges ── */}
       <TrustBadges />
@@ -178,9 +131,9 @@ export default function About() {
             <FadeIn delay={0.15}>
               <div style={{ position: "relative" }}>
                 <div style={{
-                  background: "linear-gradient(135deg, var(--cream-deep), var(--cream))",
+                  background: "linear-gradient(135deg, #0D0611 0%, #28092A 100%)",
                   borderRadius: 20, padding: "2.5rem",
-                  border: "1px solid var(--border)", boxShadow: "0 8px 40px rgba(123,29,69,0.1)",
+                  border: "1px solid rgba(184,137,42,0.2)", boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
                 }}>
                   {[
                     { year: "Day 1", event: "Founded with a vision to connect weavers & customers" },
@@ -197,9 +150,9 @@ export default function About() {
                           fontSize: "0.65rem", fontWeight: 800, textAlign: "center", lineHeight: 1.2,
                           padding: "0.2rem",
                         }}>{year}</div>
-                        {i < 3 && <div style={{ width: 2, flex: 1, background: "var(--border)", marginTop: "0.4rem" }} />}
+                        {i < 3 && <div style={{ width: 2, flex: 1, background: "rgba(255,255,255,0.12)", marginTop: "0.4rem" }} />}
                       </div>
-                      <p style={{ color: "var(--text)", fontSize: "0.9rem", lineHeight: 1.6, paddingTop: "0.45rem" }}>{event}</p>
+                      <p style={{ color: "rgba(255,255,255,0.85)", fontSize: "0.9rem", lineHeight: 1.6, paddingTop: "0.45rem" }}>{event}</p>
                     </div>
                   ))}
                 </div>
@@ -218,7 +171,7 @@ export default function About() {
       </section>
 
       {/* ── Why Choose Us ── */}
-      <section style={{ background: "var(--cream)", padding: "5rem 1.5rem" }}>
+      <section style={{ background: "#FAFAF7", padding: "5rem 1.5rem" }}>
         <div className="container">
           <FadeIn style={{ textAlign: "center", marginBottom: "3rem" }}>
             <span className="section-tag">Why Us</span>
@@ -263,13 +216,13 @@ export default function About() {
               <FadeIn key={label}>
                 <div style={{
                   textAlign: "center", padding: "2rem 1.25rem",
-                  background: "#fff", borderRadius: 14,
-                  border: "1px solid var(--border-light)",
-                  boxShadow: "0 2px 12px rgba(0,0,0,0.04)",
+                  background: "linear-gradient(135deg, #0D0611, #1A0B1C)", borderRadius: 16,
+                  border: "1px solid rgba(184,137,42,0.18)",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
                 }}>
                   <div style={{ fontSize: "2.25rem", marginBottom: "0.75rem" }}>{icon}</div>
-                  <p style={{ margin: "0 0 0.4rem", fontWeight: 700, fontSize: "0.92rem", color: "var(--text)" }}>{label}</p>
-                  <p style={{ margin: 0, fontSize: "0.78rem", color: "var(--text-muted)", lineHeight: 1.5 }}>{desc}</p>
+                  <p style={{ margin: "0 0 0.4rem", fontWeight: 700, fontSize: "0.92rem", color: "#fff", fontFamily: "'Playfair Display', serif" }}>{label}</p>
+                  <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(201,186,178,0.7)", lineHeight: 1.5 }}>{desc}</p>
                 </div>
               </FadeIn>
             ))}
