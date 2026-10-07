@@ -78,26 +78,78 @@ export default function DressShowcase() {
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Fetch real products
+  // Fetch real products, sorted newest-first (same order as NewArrivals)
   useEffect(() => {
     getProducts()
       .then((r) => {
-        const products = (r.data || []).slice(0, 4);
-        if (products.length === 0) return;
-        const mapped = products.map(toShowcaseLook);
+        const sorted = [...(r.data || [])]
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 4);
+        if (sorted.length === 0) return;
+        const mapped = sorted.map(toShowcaseLook);
         looksRef.current = mapped;
         setLooks(mapped);
-        // Reset look index when products load
-        setActiveLook(0);
-        prevLookRef.current = 0;
       })
       .catch(() => {});
   }, []);
+
+  // After products load, sync activeLook with the actual current scroll position
+  // so the displayed image and the cart item always agree.
+  useEffect(() => {
+    if (looks.length === 0 || !wrapperRef.current) return;
+    const wrapper = wrapperRef.current;
+    const rect = wrapper.getBoundingClientRect();
+    const scrolledInto = -rect.top;
+    const scrollable = wrapper.offsetHeight - window.innerHeight;
+    if (scrollable <= 0) return;
+    const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
+    const syncIdx = Math.min(Math.floor(progress * looks.length), looks.length - 1);
+    prevLookRef.current = syncIdx;
+    setActiveLook(syncIdx);
+    // Immediately snap image visibilities to match scroll position (no animation)
+    imageRefs.current.forEach((el, i) => {
+      if (!el) return;
+      el.style.transition = "none";
+      el.style.opacity = i === syncIdx ? "1" : "0";
+      el.style.transform = i === syncIdx
+        ? "translate(-50%, -50%)"
+        : "translate(-50%, -50%) translateX(70px) scale(0.85) rotateY(9deg)";
+      el.style.zIndex = i === syncIdx ? "2" : "1";
+    });
+  }, [looks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep ref in sync with state for scroll handler
   useEffect(() => {
     looksRef.current = looks;
   }, [looks]);
+
+  // Auto-advance: scroll to the next look every 3 seconds when within the showcase range
+  useEffect(() => {
+    if (prefersReduced || looks.length === 0) return;
+
+    const interval = setInterval(() => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+
+      const rect = wrapper.getBoundingClientRect();
+      const scrolledInto = -rect.top;
+      const scrollable = wrapper.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+
+      // Only advance when user is within the showcase scroll range
+      if (scrolledInto < 0 || scrolledInto > scrollable) return;
+
+      const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
+      const currentIdx = Math.min(Math.floor(progress * looks.length), looks.length - 1);
+      const nextIdx = (currentIdx + 1) % looks.length;
+
+      const wrapperDocTop = window.scrollY + rect.top;
+      const targetScrollY = wrapperDocTop + ((nextIdx + 0.1) / looks.length) * scrollable;
+      window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [prefersReduced, looks]);
 
   useEffect(() => {
     if (prefersReduced) return;

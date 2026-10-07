@@ -21,7 +21,7 @@ function BarChart({ data, valueKey = "value", labelKey = "label", color = "#7B1D
         return (
           <g key={i}>
             <rect x={x} y={y} width={barW} height={barH} rx={3} fill={color} fillOpacity={0.85} />
-            <text x={x + barW / 2} y={H + 18} textAnchor="middle" fontSize={9.5} fill="#888" fontFamily="sans-serif">
+            <text x={x + barW / 2} y={H + 18} textAnchor="middle" fontSize={9.5} fill="rgba(255,255,255,0.35)" fontFamily="sans-serif">
               {String(d[labelKey]).slice(0, 12)}
             </text>
             <title>{d[labelKey]}: {d[valueKey]}</title>
@@ -35,7 +35,7 @@ function BarChart({ data, valueKey = "value", labelKey = "label", color = "#7B1D
 // ── SVG line / area chart ─────────────────────────────────────────────────────
 function LineChart({ data, valueKey = "value", labelKey = "label", color = "#7B1D45" }) {
   if (data.length < 2) return (
-    <div style={{ textAlign: "center", padding: "2rem", color: "#bbb", fontSize: "0.85rem" }}>Not enough data yet</div>
+    <div style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.4)", fontSize: "0.85rem" }}>Not enough data yet</div>
   );
   const W = 560, H = 130, PAD = { t: 10, r: 10, b: 28, l: 44 };
   const max = Math.max(...data.map((d) => d[valueKey]), 1);
@@ -62,8 +62,8 @@ function LineChart({ data, valueKey = "value", labelKey = "label", color = "#7B1
       </defs>
       {ticks.map((t, i) => (
         <g key={i}>
-          <line x1={PAD.l} y1={t.y} x2={W - PAD.r} y2={t.y} stroke="#eee" strokeWidth={1} />
-          <text x={PAD.l - 5} y={t.y + 4} textAnchor="end" fontSize={9} fill="#aaa" fontFamily="sans-serif">
+          <line x1={PAD.l} y1={t.y} x2={W - PAD.r} y2={t.y} stroke="rgba(255,255,255,0.07)" strokeWidth={1} />
+          <text x={PAD.l - 5} y={t.y + 4} textAnchor="end" fontSize={9} fill="rgba(255,255,255,0.35)" fontFamily="sans-serif">
             {t.val >= 1000 ? `${(t.val / 1000).toFixed(0)}k` : t.val}
           </text>
         </g>
@@ -73,7 +73,7 @@ function LineChart({ data, valueKey = "value", labelKey = "label", color = "#7B1
       {pts.map((p, i) => (
         <g key={i}>
           <circle cx={p.x} cy={p.y} r={3.5} fill={color} />
-          <text x={p.x} y={H - PAD.b + 16} textAnchor="middle" fontSize={9.5} fill="#888" fontFamily="sans-serif">
+          <text x={p.x} y={H - PAD.b + 16} textAnchor="middle" fontSize={9.5} fill="rgba(255,255,255,0.35)" fontFamily="sans-serif">
             {data[i][labelKey]}
           </text>
           <title>{data[i][labelKey]}: ₹{data[i][valueKey].toLocaleString("en-IN")}</title>
@@ -86,7 +86,7 @@ function LineChart({ data, valueKey = "value", labelKey = "label", color = "#7B1
 // ── Donut chart ───────────────────────────────────────────────────────────────
 function DonutChart({ data }) {
   const total = data.reduce((s, d) => s + d.count, 0);
-  if (!total) return <div style={{ textAlign: "center", padding: "2rem", color: "#bbb", fontSize: "0.85rem" }}>No orders yet</div>;
+  if (!total) return <div style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.4)", fontSize: "0.85rem" }}>No orders yet</div>;
   const CX = 80, CY = 80, R = 64, r = 38;
   let angle = -Math.PI / 2;
   const slices = data.map((d) => {
@@ -111,8 +111,8 @@ function DonutChart({ data }) {
         {data.map((d, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem" }}>
             <span style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
-            <span style={{ color: "#555" }}>{d.label}</span>
-            <span style={{ fontWeight: 700, color: "#333", marginLeft: "auto", paddingLeft: "0.75rem" }}>{d.count}</span>
+            <span style={{ color: "rgba(255,255,255,0.6)" }}>{d.label}</span>
+            <span style={{ fontWeight: 700, color: "rgba(255,255,255,0.9)", marginLeft: "auto", paddingLeft: "0.75rem" }}>{d.count}</span>
           </div>
         ))}
       </div>
@@ -121,16 +121,16 @@ function DonutChart({ data }) {
 }
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon, color = "#7B1D45", accent = "#fff0f5" }) {
+function StatCard({ label, value, sub, icon: Icon, color = "#7B1D45", accent = "rgba(123,29,69,0.2)" }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem 1.4rem", border: "1px solid var(--border-light)", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", display: "flex", alignItems: "center", gap: "1rem" }}>
+    <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.25rem 1.4rem", border: "1px solid rgba(184,137,42,0.12)", display: "flex", alignItems: "center", gap: "1rem" }}>
       <div style={{ width: 46, height: 46, borderRadius: 12, background: accent, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
         <Icon size={20} color={color} />
       </div>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.2rem" }}>{label}</p>
-        <p style={{ fontSize: "1.35rem", fontWeight: 800, color: "#1a1a1a", lineHeight: 1 }}>{value}</p>
-        {sub && <p style={{ fontSize: "0.72rem", color: "#aaa", marginTop: "0.25rem" }}>{sub}</p>}
+        <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.2rem" }}>{label}</p>
+        <p style={{ fontSize: "1.35rem", fontWeight: 800, color: "rgba(255,255,255,0.92)", lineHeight: 1 }}>{value}</p>
+        {sub && <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginTop: "0.25rem" }}>{sub}</p>}
       </div>
     </div>
   );
@@ -139,8 +139,8 @@ function StatCard({ label, value, sub, icon: Icon, color = "#7B1D45", accent = "
 // ── Chart card wrapper ────────────────────────────────────────────────────────
 function ChartCard({ title, children, style }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: "1.4rem 1.6rem", border: "1px solid var(--border-light)", boxShadow: "0 2px 10px rgba(0,0,0,0.05)", ...style }}>
-      <p style={{ fontWeight: 700, fontSize: "0.88rem", color: "#333", marginBottom: "1.25rem", letterSpacing: "0.01em" }}>{title}</p>
+    <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.4rem 1.6rem", border: "1px solid rgba(184,137,42,0.12)", ...style }}>
+      <p style={{ fontWeight: 700, fontSize: "0.88rem", color: "rgba(255,255,255,0.85)", marginBottom: "1.25rem", letterSpacing: "0.01em" }}>{title}</p>
       {children}
     </div>
   );
@@ -174,7 +174,7 @@ export default function AdminDashboardTab() {
   if (loading) return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} style={{ background: "#fff", borderRadius: 12, padding: "1.4rem", height: 90, border: "1px solid var(--border-light)" }}>
+        <div key={i} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.4rem", height: 90, border: "1px solid rgba(184,137,42,0.12)" }}>
           <span className="skeleton" style={{ height: 12, width: "40%", display: "block", marginBottom: "0.75rem" }} />
           <span className="skeleton" style={{ height: 24, width: "60%", display: "block" }} />
         </div>
@@ -183,11 +183,11 @@ export default function AdminDashboardTab() {
   );
 
   if (!data) return (
-    <div style={{ textAlign: "center", padding: "3rem", color: "#aaa" }}>
+    <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.45)" }}>
       <TrendingUp size={36} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
       <p style={{ marginBottom: "0.5rem" }}>Could not load dashboard data.</p>
       {error && (
-        <p style={{ fontSize: "0.8rem", color: "#e55", background: "#fff5f5", border: "1px solid #fcc", borderRadius: 6, padding: "0.5rem 1rem", display: "inline-block", marginTop: "0.5rem", fontFamily: "monospace" }}>
+        <p style={{ fontSize: "0.8rem", color: "#FCA5A5", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: 6, padding: "0.5rem 1rem", display: "inline-block", marginTop: "0.5rem", fontFamily: "monospace" }}>
           {error}
         </p>
       )}
@@ -209,14 +209,14 @@ export default function AdminDashboardTab() {
 
       {/* ── Summary cards ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "1rem" }}>
-        <StatCard label="Total Revenue" value={fmt(summary.total_revenue)} sub="From confirmed+ orders" icon={TrendingUp} color="#7B1D45" accent="#fff0f5" />
-        <StatCard label="Total Orders" value={summary.total_orders} sub={`${summary.pending_orders} pending`} icon={ShoppingBag} color="#3b82f6" accent="#eff6ff" />
-        <StatCard label="Delivered" value={summary.delivered_orders} sub="Successfully delivered" icon={CheckCircle} color="#10b981" accent="#ecfdf5" />
-        <StatCard label="Customers" value={summary.total_customers} sub="Registered accounts" icon={Users} color="#8b5cf6" accent="#f5f3ff" />
-        <StatCard label="Products" value={summary.total_products} sub="In catalogue" icon={Package} color="#f59e0b" accent="#fffbeb" />
-        <StatCard label="Avg Rating" value={`${summary.avg_rating} ★`} sub={`${summary.total_reviews} reviews`} icon={Star} color="#f59e0b" accent="#fffbeb" />
-        <StatCard label="Unread Inquiries" value={summary.unread_inquiries} sub="Need your response" icon={MessageSquare} color="#ec4899" accent="#fdf2f8" />
-        <StatCard label="Pending Orders" value={summary.pending_orders} sub="Awaiting confirmation" icon={Clock} color="#ef4444" accent="#fef2f2" />
+        <StatCard label="Total Revenue" value={fmt(summary.total_revenue)} sub="From confirmed+ orders" icon={TrendingUp} color="#B8892A" accent="rgba(184,137,42,0.15)" />
+        <StatCard label="Total Orders" value={summary.total_orders} sub={`${summary.pending_orders} pending`} icon={ShoppingBag} color="#3b82f6" accent="rgba(59,130,246,0.15)" />
+        <StatCard label="Delivered" value={summary.delivered_orders} sub="Successfully delivered" icon={CheckCircle} color="#10b981" accent="rgba(16,185,129,0.15)" />
+        <StatCard label="Customers" value={summary.total_customers} sub="Registered accounts" icon={Users} color="#8b5cf6" accent="rgba(139,92,246,0.15)" />
+        <StatCard label="Products" value={summary.total_products} sub="In catalogue" icon={Package} color="#f59e0b" accent="rgba(245,158,11,0.15)" />
+        <StatCard label="Avg Rating" value={`${summary.avg_rating} ★`} sub={`${summary.total_reviews} reviews`} icon={Star} color="#f59e0b" accent="rgba(245,158,11,0.15)" />
+        <StatCard label="Unread Inquiries" value={summary.unread_inquiries} sub="Need your response" icon={MessageSquare} color="#ec4899" accent="rgba(236,72,153,0.15)" />
+        <StatCard label="Pending Orders" value={summary.pending_orders} sub="Awaiting confirmation" icon={Clock} color="#ef4444" accent="rgba(239,68,68,0.15)" />
       </div>
 
       {/* ── Revenue line chart + Donut ── */}
@@ -224,18 +224,18 @@ export default function AdminDashboardTab() {
         <ChartCard title="Monthly Revenue (last 6 months)">
           {monthly_revenue.length >= 2 ? (
             <>
-              <LineChart data={monthly_revenue} valueKey="revenue" labelKey="month" color="#7B1D45" />
+              <LineChart data={monthly_revenue} valueKey="revenue" labelKey="month" color="#B8892A" />
               <div style={{ display: "flex", gap: "1.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
                 {monthly_revenue.map((m, i) => (
-                  <div key={i} style={{ fontSize: "0.75rem", color: "#888" }}>
-                    <span style={{ fontWeight: 700, color: "#333" }}>{m.month}</span>
+                  <div key={i} style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>
+                    <span style={{ fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>{m.month}</span>
                     <br />{fmt(m.revenue)}<br />{m.orders} orders
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div style={{ textAlign: "center", padding: "2.5rem", color: "#bbb", fontSize: "0.85rem" }}>
+            <div style={{ textAlign: "center", padding: "2.5rem", color: "rgba(255,255,255,0.4)", fontSize: "0.85rem" }}>
               Revenue data will appear once orders are placed and confirmed.
             </div>
           )}
@@ -243,18 +243,18 @@ export default function AdminDashboardTab() {
 
         <ChartCard title="Orders by Status" style={{ minWidth: 260 }}>
           <DonutChart data={donutData} />
-          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid #f0f0f0" }}>
-            <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "#aaa", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.5rem" }}>Payment Method</p>
+          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+            <p style={{ fontSize: "0.72rem", fontWeight: 700, color: "rgba(255,255,255,0.45)", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: "0.5rem" }}>Payment Method</p>
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem" }}>
                 <CreditCard size={13} color="#3b82f6" />
-                <span style={{ color: "#555" }}>Online:</span>
-                <strong>{payment_split.online}</strong>
+                <span style={{ color: "rgba(255,255,255,0.6)" }}>Online:</span>
+                <strong style={{ color: "rgba(255,255,255,0.9)" }}>{payment_split.online}</strong>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem" }}>
                 <Banknote size={13} color="#10b981" />
-                <span style={{ color: "#555" }}>COD:</span>
-                <strong>{payment_split.cod}</strong>
+                <span style={{ color: "rgba(255,255,255,0.6)" }}>COD:</span>
+                <strong style={{ color: "rgba(255,255,255,0.9)" }}>{payment_split.cod}</strong>
               </div>
             </div>
           </div>
@@ -266,18 +266,18 @@ export default function AdminDashboardTab() {
         <ChartCard title="Top Products by Units Sold">
           {top_products.length ? (
             <>
-              <BarChart data={top_products} valueKey="units" labelKey="name" color="#7B1D45" height={140} />
+              <BarChart data={top_products} valueKey="units" labelKey="name" color="#B8892A" height={140} />
               <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 {top_products.map((p, i) => (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "#666" }}>
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "rgba(255,255,255,0.6)" }}>
                     <span>{i + 1}. {p.name}</span>
-                    <span style={{ fontWeight: 600, color: "#333" }}>{p.units} units · {fmt(p.revenue)}</span>
+                    <span style={{ fontWeight: 600, color: "rgba(255,255,255,0.85)" }}>{p.units} units · {fmt(p.revenue)}</span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div style={{ textAlign: "center", padding: "2.5rem", color: "#bbb", fontSize: "0.85rem" }}>
+            <div style={{ textAlign: "center", padding: "2.5rem", color: "rgba(255,255,255,0.4)", fontSize: "0.85rem" }}>
               Top products appear once orders are placed.
             </div>
           )}
@@ -287,18 +287,18 @@ export default function AdminDashboardTab() {
           <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
             {rating_distribution.map((d) => (
               <div key={d.stars} style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
-                <span style={{ fontSize: "0.78rem", color: "#666", width: 36, flexShrink: 0 }}>{d.stars} ★</span>
-                <div style={{ flex: 1, background: "#f5f5f5", borderRadius: 4, height: 8, overflow: "hidden" }}>
+                <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.55)", width: 36, flexShrink: 0 }}>{d.stars} ★</span>
+                <div style={{ flex: 1, background: "rgba(255,255,255,0.08)", borderRadius: 4, height: 8, overflow: "hidden" }}>
                   <div style={{ width: `${(d.count / ratingTotal) * 100}%`, height: "100%", background: d.stars >= 4 ? "#10b981" : d.stars === 3 ? "#f59e0b" : "#ef4444", borderRadius: 4, transition: "width 0.5s ease" }} />
                 </div>
-                <span style={{ fontSize: "0.75rem", color: "#aaa", width: 24, textAlign: "right", flexShrink: 0 }}>{d.count}</span>
+                <span style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", width: 24, textAlign: "right", flexShrink: 0 }}>{d.count}</span>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div style={{ marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <Star size={16} fill="#f59e0b" color="#f59e0b" />
-            <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "#333" }}>{summary.avg_rating}</span>
-            <span style={{ fontSize: "0.78rem", color: "#aaa" }}>avg from {summary.total_reviews} reviews</span>
+            <span style={{ fontWeight: 800, fontSize: "1.1rem", color: "rgba(255,255,255,0.9)" }}>{summary.avg_rating}</span>
+            <span style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.45)" }}>avg from {summary.total_reviews} reviews</span>
           </div>
         </ChartCard>
       </div>
@@ -309,9 +309,9 @@ export default function AdminDashboardTab() {
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.83rem" }}>
               <thead>
-                <tr style={{ borderBottom: "2px solid #f0f0f0" }}>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
                   {["Order", "Customer", "Amount", "Payment", "Status", "Date"].map((h) => (
-                    <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "#aaa", fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
+                    <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "rgba(255,255,255,0.45)", fontWeight: 700, fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -319,21 +319,21 @@ export default function AdminDashboardTab() {
                 {recent_orders.map((o) => {
                   const sc = STATUS_COLORS[o.status] || "#888";
                   return (
-                    <tr key={o.id} style={{ borderBottom: "1px solid #f9f9f9" }}>
-                      <td style={{ padding: "0.7rem 0.75rem", fontWeight: 700, color: "#333" }}>#{o.id}</td>
-                      <td style={{ padding: "0.7rem 0.75rem", color: "#555" }}>{o.customer}</td>
-                      <td style={{ padding: "0.7rem 0.75rem", fontWeight: 600, color: "#7B1D45" }}>{fmt(o.total)}</td>
+                    <tr key={o.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
+                      <td style={{ padding: "0.7rem 0.75rem", fontWeight: 700, color: "rgba(255,255,255,0.9)" }}>#{o.id}</td>
+                      <td style={{ padding: "0.7rem 0.75rem", color: "rgba(255,255,255,0.7)" }}>{o.customer}</td>
+                      <td style={{ padding: "0.7rem 0.75rem", fontWeight: 600, color: "#D4A94A" }}>{fmt(o.total)}</td>
                       <td style={{ padding: "0.7rem 0.75rem" }}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#666" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "rgba(255,255,255,0.55)" }}>
                           {o.payment_method === "cod" ? <><Banknote size={12} /> COD</> : <><CreditCard size={12} /> Online</>}
                         </span>
                       </td>
                       <td style={{ padding: "0.7rem 0.75rem" }}>
-                        <span style={{ background: sc + "18", color: sc, padding: "0.2rem 0.6rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        <span style={{ background: sc + "28", color: sc, padding: "0.2rem 0.6rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, whiteSpace: "nowrap" }}>
                           {o.status.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td style={{ padding: "0.7rem 0.75rem", color: "#aaa", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
+                      <td style={{ padding: "0.7rem 0.75rem", color: "rgba(255,255,255,0.35)", fontSize: "0.75rem", whiteSpace: "nowrap" }}>
                         {new Date(o.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
                     </tr>
@@ -343,7 +343,7 @@ export default function AdminDashboardTab() {
             </table>
           </div>
         ) : (
-          <div style={{ textAlign: "center", padding: "2rem", color: "#bbb", fontSize: "0.85rem" }}>No orders yet.</div>
+          <div style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.4)", fontSize: "0.85rem" }}>No orders yet.</div>
         )}
       </ChartCard>
     </div>

@@ -96,7 +96,7 @@ export default function Catalog() {
               borderRadius: 10,
               fontSize: "0.875rem",
               color: "var(--text)",
-              background: "#fff",
+              background: "rgba(255,255,255,0.06)",
               cursor: "pointer",
             }}
           >

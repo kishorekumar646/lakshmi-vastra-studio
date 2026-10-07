@@ -393,8 +393,8 @@ export default function ShopDashboard() {
   }, [productModalUserInteracted]);
 
   const S = { // inline style helpers
-    card: { background: "#fff", borderRadius: 10, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)", marginBottom: "0.75rem" },
-    badge: (status) => ({ display: "inline-block", padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, background: STATUS_COLOR[status] + "18", color: STATUS_COLOR[status] }),
+    card: { background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.25rem", border: "1px solid rgba(184,137,42,0.12)", marginBottom: "0.75rem" },
+    badge: (status) => ({ display: "inline-block", padding: "0.2rem 0.65rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, background: STATUS_COLOR[status] + "28", color: STATUS_COLOR[status] }),
   };
 
   // Account form state
@@ -483,14 +483,15 @@ export default function ShopDashboard() {
             <div
               onClick={(e) => e.stopPropagation()}
               style={{
-                background: "#fff",
+                background: "linear-gradient(135deg, #150A1F, #1A0D24)",
+                border: "1px solid rgba(184,137,42,0.2)",
                 borderRadius: 20,
                 /* fills screen on narrow phones; caps at 440px on larger */
                 width: "100%", maxWidth: 440,
                 /* adaptive height: leave room for keyboard / nav bars */
                 maxHeight: "min(90vh, 700px)",
                 display: "flex", flexDirection: "column",
-                boxShadow: "0 24px 80px rgba(0,0,0,0.35), 0 4px 20px rgba(0,0,0,0.18)",
+                boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 4px 20px rgba(0,0,0,0.4)",
                 overflow: "hidden",
                 /* prevent the modal's own scroll from bubbling to page */
                 overscrollBehavior: "contain",
@@ -499,7 +500,7 @@ export default function ShopDashboard() {
 
               {/* ── Image zone — height adapts to viewport ── */}
               <div style={{
-                position: "relative", flexShrink: 0, background: "#F8FAFC",
+                position: "relative", flexShrink: 0, background: "rgba(255,255,255,0.06)",
                 /* clamp: 160px on tiny landscape, 260px max on tall phones */
                 height: "clamp(160px, 30vh, 260px)",
               }}>
@@ -510,7 +511,7 @@ export default function ShopDashboard() {
                   />
                 ) : (
                   <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Package size={48} color="#CBD5E1" />
+                    <Package size={48} color="rgba(255,255,255,0.2)" />
                   </div>
                 )}
 
@@ -594,7 +595,7 @@ export default function ShopDashboard() {
                   display: "flex", gap: "0.4rem",
                   padding: "0.55rem 1rem",
                   overflowX: "auto", WebkitOverflowScrolling: "touch",
-                  borderBottom: "1px solid #F1F5F9", flexShrink: 0,
+                  borderBottom: "1px solid rgba(255,255,255,0.08)", flexShrink: 0,
                   /* hide scrollbar but keep scroll */
                   scrollbarWidth: "none",
                 }}>
@@ -603,7 +604,7 @@ export default function ShopDashboard() {
                       key={i} src={src} alt="" onClick={() => setProductModalImg(i)}
                       style={{
                         width: 50, height: 50, objectFit: "cover", borderRadius: 9, flexShrink: 0,
-                        border: `2.5px solid ${i === productModalImg ? "#7B1D45" : "#E2E8F0"}`,
+                        border: `2.5px solid ${i === productModalImg ? "#7B1D45" : "rgba(255,255,255,0.15)"}`,
                         cursor: "pointer", opacity: i === productModalImg ? 1 : 0.58,
                         transition: "all 0.18s", touchAction: "manipulation",
                       }}
@@ -622,7 +623,7 @@ export default function ShopDashboard() {
               }}>
 
                 {/* Name */}
-                <p style={{ margin: "0 0 0.3rem", fontWeight: 800, fontSize: "1.05rem", color: "#0F172A", lineHeight: 1.35 }}>
+                <p style={{ margin: "0 0 0.3rem", fontWeight: 800, fontSize: "1.05rem", color: "rgba(255,255,255,0.9)", lineHeight: 1.35 }}>
                   {name}
                 </p>
 
@@ -631,7 +632,7 @@ export default function ShopDashboard() {
                   <span style={{
                     display: "inline-flex", alignItems: "center", gap: "0.2rem",
                     fontSize: "0.71rem", fontWeight: 700,
-                    background: "#F1F5F9", color: "#475569",
+                    background: "rgba(184,137,42,0.15)", color: "#D4A94A",
                     borderRadius: 20, padding: "0.2rem 0.6rem", marginBottom: "0.8rem",
                   }}>
                     🏷️ {product.category_name}
@@ -641,10 +642,10 @@ export default function ShopDashboard() {
                 {/* Description */}
                 {product?.description && (
                   <div style={{ marginBottom: "0.9rem" }}>
-                    <p style={{ margin: "0 0 0.3rem", fontSize: "0.68rem", fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    <p style={{ margin: "0 0 0.3rem", fontSize: "0.68rem", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                       Description
                     </p>
-                    <p style={{ margin: 0, fontSize: "0.84rem", color: "#475569", lineHeight: 1.7 }}>
+                    <p style={{ margin: 0, fontSize: "0.84rem", color: "rgba(255,255,255,0.6)", lineHeight: 1.7 }}>
                       {product.description}
                     </p>
                   </div>
@@ -653,29 +654,29 @@ export default function ShopDashboard() {
                 {/* Attribute badges */}
                 {(product?.is_handloom || product?.has_multiple_colours || product?.custom_orders || product?.is_featured) && (
                   <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", marginBottom: "0.9rem" }}>
-                    {product.is_featured      && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E", borderRadius: 20, padding: "0.22rem 0.6rem" }}>⭐ Featured</span>}
-                    {product.is_handloom      && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46", borderRadius: 20, padding: "0.22rem 0.6rem" }}>🧵 Handloom</span>}
-                    {product.has_multiple_colours && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#DBEAFE", color: "#1E40AF", borderRadius: 20, padding: "0.22rem 0.6rem" }}>🎨 Multi-colour</span>}
-                    {product.custom_orders    && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6", borderRadius: 20, padding: "0.22rem 0.6rem" }}>✂️ Custom Orders</span>}
+                    {product.is_featured      && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "rgba(251,191,36,0.15)", color: "#fbbf24", borderRadius: 20, padding: "0.22rem 0.6rem" }}>⭐ Featured</span>}
+                    {product.is_handloom      && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "rgba(34,197,94,0.15)", color: "#4ade80", borderRadius: 20, padding: "0.22rem 0.6rem" }}>🧵 Handloom</span>}
+                    {product.has_multiple_colours && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "rgba(59,130,246,0.15)", color: "#93c5fd", borderRadius: 20, padding: "0.22rem 0.6rem" }}>🎨 Multi-colour</span>}
+                    {product.custom_orders    && <span style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.7rem", fontWeight: 700, background: "rgba(124,58,237,0.15)", color: "#c4b5fd", borderRadius: 20, padding: "0.22rem 0.6rem" }}>✂️ Custom Orders</span>}
                   </div>
                 )}
 
                 {/* Divider */}
-                <div style={{ height: 1, background: "#F1F5F9", margin: "0.2rem 0 0.9rem" }} />
+                <div style={{ height: 1, background: "rgba(255,255,255,0.08)", margin: "0.2rem 0 0.9rem" }} />
 
                 {/* Order summary */}
-                <div style={{ background: "linear-gradient(135deg,#FDF8F0,#FFF7ED)", border: "1.5px solid #FDE68A", borderRadius: 14, padding: "0.85rem 1rem" }}>
-                  <p style={{ margin: "0 0 0.6rem", fontSize: "0.67rem", fontWeight: 800, color: "#92400E", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div style={{ background: "rgba(184,137,42,0.08)", border: "1.5px solid rgba(184,137,42,0.3)", borderRadius: 14, padding: "0.85rem 1rem" }}>
+                  <p style={{ margin: "0 0 0.6rem", fontSize: "0.67rem", fontWeight: 800, color: "#D4A94A", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     📦 Order Summary
                   </p>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
-                    <span style={{ fontSize: "0.83rem", color: "#64748B" }}>Unit price</span>
-                    <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "#0F172A" }}>
+                    <span style={{ fontSize: "0.83rem", color: "rgba(255,255,255,0.5)" }}>Unit price</span>
+                    <span style={{ fontSize: "0.88rem", fontWeight: 700, color: "rgba(255,255,255,0.85)" }}>
                       ₹{Number(item.price).toLocaleString("en-IN")}
                     </span>
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.55rem" }}>
-                    <span style={{ fontSize: "0.83rem", color: "#64748B" }}>Quantity</span>
+                    <span style={{ fontSize: "0.83rem", color: "rgba(255,255,255,0.5)" }}>Quantity</span>
                     <span style={{
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
                       background: "#7B1D45", color: "#fff",
@@ -685,10 +686,10 @@ export default function ShopDashboard() {
                       ×{item.quantity}
                     </span>
                   </div>
-                  <div style={{ height: 1, background: "#FDE68A", marginBottom: "0.55rem" }} />
+                  <div style={{ height: 1, background: "rgba(184,137,42,0.3)", marginBottom: "0.55rem" }} />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#92400E" }}>Total</span>
-                    <span style={{ fontSize: "1.1rem", fontWeight: 900, color: "#7B1D45" }}>
+                    <span style={{ fontSize: "0.9rem", fontWeight: 700, color: "#D4A94A" }}>Total</span>
+                    <span style={{ fontSize: "1.1rem", fontWeight: 900, color: "#B8892A" }}>
                       ₹{totalPrice.toLocaleString("en-IN")}
                     </span>
                   </div>
@@ -704,13 +705,13 @@ export default function ShopDashboard() {
       <div className={`portal-overlay ${sidebarOpen ? "open" : ""}`} onClick={() => setSidebarOpen(false)} />
 
       {/* Mobile top bar */}
-      <div className="portal-mobile-header" style={{ background: "var(--primary)" }}>
+      <div className="portal-mobile-header" style={{ background: "#B8892A" }}>
         <span className="portal-mobile-title">{owner.shop_name || "My Shop"}</span>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <button onClick={() => setNotifOpen(v => !v)} style={{ background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 34, height: 34, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", position: "relative" }}>
             <Bell size={18} color="#fff" />
             {pendingCount > 0 && (
-              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, background: "#fbbf24", borderRadius: 10, border: "1.5px solid var(--primary)", fontSize: "0.62rem", fontWeight: 800, color: "#7c2d12", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
+              <span style={{ position: "absolute", top: -4, right: -4, minWidth: 17, height: 17, background: "#fbbf24", borderRadius: 10, border: "1.5px solid #B8892A", fontSize: "0.62rem", fontWeight: 800, color: "#7c2d12", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px" }}>
                 {pendingCount > 9 ? "9+" : pendingCount}
               </span>
             )}
@@ -727,9 +728,9 @@ export default function ShopDashboard() {
           onClick={() => setNotifOpen(false)}
           style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}
         >
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 380, boxShadow: "0 24px 64px rgba(0,0,0,0.22)", overflow: "hidden" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "linear-gradient(135deg, #150A1F, #1A0D24)", border: "1px solid rgba(184,137,42,0.2)", borderRadius: 20, width: "100%", maxWidth: 380, boxShadow: "0 24px 64px rgba(0,0,0,0.6)", overflow: "hidden" }}>
             {/* Header */}
-            <div style={{ background: "linear-gradient(135deg, var(--primary), #7B1D45)", padding: "1.1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ background: "linear-gradient(135deg, #B8892A, #7B1D45)", padding: "1.1rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
                 <div style={{ width: 34, height: 34, borderRadius: "50%", background: "rgba(255,255,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <Bell size={17} color="#fff" />
@@ -749,41 +750,41 @@ export default function ShopDashboard() {
               {pendingCount > 0 ? (
                 <>
                   {orders.filter(o => o.status === "pending" || o.status === "confirmed").length > 0 && (
-                    <div onClick={() => { switchTab("orders"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "#FFF7ED", border: "1px solid #FED7AA", cursor: "pointer" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>🛒</div>
+                    <div onClick={() => { switchTab("orders"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "rgba(217,119,6,0.1)", border: "1px solid rgba(217,119,6,0.25)", cursor: "pointer" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(217,119,6,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>🛒</div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#92400E" }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#fbbf24" }}>
                           {orders.filter(o => o.status === "pending" || o.status === "confirmed").length} Order{orders.filter(o => o.status === "pending" || o.status === "confirmed").length > 1 ? "s" : ""} Need Action
                         </p>
-                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "#B45309" }}>Tap to view orders →</p>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "rgba(255,255,255,0.5)" }}>Tap to view orders →</p>
                       </div>
                     </div>
                   )}
                   {orders.filter(o => o.return_status === "pending").length > 0 && (
-                    <div onClick={() => { switchTab("orders"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "#F5F3FF", border: "1px solid #DDD6FE", cursor: "pointer" }}>
-                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "#EDE9FE", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>↩</div>
+                    <div onClick={() => { switchTab("orders"); setNotifOpen(false); }} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.85rem 1rem", borderRadius: 12, background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.25)", cursor: "pointer" }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, background: "rgba(124,58,237,0.15)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: "1.2rem" }}>↩</div>
                       <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#5B21B6" }}>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.85rem", color: "#c4b5fd" }}>
                           {orders.filter(o => o.return_status === "pending").length} Return Request{orders.filter(o => o.return_status === "pending").length > 1 ? "s" : ""}
                         </p>
-                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "#6D28D9" }}>Waiting for your decision →</p>
+                        <p style={{ margin: "0.15rem 0 0", fontSize: "0.73rem", color: "rgba(255,255,255,0.5)" }}>Waiting for your decision →</p>
                       </div>
                     </div>
                   )}
                 </>
               ) : (
-                <div style={{ textAlign: "center", padding: "1.75rem 1rem", color: "#94A3B8" }}>
-                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.75rem" }}>
+                <div style={{ textAlign: "center", padding: "1.75rem 1rem", color: "rgba(255,255,255,0.4)" }}>
+                  <div style={{ width: 52, height: 52, borderRadius: "50%", background: "rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 0.75rem" }}>
                     <Bell size={22} style={{ opacity: 0.35 }} />
                   </div>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: "0.85rem", color: "#64748B" }}>All caught up!</p>
+                  <p style={{ margin: 0, fontWeight: 600, fontSize: "0.85rem", color: "rgba(255,255,255,0.6)" }}>All caught up!</p>
                   <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem" }}>No pending actions right now.</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid #F1F5F9", background: "#FAFAFA" }}>
+            <div style={{ padding: "0.75rem 1rem", borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)" }}>
               <button
                 onClick={async () => {
                   try {
@@ -796,7 +797,7 @@ export default function ShopDashboard() {
                   } catch { toast.error("Could not enable notifications"); }
                   setNotifOpen(false);
                 }}
-                style={{ width: "100%", padding: "0.55rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "#475569", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
+                style={{ width: "100%", padding: "0.55rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 10, background: "rgba(255,255,255,0.04)", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem" }}
               >
                 <Bell size={13} /> Enable Push Notifications
               </button>
@@ -822,7 +823,7 @@ export default function ShopDashboard() {
               )}
               {avatarUploading && <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%" }}><span style={{ width: 16, height: 16, border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "#fff", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} /></div>}
             </div>
-            <div onClick={() => shopAvatarRef.current?.click()} style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, borderRadius: "50%", background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "2px solid #1A0812" }}>
+            <div onClick={() => shopAvatarRef.current?.click()} style={{ position: "absolute", bottom: 0, right: 0, width: 20, height: 20, borderRadius: "50%", background: "#B8892A", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", border: "2px solid #1A0812" }}>
               <Camera size={10} color="#fff" />
             </div>
             <input ref={shopAvatarRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handleAvatarUpload} />
@@ -898,8 +899,8 @@ export default function ShopDashboard() {
             {/* Header */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <div>
-                <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>My Products</h2>
-                <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>{products.length} product{products.length !== 1 ? "s" : ""} total</p>
+                <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "#D4A94A", fontSize: "1.2rem" }}>My Products</h2>
+                <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.45)" }}>{products.length} product{products.length !== 1 ? "s" : ""} total</p>
               </div>
               <button onClick={openAdd} className="btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}>
                 <Plus size={15} /> Add Product
@@ -912,9 +913,9 @@ export default function ShopDashboard() {
                 value={productSearch}
                 onChange={(e) => setProductSearch(e.target.value)}
                 placeholder="Search products by name…"
-                style={{ width: "100%", padding: "0.6rem 0.9rem 0.6rem 2.2rem", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: "0.83rem", outline: "none", background: "#fff", boxSizing: "border-box", color: "#0F172A" }}
+                style={{ width: "100%", padding: "0.6rem 0.9rem 0.6rem 2.2rem", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, fontSize: "0.83rem", outline: "none", background: "rgba(255,255,255,0.07)", boxSizing: "border-box", color: "#fff" }}
               />
-              <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none", fontSize: "0.85rem" }}>🔍</span>
+              <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.35)", pointerEvents: "none", fontSize: "0.85rem" }}>🔍</span>
             </div>
 
             {/* Category filter pills */}
@@ -923,7 +924,7 @@ export default function ShopDashboard() {
                 <button
                   key={c.id}
                   onClick={() => setProductCategoryFilter(String(c.id))}
-                  style={{ padding: "0.3rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: productCategoryFilter === String(c.id) ? "var(--primary)" : "#fff", color: productCategoryFilter === String(c.id) ? "#fff" : "#64748B", borderColor: productCategoryFilter === String(c.id) ? "var(--primary)" : "#E2E8F0", transition: "all 0.15s" }}
+                  style={{ padding: "0.3rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: productCategoryFilter === String(c.id) ? "#B8892A" : "rgba(255,255,255,0.06)", color: productCategoryFilter === String(c.id) ? "#0D0611" : "rgba(255,255,255,0.6)", borderColor: productCategoryFilter === String(c.id) ? "#B8892A" : "rgba(255,255,255,0.12)", transition: "all 0.15s" }}
                 >
                   {c.name}
                 </button>
@@ -931,39 +932,39 @@ export default function ShopDashboard() {
             </div>
 
             {products.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "3rem", color: "#888" }}>
+              <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
                 <Package size={40} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
                 <p>No products yet. Add your first product!</p>
               </div>
             ) : filteredProducts.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "2rem", color: "#94A3B8" }}>
+              <div style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.45)" }}>
                 <p style={{ fontWeight: 600, margin: "0 0 0.25rem" }}>No products match your filter</p>
-                <button onClick={() => { setProductSearch(""); setProductCategoryFilter("all"); }} style={{ fontSize: "0.8rem", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear filters</button>
+                <button onClick={() => { setProductSearch(""); setProductCategoryFilter("all"); }} style={{ fontSize: "0.8rem", color: "#D4A94A", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear filters</button>
               </div>
             ) : (
               <div style={{ display: "grid", gap: "0.75rem" }}>
                 {filteredProducts.map((p) => (
                   <div key={p.id} style={{ ...S.card, display: "flex", gap: "0.85rem", alignItems: "center" }}>
                     {p.image_url
-                      ? <img src={p.image_url} alt={p.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, flexShrink: 0, border: "1px solid #F1F5F9" }} />
-                      : <div style={{ width: 72, height: 72, borderRadius: 10, background: "#F8FAFC", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #F1F5F9" }}><Package size={22} style={{ opacity: 0.3 }} /></div>
+                      ? <img src={p.image_url} alt={p.name} style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, flexShrink: 0, border: "1px solid rgba(255,255,255,0.08)" }} />
+                      : <div style={{ width: 72, height: 72, borderRadius: 10, background: "rgba(255,255,255,0.06)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid rgba(255,255,255,0.08)" }}><Package size={22} style={{ opacity: 0.3 }} /></div>
                     }
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.93rem", color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                      <p style={{ margin: "0.15rem 0 0.35rem", fontSize: "0.78rem", color: "#64748B" }}>
-                        {p.category_name} · <span style={{ fontWeight: 700, color: "var(--primary)" }}>₹{p.price.toLocaleString("en-IN")}</span>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: "0.93rem", color: "rgba(255,255,255,0.9)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                      <p style={{ margin: "0.15rem 0 0.35rem", fontSize: "0.78rem", color: "rgba(255,255,255,0.5)" }}>
+                        {p.category_name} · <span style={{ fontWeight: 700, color: "#D4A94A" }}>₹{p.price.toLocaleString("en-IN")}</span>
                       </p>
                       <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
-                        {p.is_featured && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Featured</span>}
-                        {p.is_handloom && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Handloom</span>}
-                        {p.has_multiple_colours && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#DBEAFE", color: "#1E40AF", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Multi-colour</span>}
-                        {p.custom_orders && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Custom</span>}
-                        {p.images?.length > 0 && <span style={{ fontSize: "0.62rem", color: "#94A3B8", alignSelf: "center" }}>{p.images.length} photo{p.images.length !== 1 ? "s" : ""}</span>}
+                        {p.is_featured && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "rgba(251,191,36,0.15)", color: "#fbbf24", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Featured</span>}
+                        {p.is_handloom && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "rgba(34,197,94,0.15)", color: "#4ade80", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Handloom</span>}
+                        {p.has_multiple_colours && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "rgba(59,130,246,0.15)", color: "#93c5fd", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Multi-colour</span>}
+                        {p.custom_orders && <span style={{ fontSize: "0.62rem", fontWeight: 700, background: "rgba(124,58,237,0.15)", color: "#c4b5fd", borderRadius: 20, padding: "0.1rem 0.45rem" }}>Custom</span>}
+                        {p.images?.length > 0 && <span style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.4)", alignSelf: "center" }}>{p.images.length} photo{p.images.length !== 1 ? "s" : ""}</span>}
                       </div>
                     </div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem", flexShrink: 0 }}>
-                      <button onClick={() => openEdit(p)} style={{ background: "#F1F5F9", border: "none", borderRadius: 8, padding: "0.45rem 0.55rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", fontWeight: 600, color: "#475569" }}><Edit2 size={13} /></button>
-                      <button onClick={() => setDeleteModal({ id: p.id, name: p.name })} style={{ background: "#FEE2E2", border: "none", borderRadius: 8, padding: "0.45rem 0.55rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", fontWeight: 600, color: "#DC2626" }}><Trash2 size={13} /></button>
+                      <button onClick={() => openEdit(p)} style={{ background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.25)", borderRadius: 8, padding: "0.45rem 0.55rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", fontWeight: 600, color: "#93c5fd" }}><Edit2 size={13} /></button>
+                      <button onClick={() => setDeleteModal({ id: p.id, name: p.name })} style={{ background: "rgba(220,38,38,0.12)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 8, padding: "0.45rem 0.55rem", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", fontWeight: 600, color: "#fca5a5" }}><Trash2 size={13} /></button>
                     </div>
                   </div>
                 ))}
@@ -981,7 +982,7 @@ export default function ShopDashboard() {
               <button type="button" onClick={closeForm} className="form-back-btn">
                 <ChevronLeft size={14} /> Back
               </button>
-              <h2 style={{ color: "var(--primary)" }}>{editing ? "Edit Product" : "Add Product"}</h2>
+              <h2 style={{ color: "#D4A94A" }}>{editing ? "Edit Product" : "Add Product"}</h2>
               <div className="form-top-actions">
                 <button type="button" className="admin-cancel-btn" onClick={closeForm}>Cancel</button>
                 <button type="button" onClick={() => shopFormRef.current?.requestSubmit()} className="btn-primary" disabled={submitting} style={{ display: "flex", alignItems: "center", gap: "0.35rem", opacity: submitting ? 0.7 : 1 }}>
@@ -992,16 +993,16 @@ export default function ShopDashboard() {
 
             {/* Success banner */}
             {savedProductName && (
-              <div style={{ background: "#F0FDF4", border: "1px solid #BBF7D0", borderRadius: 10, padding: "0.9rem 1rem", marginBottom: "1rem" }}>
+              <div style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 10, padding: "0.9rem 1rem", marginBottom: "1rem" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.6rem" }}>
-                  <Check size={15} style={{ color: "#16a34a", flexShrink: 0 }} />
-                  <span style={{ fontSize: "0.85rem", color: "#166534", fontWeight: 600 }}>"{savedProductName}" added!</span>
+                  <Check size={15} style={{ color: "#4ade80", flexShrink: 0 }} />
+                  <span style={{ fontSize: "0.85rem", color: "#4ade80", fontWeight: 600 }}>"{savedProductName}" added!</span>
                 </div>
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <button type="button" onClick={() => setSavedProductName(null)} className="btn-primary" style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.3rem" }}>
                     <Plus size={12} /> Add Another
                   </button>
-                  <button type="button" onClick={closeForm} style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, background: "none", border: "1px solid #BBF7D0", borderRadius: 6, color: "#166534", cursor: "pointer", fontWeight: 500 }}>
+                  <button type="button" onClick={closeForm} style={{ fontSize: "0.78rem", padding: "0.4rem 0.8rem", flex: 1, background: "none", border: "1px solid rgba(34,197,94,0.25)", borderRadius: 6, color: "#4ade80", cursor: "pointer", fontWeight: 500 }}>
                     Back to List
                   </button>
                 </div>
@@ -1015,29 +1016,29 @@ export default function ShopDashboard() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
 
                   {/* Product Details */}
-                  <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                    <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Product Details</p>
+                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.25rem", border: "1px solid rgba(184,137,42,0.12)" }}>
+                    <p style={{ margin: "0 0 1rem", fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#D4A94A" }}>Product Details</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                       <div>
-                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Product Name *</label>
-                        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
+                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "block", marginBottom: "0.35rem" }}>Product Name *</label>
+                        <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Kanjivaram Silk Saree" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: "0.9rem", boxSizing: "border-box", outline: "none" }} />
                       </div>
                       <div className="form-field-row">
                         <div>
-                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Price (₹) *</label>
-                          <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="5500" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box" }} />
+                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "block", marginBottom: "0.35rem" }}>Price (₹) *</label>
+                          <input type="number" min="0" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="5500" required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: "0.9rem", boxSizing: "border-box", outline: "none" }} />
                         </div>
                         <div>
-                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Category *</label>
-                          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", background: "#fff" }}>
+                          <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "block", marginBottom: "0.35rem" }}>Category *</label>
+                          <select value={form.category_id} onChange={(e) => setForm({ ...form, category_id: e.target.value })} required style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(30,15,50,0.9)", color: "#fff", fontSize: "0.9rem", boxSizing: "border-box", outline: "none" }}>
                             <option value="">Select…</option>
                             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                           </select>
                         </div>
                       </div>
                       <div>
-                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "#444", display: "block", marginBottom: "0.35rem" }}>Description</label>
-                        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Fabric, weave, occasion, care instructions…" style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1px solid #e2e8f0", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical" }} />
+                        <label style={{ fontSize: "0.78rem", fontWeight: 600, color: "rgba(255,255,255,0.6)", display: "block", marginBottom: "0.35rem" }}>Description</label>
+                        <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder="Fabric, weave, occasion, care instructions…" style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.07)", color: "#fff", fontSize: "0.9rem", boxSizing: "border-box", resize: "vertical", outline: "none" }} />
                       </div>
                     </div>
                   </div>
@@ -1045,7 +1046,7 @@ export default function ShopDashboard() {
                   {/* Attributes & Visibility */}
                   <div className="admin-card">
                     <h3 className="admin-card-title" style={{ marginBottom: "0.25rem" }}>Attributes &amp; Visibility</h3>
-                    <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "1.1rem" }}>Checked attributes appear as trust badges on the product page.</p>
+                    <p style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.45)", marginBottom: "1.1rem" }}>Checked attributes appear as trust badges on the product page.</p>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
                       {[
                         { id: "is_featured", label: "Mark as Featured", hint: "Shows in featured section on home page" },
@@ -1053,17 +1054,17 @@ export default function ShopDashboard() {
                         { id: "has_multiple_colours", label: "Available in Multiple Colours", hint: "Customer can contact for colour options" },
                         { id: "custom_orders", label: "Accepts Custom Orders", hint: "Displays 'Contact Us' badge on product" },
                       ].map(({ id, label, hint }) => (
-                        <div key={id} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.65rem 0.85rem", borderRadius: 6, border: "1px solid var(--border)", background: form[id] ? "#FDF8F0" : "transparent", transition: "background 0.15s" }}>
+                        <div key={id} style={{ display: "flex", alignItems: "flex-start", gap: "0.75rem", padding: "0.65rem 0.85rem", borderRadius: 6, border: "1px solid rgba(255,255,255,0.1)", background: form[id] ? "rgba(184,137,42,0.1)" : "transparent", transition: "background 0.15s" }}>
                           <input
                             type="checkbox"
                             id={`shop-${id}`}
                             checked={form[id]}
                             onChange={(e) => setForm({ ...form, [id]: e.target.checked })}
-                            style={{ width: 16, height: 16, accentColor: "var(--primary)", flexShrink: 0, marginTop: 2 }}
+                            style={{ width: 16, height: 16, accentColor: "#B8892A", flexShrink: 0, marginTop: 2 }}
                           />
                           <div>
-                            <label htmlFor={`shop-${id}`} style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 600, color: "var(--text)", cursor: "pointer" }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: "0.74rem", color: "var(--text-muted)" }}>{hint}</p>
+                            <label htmlFor={`shop-${id}`} style={{ marginBottom: 0, textTransform: "none", fontSize: "0.875rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", cursor: "pointer" }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: "0.74rem", color: "rgba(255,255,255,0.45)" }}>{hint}</p>
                           </div>
                         </div>
                       ))}
@@ -1073,16 +1074,16 @@ export default function ShopDashboard() {
                 </div>
 
                 {/* ── Right column — Images ── */}
-                <div style={{ background: "#fff", borderRadius: 12, padding: "1.25rem", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-                  <p style={{ margin: "0 0 1.1rem", fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Product Images</p>
+                <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1.25rem", border: "1px solid rgba(184,137,42,0.12)" }}>
+                  <p style={{ margin: "0 0 1.1rem", fontWeight: 700, fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.06em", color: "#D4A94A" }}>Product Images</p>
 
                   {/* Primary Image */}
                   <div style={{ marginBottom: "1.25rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--primary)" }}>Primary Image</span>
-                      <span style={{ fontSize: "0.69rem", color: "#aaa" }}>· 1 only</span>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#D4A94A" }}>Primary Image</span>
+                      <span style={{ fontSize: "0.69rem", color: "rgba(255,255,255,0.4)" }}>· 1 only</span>
                     </div>
-                    <p style={{ fontSize: "0.72rem", color: "#aaa", marginBottom: "0.65rem" }}>Main photo shown in listings</p>
+                    <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginBottom: "0.65rem" }}>Main photo shown in listings</p>
 
                     {editing?.images?.[0] && (
                       <div style={{ position: "relative", display: "inline-block", marginBottom: "0.5rem" }}>
@@ -1099,27 +1100,27 @@ export default function ShopDashboard() {
                       </div>
                     )}
                     {!editing?.images?.[0] && !primaryPreview && (
-                      <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", width: "100%", padding: "1.25rem 1rem", border: "2px dashed #e2e8f0", borderRadius: 10, background: "#fafaf8", color: "#aaa", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500 }}>
+                      <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", width: "100%", padding: "1.25rem 1rem", border: "2px dashed rgba(255,255,255,0.15)", borderRadius: 10, background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500 }}>
                         <ImagePlus size={16} /> Upload Primary Photo
                       </button>
                     )}
                     {(editing?.images?.[0] || primaryPreview) && !primaryPreview && (
-                      <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ display: "block", fontSize: "0.75rem", color: "var(--primary)", background: "none", border: "1px solid #e2e8f0", borderRadius: 6, padding: "0.3rem 0.75rem", cursor: "pointer", marginTop: "0.4rem" }}>
+                      <button type="button" onClick={() => primaryFileRef.current?.click()} style={{ display: "block", fontSize: "0.75rem", color: "#D4A94A", background: "none", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 6, padding: "0.3rem 0.75rem", cursor: "pointer", marginTop: "0.4rem" }}>
                         Replace Primary
                       </button>
                     )}
                     <input ref={primaryFileRef} type="file" accept="image/*" onChange={handlePrimarySelect} style={{ display: "none" }} />
                   </div>
 
-                  <hr style={{ border: "none", borderTop: "1px solid #f0f0f0", margin: "0 0 1.1rem" }} />
+                  <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.08)", margin: "0 0 1.1rem" }} />
 
                   {/* Additional Images */}
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.3rem" }}>
-                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "#64748B" }}>Additional Images</span>
-                      <span style={{ fontSize: "0.69rem", color: "#aaa" }}>· multiple allowed</span>
+                      <span style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "rgba(255,255,255,0.5)" }}>Additional Images</span>
+                      <span style={{ fontSize: "0.69rem", color: "rgba(255,255,255,0.4)" }}>· multiple allowed</span>
                     </div>
-                    <p style={{ fontSize: "0.72rem", color: "#aaa", marginBottom: "0.65rem" }}>Gallery photos on product detail page</p>
+                    <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginBottom: "0.65rem" }}>Gallery photos on product detail page</p>
 
                     {editing?.images?.length > 1 && (
                       <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginBottom: "0.65rem" }}>
@@ -1141,7 +1142,7 @@ export default function ShopDashboard() {
                         ))}
                       </div>
                     )}
-                    <button type="button" onClick={() => additionalFileRef.current?.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", width: "100%", padding: "1rem", border: "1.5px dashed #e2e8f0", borderRadius: 10, background: "#fafaf8", color: "#aaa", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500 }}>
+                    <button type="button" onClick={() => additionalFileRef.current?.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", width: "100%", padding: "1rem", border: "1.5px dashed rgba(255,255,255,0.15)", borderRadius: 10, background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.4)", cursor: "pointer", fontSize: "0.82rem", fontWeight: 500 }}>
                       <ImagePlus size={15} /> {additionalPreviews.length > 0 ? "Add More" : "Add Additional Photos"}
                     </button>
                     <input ref={additionalFileRef} type="file" accept="image/*" multiple onChange={handleAdditionalSelect} style={{ display: "none" }} />
@@ -1175,12 +1176,12 @@ export default function ShopDashboard() {
           <>
             {/* Header row */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
-              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "var(--primary)", fontSize: "1.2rem" }}>Orders</h2>
-              <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "var(--primary)", color: "#fff", border: "none", borderRadius: 6, padding: "0.5rem 1rem", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>
+              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "#D4A94A", fontSize: "1.2rem" }}>Orders</h2>
+              <button onClick={() => setShowScanner(true)} style={{ display: "flex", alignItems: "center", gap: "0.4rem", background: "#B8892A", color: "#fff", border: "none", borderRadius: 6, padding: "0.5rem 1rem", cursor: "pointer", fontWeight: 600, fontSize: "0.85rem" }}>
                 <ScanLine size={15} /> Scan QR
               </button>
             </div>
-            <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", color: "#94A3B8", textAlign: "right" }}>
+            <p style={{ margin: "0 0 0.75rem", fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", textAlign: "right" }}>
               Scan customer's QR from their Order Tracking page to mark order ready
             </p>
 
@@ -1190,9 +1191,9 @@ export default function ShopDashboard() {
                 value={orderSearch}
                 onChange={(e) => setOrderSearch(e.target.value)}
                 placeholder="Search by order ID or customer name…"
-                style={{ width: "100%", padding: "0.6rem 0.9rem 0.6rem 2.2rem", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: "0.83rem", outline: "none", background: "#fff", boxSizing: "border-box", color: "#0F172A" }}
+                style={{ width: "100%", padding: "0.6rem 0.9rem 0.6rem 2.2rem", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, fontSize: "0.83rem", outline: "none", background: "rgba(255,255,255,0.07)", boxSizing: "border-box", color: "#fff" }}
               />
-              <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "#94A3B8", pointerEvents: "none", fontSize: "0.85rem" }}>🔍</span>
+              <span style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.35)", pointerEvents: "none", fontSize: "0.85rem" }}>🔍</span>
             </div>
 
             {/* Status filter pills */}
@@ -1201,7 +1202,7 @@ export default function ShopDashboard() {
                 <button
                   key={key}
                   onClick={() => setOrderStatusFilter(key)}
-                  style={{ padding: "0.3rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: orderStatusFilter === key ? "var(--primary)" : "#fff", color: orderStatusFilter === key ? "#fff" : "#64748B", borderColor: orderStatusFilter === key ? "var(--primary)" : "#E2E8F0", transition: "all 0.15s" }}
+                  style={{ padding: "0.3rem 0.75rem", borderRadius: 20, border: "1px solid", fontSize: "0.75rem", fontWeight: 600, cursor: "pointer", background: orderStatusFilter === key ? "#B8892A" : "rgba(255,255,255,0.06)", color: orderStatusFilter === key ? "#0D0611" : "rgba(255,255,255,0.6)", borderColor: orderStatusFilter === key ? "#B8892A" : "rgba(255,255,255,0.12)", transition: "all 0.15s" }}
                 >
                   {label}
                 </button>
@@ -1210,19 +1211,19 @@ export default function ShopDashboard() {
 
             {ordersLoading ? (
               <div style={{ textAlign: "center", padding: "3rem" }}>
-                <span style={{ width: 28, height: 28, border: "3px solid #E2E8F0", borderTopColor: "var(--primary)", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
-                <p style={{ color: "#94A3B8", marginTop: "0.75rem", fontSize: "0.88rem" }}>Checking for new orders…</p>
+                <span style={{ width: 28, height: 28, border: "3px solid rgba(255,255,255,0.1)", borderTopColor: "#B8892A", borderRadius: "50%", animation: "spin 0.7s linear infinite", display: "inline-block" }} />
+                <p style={{ color: "rgba(255,255,255,0.4)", marginTop: "0.75rem", fontSize: "0.88rem" }}>Checking for new orders…</p>
               </div>
             ) : orders.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "3rem", color: "#888" }}>
+              <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
                 <ShoppingBag size={40} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
-                <p style={{ fontWeight: 600, color: "#475569", margin: "0 0 0.3rem" }}>No orders received yet</p>
-                <p style={{ fontSize: "0.82rem", color: "#94A3B8", margin: 0 }}>When customers place orders from your shop, they'll appear here.</p>
+                <p style={{ fontWeight: 600, color: "rgba(255,255,255,0.6)", margin: "0 0 0.3rem" }}>No orders received yet</p>
+                <p style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.35)", margin: 0 }}>When customers place orders from your shop, they'll appear here.</p>
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "2rem", color: "#94A3B8" }}>
+              <div style={{ textAlign: "center", padding: "2rem", color: "rgba(255,255,255,0.45)" }}>
                 <p style={{ fontWeight: 600, margin: "0 0 0.25rem" }}>No orders match your filter</p>
-                <button onClick={() => { setOrderSearch(""); setOrderStatusFilter("all"); }} style={{ fontSize: "0.8rem", color: "var(--primary)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear filters</button>
+                <button onClick={() => { setOrderSearch(""); setOrderStatusFilter("all"); }} style={{ fontSize: "0.8rem", color: "#D4A94A", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}>Clear filters</button>
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -1231,23 +1232,23 @@ export default function ShopDashboard() {
                     {/* Order header */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem" }}>
                       <div>
-                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem" }}>Order #{o.id}</p>
-                        <p style={{ margin: 0, fontSize: "0.8rem", color: "#888" }}>{o.customer?.name} · {o.payment_method === "cod" ? "COD" : "Paid"} · ₹{o.total.toLocaleString("en-IN")}</p>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: "0.95rem", color: "rgba(255,255,255,0.9)" }}>Order #{o.id}</p>
+                        <p style={{ margin: 0, fontSize: "0.8rem", color: "rgba(255,255,255,0.45)" }}>{o.customer?.name} · {o.payment_method === "cod" ? "COD" : "Paid"} · ₹{o.total.toLocaleString("en-IN")}</p>
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.3rem" }}>
                         {o.return_status === "returned" ? (
-                          <span style={{ display: "inline-block", padding: "0.25rem 0.7rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: "#DCFCE7", color: "#15803D" }}>📦 Return Completed</span>
+                          <span style={{ display: "inline-block", padding: "0.25rem 0.7rem", borderRadius: 20, fontSize: "0.72rem", fontWeight: 700, background: "rgba(22,163,74,0.15)", color: "#86EFAC" }}>📦 Return Completed</span>
                         ) : (
                           <span style={S.badge(o.status)}>{STATUS_LABEL[o.status] || o.status}</span>
                         )}
                         {o.return_status === "pending" && (
-                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#EDE9FE", color: "#5B21B6" }}>↩ Return Requested</span>
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "rgba(109,40,217,0.2)", color: "#C4B5FD" }}>↩ Return Requested</span>
                         )}
                         {o.return_status === "accepted" && (
-                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }}>✓ Return Accepted</span>
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "rgba(22,163,74,0.15)", color: "#86EFAC" }}>✓ Return Accepted</span>
                         )}
                         {o.return_status === "rejected" && (
-                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "#FEE2E2", color: "#991B1B" }}>✗ Return Rejected</span>
+                          <span style={{ display: "inline-block", padding: "0.15rem 0.55rem", borderRadius: 20, fontSize: "0.7rem", fontWeight: 700, background: "rgba(220,38,38,0.15)", color: "#FCA5A5" }}>✗ Return Rejected</span>
                         )}
                       </div>
                     </div>
@@ -1257,31 +1258,31 @@ export default function ShopDashboard() {
                       {o.items.map((item, i) => (
                         <div key={i}
                           onClick={() => openProductModal(item)}
-                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", background: "#FAFAF8", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid #F1F5F9", cursor: "pointer" }}
+                          style={{ display: "flex", alignItems: "center", gap: "0.65rem", background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "0.45rem 0.6rem", border: "1px solid rgba(255,255,255,0.07)", cursor: "pointer" }}
                         >
                           {item.image_url ? (
                             <img src={item.image_url} alt={item.name}
                               style={{ width: 46, height: 46, objectFit: "cover", borderRadius: 6, flexShrink: 0 }} />
                           ) : (
-                            <div style={{ width: 46, height: 46, borderRadius: 6, background: "#F1F5F9", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                              <Package size={18} color="#CBD5E1" />
+                            <div style={{ width: 46, height: 46, borderRadius: 6, background: "rgba(255,255,255,0.06)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Package size={18} color="rgba(255,255,255,0.3)" />
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ margin: 0, fontSize: "0.83rem", fontWeight: 600, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
-                            <p style={{ margin: "0.1rem 0 0", fontSize: "0.72rem", color: "#94A3B8" }}>Qty {item.quantity} · ₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
+                            <p style={{ margin: 0, fontSize: "0.83rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.name}</p>
+                            <p style={{ margin: "0.1rem 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.4)" }}>Qty {item.quantity} · ₹{(item.price * item.quantity).toLocaleString("en-IN")}</p>
                           </div>
-                          <Eye size={13} color="#94A3B8" style={{ flexShrink: 0 }} />
+                          <Eye size={13} color="rgba(255,255,255,0.35)" style={{ flexShrink: 0 }} />
                         </div>
                       ))}
                     </div>
 
-                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#888" }}>📍 {o.delivery_address}</p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(255,255,255,0.4)" }}>📍 {o.delivery_address}</p>
 
                     {/* Pending → shop confirms the order */}
                     {o.status === "pending" && (
-                      <div style={{ marginTop: "0.75rem", background: "#FFF7ED", border: "1px solid #FED7AA", borderRadius: 10, padding: "0.65rem 0.85rem", textAlign: "center" }}>
-                        <p style={{ margin: "0 0 0.5rem", fontSize: "0.76rem", color: "#92400E", fontWeight: 600 }}>
+                      <div style={{ marginTop: "0.75rem", background: "rgba(217,119,6,0.08)", border: "1px solid rgba(217,119,6,0.25)", borderRadius: 10, padding: "0.65rem 0.85rem", textAlign: "center" }}>
+                        <p style={{ margin: "0 0 0.5rem", fontSize: "0.76rem", color: "#fbbf24", fontWeight: 600 }}>
                           🛒 New order — confirm to start preparing
                         </p>
                         <button
@@ -1308,7 +1309,7 @@ export default function ShopDashboard() {
                         </button>
                         <button
                           onClick={() => showQr(o.id, o.status)}
-                          style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "transparent", color: "#94A3B8", border: "1px solid #E2E8F0", borderRadius: 20, padding: "0.48rem 1rem", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}
+                          style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "transparent", color: "rgba(255,255,255,0.4)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 20, padding: "0.48rem 1rem", cursor: "pointer", fontSize: "0.78rem", fontWeight: 600 }}
                         >
                           <QrCode size={13} /> QR
                         </button>
@@ -1326,9 +1327,9 @@ export default function ShopDashboard() {
 
                     {/* Pending return → accept or reject */}
                     {o.return_status === "pending" && (
-                      <div style={{ marginTop: "0.75rem", background: "#F5F3FF", border: "1px solid #DDD6FE", borderRadius: 10, padding: "0.65rem 0.85rem" }}>
-                        <p style={{ margin: "0 0 0.3rem", fontSize: "0.78rem", color: "#5B21B6", fontWeight: 700 }}>↩ Customer requested a return</p>
-                        <p style={{ margin: "0 0 0.55rem", fontSize: "0.76rem", color: "#6D28D9" }}>Reason: {o.return_reason || "—"}</p>
+                      <div style={{ marginTop: "0.75rem", background: "rgba(124,58,237,0.1)", border: "1px solid rgba(124,58,237,0.25)", borderRadius: 10, padding: "0.65rem 0.85rem" }}>
+                        <p style={{ margin: "0 0 0.3rem", fontSize: "0.78rem", color: "#c4b5fd", fontWeight: 700 }}>↩ Customer requested a return</p>
+                        <p style={{ margin: "0 0 0.55rem", fontSize: "0.76rem", color: "rgba(196,181,253,0.75)" }}>Reason: {o.return_reason || "—"}</p>
                         <div style={{ display: "flex", justifyContent: "center", gap: "0.6rem" }}>
                           <button
                             onClick={() => { setReturnNoteModal({ orderId: o.id, action: "accept" }); setReturnNote(""); }}
@@ -1346,7 +1347,7 @@ export default function ShopDashboard() {
 
                     {/* Accepted/rejected return note */}
                     {(o.return_status === "accepted" || o.return_status === "rejected" || o.return_status === "returned") && o.return_note && (
-                      <p style={{ margin: "0.55rem 0 0", fontSize: "0.76rem", color: "#64748B" }}>
+                      <p style={{ margin: "0.55rem 0 0", fontSize: "0.76rem", color: "rgba(255,255,255,0.45)" }}>
                         Note: {o.return_note}
                       </p>
                     )}
@@ -1356,13 +1357,13 @@ export default function ShopDashboard() {
                       const rds = o.return_delivery_status;
                       const rdp = o.return_delivery_person;
                       const statusLabel = !rds ? "Waiting for delivery person" : rds === "pickup_accepted" ? "Delivery person on the way to customer" : rds === "picked_up_from_customer" ? "Item collected — heading to shop" : rds === "returned_to_shop" ? "Returned to shop ✓" : rds;
-                      const statusColor = rds === "returned_to_shop" ? "#15803D" : rds ? "#5B21B6" : "#64748B";
-                      const statusBg = rds === "returned_to_shop" ? "#F0FDF4" : rds ? "#FAF5FF" : "#F8FAFC";
+                      const statusColor = rds === "returned_to_shop" ? "#4ade80" : rds ? "#c4b5fd" : "rgba(255,255,255,0.45)";
+                      const statusBg = rds === "returned_to_shop" ? "rgba(34,197,94,0.08)" : rds ? "rgba(124,58,237,0.08)" : "rgba(255,255,255,0.04)";
                       return (
-                        <div style={{ marginTop: "0.6rem", background: statusBg, border: `1px solid ${rds === "returned_to_shop" ? "#86EFAC" : rds ? "#C4B5FD" : "#E2E8F0"}`, borderRadius: 8, padding: "0.55rem 0.75rem" }}>
+                        <div style={{ marginTop: "0.6rem", background: statusBg, border: `1px solid ${rds === "returned_to_shop" ? "rgba(74,222,128,0.3)" : rds ? "rgba(196,181,253,0.3)" : "rgba(255,255,255,0.08)"}`, borderRadius: 8, padding: "0.55rem 0.75rem" }}>
                           <p style={{ margin: 0, fontSize: "0.73rem", fontWeight: 700, color: statusColor }}>↩ {statusLabel}</p>
                           {rdp && (
-                            <p style={{ margin: "0.2rem 0 0", fontSize: "0.71rem", color: "#64748B" }}>
+                            <p style={{ margin: "0.2rem 0 0", fontSize: "0.71rem", color: "rgba(255,255,255,0.45)" }}>
                               Delivery: {rdp.name}{rdp.phone ? ` · ${rdp.phone}` : ""}
                             </p>
                           )}
@@ -1372,11 +1373,11 @@ export default function ShopDashboard() {
 
                     {/* Refund section — shown when item is returned and payment was online */}
                     {o.return_status === "returned" && o.payment_method !== "cod" && (
-                      <div style={{ marginTop: "0.65rem", background: o.refund_status === "refunded" ? "#F0FDF4" : "#FFF7ED", border: `1px solid ${o.refund_status === "refunded" ? "#86EFAC" : "#FED7AA"}`, borderRadius: 8, padding: "0.6rem 0.85rem" }}>
-                        <p style={{ margin: "0 0 0.25rem", fontSize: "0.73rem", fontWeight: 700, color: o.refund_status === "refunded" ? "#15803D" : "#92400E" }}>
+                      <div style={{ marginTop: "0.65rem", background: o.refund_status === "refunded" ? "rgba(34,197,94,0.08)" : "rgba(217,119,6,0.08)", border: `1px solid ${o.refund_status === "refunded" ? "rgba(74,222,128,0.25)" : "rgba(217,119,6,0.25)"}`, borderRadius: 8, padding: "0.6rem 0.85rem" }}>
+                        <p style={{ margin: "0 0 0.25rem", fontSize: "0.73rem", fontWeight: 700, color: o.refund_status === "refunded" ? "#4ade80" : "#fbbf24" }}>
                           {o.refund_status === "refunded" ? "✓ Refund Sent" : "💰 Refund Pending"}
                         </p>
-                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.71rem", color: "#64748B" }}>
+                        <p style={{ margin: "0 0 0.4rem", fontSize: "0.71rem", color: "rgba(255,255,255,0.45)" }}>
                           {o.refund_status === "refunded"
                             ? `₹${o.total.toLocaleString("en-IN")} refund marked as sent to customer.`
                             : `₹${o.total.toLocaleString("en-IN")} — process refund via Razorpay/bank and mark below.`}
@@ -1395,7 +1396,7 @@ export default function ShopDashboard() {
                       </div>
                     )}
                     {o.return_status === "returned" && o.payment_method === "cod" && (
-                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.72rem", color: "#64748B", background: "#F8FAFC", borderRadius: 6, padding: "0.4rem 0.6rem" }}>
+                      <p style={{ margin: "0.5rem 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", background: "rgba(255,255,255,0.04)", borderRadius: 6, padding: "0.4rem 0.6rem" }}>
                         💵 Cash on Delivery — no refund needed.
                       </p>
                     )}
@@ -1409,12 +1410,12 @@ export default function ShopDashboard() {
         {/* ════ ACCOUNT TAB ════ */}
         {tab === "account" && (() => {
           const SL = ({ children }) => (
-            <p style={{ margin: "1.35rem 0 0.5rem", fontSize: "0.68rem", fontWeight: 800, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.1em" }}>{children}</p>
+            <p style={{ margin: "1.35rem 0 0.5rem", fontSize: "0.68rem", fontWeight: 800, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.1em" }}>{children}</p>
           );
           const InfoRow = ({ label, value, last }) => (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.82rem 1.1rem", borderBottom: last ? "none" : "1px solid #F1F5F9" }}>
-              <span style={{ fontSize: "0.82rem", color: "#94A3B8", fontWeight: 500 }}>{label}</span>
-              <span style={{ fontSize: "0.82rem", color: "#0F172A", fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{value || "—"}</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.82rem 1.1rem", borderBottom: last ? "none" : "1px solid rgba(255,255,255,0.07)" }}>
+              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>{label}</span>
+              <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.85)", fontWeight: 600, textAlign: "right", maxWidth: "60%" }}>{value || "—"}</span>
             </div>
           );
           const totalProducts  = products.length;
@@ -1468,14 +1469,14 @@ export default function ShopDashboard() {
 
               {/* ═══ SECTION: PERSONAL INFORMATION ═══ */}
               <SL>Personal Information</SL>
-              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(184,137,42,0.12)" }}>
                 <InfoRow label="Owner Name"   value={owner.name} />
                 <InfoRow label="Email"        value={owner.email} />
                 <InfoRow label="Phone"        value={owner.phone} />
                 <InfoRow label="Member Since" value={owner.created_at ? new Date(owner.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"} />
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.82rem 1.1rem" }}>
-                  <span style={{ fontSize: "0.82rem", color: "#94A3B8", fontWeight: 500 }}>Account Status</span>
-                  <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 12, background: owner.is_active !== false ? "rgba(22,163,74,0.1)" : "rgba(239,68,68,0.1)", color: owner.is_active !== false ? "#16a34a" : "#ef4444" }}>
+                  <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.45)", fontWeight: 500 }}>Account Status</span>
+                  <span style={{ fontSize: "0.75rem", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 12, background: owner.is_active !== false ? "rgba(22,163,74,0.15)" : "rgba(239,68,68,0.15)", color: owner.is_active !== false ? "#4ade80" : "#fca5a5" }}>
                     {owner.is_active !== false ? "Active" : "Inactive"}
                   </span>
                 </div>
@@ -1483,102 +1484,102 @@ export default function ShopDashboard() {
 
               {/* ═══ SECTION: SHOP DETAILS (editable) ═══ */}
               <SL>Shop Details</SL>
-              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(184,137,42,0.12)" }}>
                 {[
                   { label: "Shop Name",  key: "shop_name",  placeholder: "Your shop name" },
                   { label: "Owner Name", key: "name",       placeholder: "Your full name" },
                   { label: "Phone",      key: "phone",      placeholder: "+91 XXXXX XXXXX" },
                 ].map(({ label, key, placeholder }, i, arr) => (
-                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
-                    <input type="text" value={accountForm[key]} onChange={(e) => setAccountForm((p) => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                    <input type="text" value={accountForm[key]} onChange={(e) => setAccountForm((p) => ({ ...p, [key]: e.target.value }))} placeholder={placeholder} style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
                   </div>
                 ))}
-                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Shop Address</p>
-                  <input type="text" value={accountForm.address} onChange={(e) => setAccountForm((p) => ({ ...p, address: e.target.value }))} placeholder="Street / Area" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Shop Address</p>
+                  <input type="text" value={accountForm.address} onChange={(e) => setAccountForm((p) => ({ ...p, address: e.target.value }))} placeholder="Street / Area" style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-                  <div style={{ padding: "0.85rem 0.9rem 0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9", borderRight: "1px solid #F1F5F9" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>City</p>
-                    <input type="text" value={accountForm.city} onChange={(e) => setAccountForm((p) => ({ ...p, city: e.target.value }))} placeholder="e.g. Gooty RS" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  <div style={{ padding: "0.85rem 0.9rem 0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)", borderRight: "1px solid rgba(255,255,255,0.07)" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>City</p>
+                    <input type="text" value={accountForm.city} onChange={(e) => setAccountForm((p) => ({ ...p, city: e.target.value }))} placeholder="e.g. Gooty RS" style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
                   </div>
-                  <div style={{ padding: "0.85rem 1.1rem 0.85rem 0.9rem", borderBottom: "1px solid #F1F5F9" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>State</p>
-                    <input type="text" value={accountForm.state} onChange={(e) => setAccountForm((p) => ({ ...p, state: e.target.value }))} placeholder="e.g. Andhra Pradesh" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  <div style={{ padding: "0.85rem 1.1rem 0.85rem 0.9rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>State</p>
+                    <input type="text" value={accountForm.state} onChange={(e) => setAccountForm((p) => ({ ...p, state: e.target.value }))} placeholder="e.g. Andhra Pradesh" style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
                   </div>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
-                  <div style={{ padding: "0.85rem 0.9rem 0.85rem 1.1rem", borderRight: "1px solid #F1F5F9" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>PIN Code</p>
-                    <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={accountForm.pincode} onChange={(e) => setAccountForm((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, "") }))} placeholder="e.g. 515402" style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                  <div style={{ padding: "0.85rem 0.9rem 0.85rem 1.1rem", borderRight: "1px solid rgba(255,255,255,0.07)" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>PIN Code</p>
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" maxLength={6} value={accountForm.pincode} onChange={(e) => setAccountForm((p) => ({ ...p, pincode: e.target.value.replace(/\D/g, "") }))} placeholder="e.g. 515402" style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
                   </div>
                   <div style={{ padding: "0.85rem 1.1rem 0.85rem 0.9rem" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>GST Number</p>
-                    <input type="text" value={accountForm.gst_number} onChange={(e) => setAccountForm((p) => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="e.g. 37AAAAA0000A1Z5" maxLength={15} style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>GST Number</p>
+                    <input type="text" value={accountForm.gst_number} onChange={(e) => setAccountForm((p) => ({ ...p, gst_number: e.target.value.toUpperCase() }))} placeholder="e.g. 37AAAAA0000A1Z5" maxLength={15} style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }} />
                   </div>
                 </div>
               </div>
 
               {/* ═══ SECTION: BANK DETAILS (editable) ═══ */}
               <SL>Bank Details</SL>
-              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
-                {/* Account Holder Name — force uppercase like delivery app */}
-                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Holder Name</p>
+              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(184,137,42,0.12)" }}>
+                {/* Account Holder Name */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Holder Name</p>
                   <input
                     type="text"
                     value={accountForm.bank_account_holder}
                     onChange={(e) => setAccountForm((p) => ({ ...p, bank_account_holder: e.target.value.toUpperCase() }))}
                     placeholder="AS PER BANK RECORDS"
-                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
                   />
                 </div>
-                {/* Bank Name — dropdown list like delivery app */}
-                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Bank Name</p>
+                {/* Bank Name */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Bank Name</p>
                   <select
                     value={accountForm.bank_name}
                     onChange={(e) => setAccountForm((p) => ({ ...p, bank_name: e.target.value }))}
-                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: accountForm.bank_name ? "#0F172A" : "#94A3B8", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box", cursor: "pointer" }}
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(20,10,35,0.8)", fontSize: "0.88rem", fontWeight: 600, color: accountForm.bank_name ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.35)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box", cursor: "pointer" }}
                   >
                     <option value="">Select bank…</option>
                     {INDIAN_BANKS.map((b) => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </div>
-                {/* Account Number — digits only */}
-                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Number</p>
+                {/* Account Number */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Number</p>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={accountForm.bank_account_number}
                     onChange={(e) => setAccountForm((p) => ({ ...p, bank_account_number: e.target.value.replace(/\D/g, "") }))}
                     placeholder="XXXXXXXXXXXX"
-                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
                   />
                 </div>
-                {/* IFSC — uppercase */}
-                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid #F1F5F9" }}>
-                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>IFSC Code</p>
+                {/* IFSC */}
+                <div style={{ padding: "0.85rem 1.1rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                  <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>IFSC Code</p>
                   <input
                     type="text"
                     value={accountForm.bank_ifsc}
                     onChange={(e) => setAccountForm((p) => ({ ...p, bank_ifsc: e.target.value.toUpperCase() }))}
                     placeholder="e.g. SBIN0001234"
-                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                    style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
                   />
                 </div>
                 {/* Account Type */}
                 <div style={{ padding: "0.85rem 1.1rem" }}>
-                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Type</p>
+                  <p style={{ margin: "0 0 0.5rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Account Type</p>
                   <div style={{ display: "flex", gap: "0.65rem" }}>
                     {["Savings", "Current"].map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => setAccountForm((p) => ({ ...p, bank_account_type: type }))}
-                        style={{ padding: "0.35rem 1rem", borderRadius: 20, border: "1px solid", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", background: accountForm.bank_account_type === type ? "var(--primary)" : "#fff", color: accountForm.bank_account_type === type ? "#fff" : "#64748B", borderColor: accountForm.bank_account_type === type ? "var(--primary)" : "#E2E8F0", transition: "all 0.15s" }}
+                        style={{ padding: "0.35rem 1rem", borderRadius: 20, border: "1px solid", fontSize: "0.8rem", fontWeight: 600, cursor: "pointer", background: accountForm.bank_account_type === type ? "#B8892A" : "rgba(255,255,255,0.06)", color: accountForm.bank_account_type === type ? "#0D0611" : "rgba(255,255,255,0.6)", borderColor: accountForm.bank_account_type === type ? "#B8892A" : "rgba(255,255,255,0.12)", transition: "all 0.15s" }}
                       >
                         {type}
                       </button>
@@ -1601,20 +1602,20 @@ export default function ShopDashboard() {
 
               {/* ═══ SECTION: CHANGE PASSWORD ═══ */}
               <SL>Change Password</SL>
-              <div style={{ background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 8px rgba(0,0,0,0.06)" }}>
+              <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 14, overflow: "hidden", border: "1px solid rgba(184,137,42,0.12)" }}>
                 {[
                   { label: "Current Password", key: "old_password" },
                   { label: "New Password",     key: "new_password" },
                   { label: "Confirm New Password", key: "confirm" },
                 ].map(({ label, key }, i, arr) => (
-                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: i < arr.length - 1 ? "1px solid #F1F5F9" : "none" }}>
-                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
+                  <div key={key} style={{ padding: "0.85rem 1.1rem", borderBottom: i < arr.length - 1 ? "1px solid rgba(255,255,255,0.07)" : "none" }}>
+                    <p style={{ margin: "0 0 0.4rem", fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</p>
                     <input
                       type="password"
                       value={pwForm[key]}
                       onChange={(e) => setPwForm(p => ({ ...p, [key]: e.target.value }))}
                       placeholder="••••••••"
-                      style={{ width: "100%", border: "none", borderBottom: "1.5px solid #E2E8F0", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "#0F172A", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
+                      style={{ width: "100%", border: "none", borderBottom: "1.5px solid rgba(255,255,255,0.12)", background: "transparent", fontSize: "0.88rem", fontWeight: 600, color: "rgba(255,255,255,0.85)", outline: "none", padding: "0 0 0.4rem", boxSizing: "border-box" }}
                     />
                   </div>
                 ))}
@@ -1642,12 +1643,12 @@ export default function ShopDashboard() {
             key={key}
             onClick={() => { switchTab(key); setShowForm(false); setSidebarOpen(false); }}
             className={`portal-bottom-tab ${tab === key ? "active" : ""}`}
-            style={{ color: tab === key ? "var(--primary)" : "#94A3B8" }}
+            style={{ color: tab === key ? "#D4A94A" : "rgba(255,255,255,0.4)" }}
           >
             <div style={{ position: "relative" }}>
               {icon}
               {badge ? (
-                <span style={{ position: "absolute", top: -6, right: -10, background: "var(--primary)", color: "#fff", borderRadius: 20, fontSize: "0.62rem", fontWeight: 900, padding: "0.15rem 0.4rem", minWidth: 16, textAlign: "center", lineHeight: 1.2, zIndex: 10 }}>{badge}</span>
+                <span style={{ position: "absolute", top: -6, right: -10, background: "#B8892A", color: "#fff", borderRadius: 20, fontSize: "0.62rem", fontWeight: 900, padding: "0.15rem 0.4rem", minWidth: 16, textAlign: "center", lineHeight: 1.2, zIndex: 10 }}>{badge}</span>
               ) : null}
             </div>
             <span className="pbt-label">{label}</span>
@@ -1657,12 +1658,12 @@ export default function ShopDashboard() {
 
       {/* Return Decision Modal */}
       {returnNoteModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 14, padding: "1.5rem", maxWidth: 360, width: "100%" }}>
-            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", color: returnNoteModal.action === "accept" ? "#065F46" : "#991B1B" }}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(4px)" }}>
+          <div style={{ background: "linear-gradient(135deg, #150A1F, #1A0D24)", border: "1px solid rgba(184,137,42,0.2)", borderRadius: 14, padding: "1.5rem", maxWidth: 360, width: "100%" }}>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1rem", color: returnNoteModal.action === "accept" ? "#4ade80" : "#fca5a5" }}>
               {returnNoteModal.action === "accept" ? "Accept Return" : "Reject Return"}
             </h3>
-            <p style={{ margin: "0 0 0.85rem", fontSize: "0.82rem", color: "#64748B" }}>
+            <p style={{ margin: "0 0 0.85rem", fontSize: "0.82rem", color: "rgba(255,255,255,0.5)" }}>
               {returnNoteModal.action === "accept"
                 ? "Add a note for the customer (optional) — e.g. refund timeline or pickup instructions."
                 : "Let the customer know why their return was rejected (optional)."}
@@ -1672,12 +1673,12 @@ export default function ShopDashboard() {
               onChange={(e) => setReturnNote(e.target.value)}
               placeholder="Note (optional)…"
               rows={3}
-              style={{ width: "100%", boxSizing: "border-box", borderRadius: 8, border: "1px solid #E2E8F0", padding: "0.6rem 0.75rem", fontSize: "0.84rem", resize: "vertical" }}
+              style={{ width: "100%", boxSizing: "border-box", borderRadius: 8, border: "1.5px solid rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.07)", color: "#fff", padding: "0.6rem 0.75rem", fontSize: "0.84rem", resize: "vertical", outline: "none" }}
             />
             <div style={{ display: "flex", gap: "0.6rem", marginTop: "1rem" }}>
               <button
                 onClick={() => { setReturnNoteModal(null); setReturnNote(""); }}
-                style={{ flex: 1, background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 8, padding: "0.55rem", cursor: "pointer", fontSize: "0.84rem", fontWeight: 600 }}
+                style={{ flex: 1, background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 8, padding: "0.55rem", cursor: "pointer", fontSize: "0.84rem", fontWeight: 600 }}
               >Cancel</button>
               <button
                 onClick={handleReturnDecision}
@@ -1696,34 +1697,34 @@ export default function ShopDashboard() {
         const isReady = qrModal.orderStatus === "ready_for_delivery";
         return (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-            <div style={{ background: "#fff", borderRadius: 14, padding: "1.75rem", maxWidth: 320, width: "100%", textAlign: "center" }}>
+            <div style={{ background: "linear-gradient(135deg, #150A1F, #1A0D24)", border: "1px solid rgba(184,137,42,0.2)", borderRadius: 14, padding: "1.75rem", maxWidth: 320, width: "100%", textAlign: "center" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-                <h3 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: isReady ? "#0f2460" : "var(--primary)", fontSize: "1rem" }}>
+                <h3 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: isReady ? "#93c5fd" : "#D4A94A", fontSize: "1rem" }}>
                   Order #{qrModal.orderId}
                 </h3>
-                <button onClick={() => setQrModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={20} /></button>
+                <button onClick={() => setQrModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.5)" }}><X size={20} /></button>
               </div>
 
               {/* Context banner */}
-              <div style={{ background: isReady ? "#EFF6FF" : "#FFF7ED", border: `1.5px solid ${isReady ? "#BFDBFE" : "#FED7AA"}`, borderRadius: 10, padding: "0.65rem 0.85rem", marginBottom: "1rem", textAlign: "left" }}>
+              <div style={{ background: isReady ? "rgba(59,130,246,0.1)" : "rgba(217,119,6,0.1)", border: `1.5px solid ${isReady ? "rgba(59,130,246,0.25)" : "rgba(217,119,6,0.25)"}`, borderRadius: 10, padding: "0.65rem 0.85rem", marginBottom: "1rem", textAlign: "left" }}>
                 {isReady ? (
                   <>
-                    <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700, color: "#1d4ed8" }}>🚚 For Delivery Partner</p>
-                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#1e40af", lineHeight: 1.5 }}>
+                    <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700, color: "#93c5fd" }}>🚚 For Delivery Partner</p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(147,197,253,0.75)", lineHeight: 1.5 }}>
                       Show this QR to the delivery partner — they scan it from the <strong>LV Delivery app</strong> to confirm pickup.
                     </p>
                   </>
                 ) : (
                   <>
-                    <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700, color: "#c2410c" }}>📦 Mark Order as Ready</p>
-                    <p style={{ margin: 0, fontSize: "0.78rem", color: "#9a3412", lineHeight: 1.5 }}>
+                    <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700, color: "#fbbf24" }}>📦 Mark Order as Ready</p>
+                    <p style={{ margin: 0, fontSize: "0.78rem", color: "rgba(251,191,36,0.75)", lineHeight: 1.5 }}>
                       Tap <strong>Scan QR</strong> above and scan the customer's QR from their Order Tracking page — or scan this code directly.
                     </p>
                   </>
                 )}
               </div>
 
-              <div style={{ background: "#F8FAFC", borderRadius: 10, padding: "1rem", display: "inline-block" }}>
+              <div style={{ background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "1rem", display: "inline-block" }}>
                 <img src={qrModal.qrImage} alt="QR Code" style={{ width: 180, height: 180, display: "block", borderRadius: 6 }} />
               </div>
             </div>
@@ -1737,26 +1738,26 @@ export default function ShopDashboard() {
       {/* Scan Success Popup */}
       {scanSuccess && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 2100, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "2rem 1.75rem", maxWidth: 340, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }}>
+          <div style={{ background: "linear-gradient(135deg, #0A1A0A, #0D2010)", border: "1px solid rgba(34,197,94,0.2)", borderRadius: 16, padding: "2rem 1.75rem", maxWidth: 340, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
             {/* Success icon */}
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#D1FAE5", border: "2px solid #6EE7B7", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", fontSize: "2rem" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "2px solid rgba(74,222,128,0.4)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem", fontSize: "2rem" }}>
               ✅
             </div>
-            <h3 style={{ margin: "0 0 0.4rem", fontFamily: "'Playfair Display', serif", color: "#15803D", fontSize: "1.3rem" }}>
+            <h3 style={{ margin: "0 0 0.4rem", fontFamily: "'Playfair Display', serif", color: "#4ade80", fontSize: "1.3rem" }}>
               QR Scanned!
             </h3>
-            <p style={{ margin: "0 0 0.5rem", fontWeight: 700, color: "#0F172A", fontSize: "0.95rem" }}>
+            <p style={{ margin: "0 0 0.5rem", fontWeight: 700, color: "rgba(255,255,255,0.85)", fontSize: "0.95rem" }}>
               Order #{scanSuccess.orderId} is Ready for Delivery
             </p>
-            <div style={{ background: "#F0FDF4", border: "1.5px solid #86EFAC", borderRadius: 10, padding: "0.85rem 1rem", margin: "1rem 0 1.5rem", textAlign: "left" }}>
-              <p style={{ margin: "0 0 0.4rem", fontSize: "0.8rem", fontWeight: 700, color: "#15803D" }}>Next Step</p>
-              <p style={{ margin: 0, fontSize: "0.82rem", color: "#166534", lineHeight: 1.55 }}>
+            <div style={{ background: "rgba(34,197,94,0.08)", border: "1.5px solid rgba(74,222,128,0.25)", borderRadius: 10, padding: "0.85rem 1rem", margin: "1rem 0 1.5rem", textAlign: "left" }}>
+              <p style={{ margin: "0 0 0.4rem", fontSize: "0.8rem", fontWeight: 700, color: "#4ade80" }}>Next Step</p>
+              <p style={{ margin: 0, fontSize: "0.82rem", color: "rgba(74,222,128,0.75)", lineHeight: 1.55 }}>
                 🚚 The delivery partner will come to your shop to pick up this order. They will scan the QR code to confirm pickup.
               </p>
             </div>
             <button
               onClick={() => setScanSuccess(null)}
-              style={{ width: "100%", padding: "0.8rem", background: "linear-gradient(135deg, var(--primary), #a83060)", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: "0.92rem", boxShadow: "0 4px 14px rgba(123,29,69,0.3)" }}
+              style={{ width: "100%", padding: "0.8rem", background: "linear-gradient(135deg, #B8892A, #a83060)", color: "#fff", border: "none", borderRadius: 10, cursor: "pointer", fontWeight: 700, fontSize: "0.92rem", boxShadow: "0 4px 14px rgba(123,29,69,0.3)" }}
             >
               Done
             </button>
@@ -1767,15 +1768,15 @@ export default function ShopDashboard() {
       {/* Delete Confirmation Modal */}
       {deleteModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-          <div style={{ background: "#fff", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.25)" }}>
-            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#FEE2E2", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
-            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "#0F172A" }}>Delete Product?</h3>
-            <p style={{ margin: "0 0 1.5rem", fontSize: "0.88rem", color: "#64748B", lineHeight: 1.5 }}>
+          <div style={{ background: "linear-gradient(135deg, #150A1F, #1A0D24)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "rgba(255,255,255,0.9)" }}>Delete Product?</h3>
+            <p style={{ margin: "0 0 1.5rem", fontSize: "0.88rem", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
               "<strong>{deleteModal.name}</strong>" will be permanently deleted. This cannot be undone.
             </p>
             <div style={{ display: "flex", gap: "0.75rem" }}>
-              <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid #E2E8F0", borderRadius: 10, background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "#475569" }}>Cancel</button>
-              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "#EF4444", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Delete</button>
+              <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 10, background: "rgba(255,255,255,0.06)", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "rgba(255,255,255,0.6)" }}>Cancel</button>
+              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Delete</button>
             </div>
           </div>
         </div>

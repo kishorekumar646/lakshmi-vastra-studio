@@ -434,6 +434,7 @@ def list_delivery_persons(db: Session = Depends(get_db), _: str = Depends(verify
             "is_active": p.is_active,
             "total_deliveries": len(p.assigned_orders),
             "created_at": p.created_at,
+            "profile_image_url": p.profile_image_url or None,
         }
         for p in persons
     ]
@@ -505,6 +506,7 @@ def list_shop_owners(db: Session = Depends(get_db), _: str = Depends(verify_toke
             "is_approved": o.is_approved,
             "is_active": o.is_active,
             "created_at": o.created_at,
+            "profile_image_url": o.profile_image_url or None,
         }
         for o in owners
     ]
@@ -587,6 +589,7 @@ def list_customers(db: Session = Depends(get_db), _: str = Depends(verify_token)
             "pincode": c.pincode or "",
             "total_orders": len(c.orders),
             "created_at": c.created_at,
+            "profile_image_url": c.profile_image_url or None,
         }
         for c in customers
     ]
