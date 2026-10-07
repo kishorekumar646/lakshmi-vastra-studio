@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { to: "/contact", label: "Contact" },
 ];
 
-export default function Navbar() {
+export default function Navbar({ extraClass = "" }) {
   const [open, setOpen] = useState(false);
   const { cartCount } = useCart();
   const { wishlistCount } = useWishlist();
@@ -51,7 +51,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar">
+    <nav className={`navbar${extraClass ? ` ${extraClass}` : ""}`}>
       <div className="nav-inner">
         {/* Logo */}
         <Link to="/" className="nav-logo" onClick={close}>

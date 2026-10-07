@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import "./App.css";
 import Navbar from "./components/Navbar";
@@ -108,14 +108,38 @@ function AdminApp() {
   );
 }
 
-// Customer shell — hides Navbar/Footer on home so the luxury layout can own the full page
+// Customer shell — Navbar hidden on home until user scrolls down
 function CustomerLayout() {
   const location = useLocation();
   const isHome = location.pathname === "/";
+  const [scrolled, setScrolled] = useState(false);
+  const scrolledRef = useRef(false);
+
+  useEffect(() => {
+    if (!isHome) {
+      setScrolled(false);
+      scrolledRef.current = false;
+      return;
+    }
+    const onScroll = () => {
+      const past = window.scrollY > 80;
+      if (past !== scrolledRef.current) {
+        scrolledRef.current = past;
+        setScrolled(past);
+      }
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const navClass = isHome
+    ? `navbar--home${scrolled ? " navbar--home-visible" : " navbar--home-hidden"}`
+    : "";
 
   return (
     <>
-      {!isHome && <Navbar />}
+      <Navbar extraClass={navClass} />
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
