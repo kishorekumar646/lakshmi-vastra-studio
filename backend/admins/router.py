@@ -17,7 +17,7 @@ from admins.auth import create_access_token, verify_token
 from products.router import product_to_dict, upload_image
 from delivery.auth import hash_password as delivery_hash_password
 from shops.auth import hash_password as shop_hash_password
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
@@ -51,7 +51,7 @@ def admin_list_products(
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
-    base = db.query(Product)
+    base = db.query(Product).filter(Product.deleted_at == None)
     total = base.count()
     offset = (page - 1) * per_page
     items = (
@@ -69,6 +69,51 @@ def admin_list_products(
         "per_page": per_page,
         "pages": math.ceil(total / per_page) if total > 0 else 1,
     }
+
+
+@router.get("/products/deleted")
+def admin_list_deleted_products(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_token),
+):
+    base = db.query(Product).filter(Product.deleted_at != None)
+    total = base.count()
+    offset = (page - 1) * per_page
+    items = (
+        base
+        .options(joinedload(Product.category), selectinload(Product.images), joinedload(Product.shop_owner))
+        .order_by(Product.deleted_at.desc())
+        .offset(offset)
+        .limit(per_page)
+        .all()
+    )
+    def _deleted_dict(p):
+        d = product_to_dict(p)
+        d["deleted_at"] = str(p.deleted_at)
+        return d
+    return {
+        "items": [_deleted_dict(p) for p in items],
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": math.ceil(total / per_page) if total > 0 else 1,
+    }
+
+
+@router.put("/products/{product_id}/restore")
+def admin_restore_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_token),
+):
+    product = db.query(Product).filter(Product.id == product_id, Product.deleted_at != None).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Deleted product not found")
+    product.deleted_at = None
+    db.commit()
+    return {"message": "Product restored", "id": product_id}
 
 
 @router.post("/products")
@@ -205,16 +250,44 @@ def admin_delete_product_image(
     return {"message": "Image deleted"}
 
 
+@router.delete("/products/{product_id}/permanent")
+def admin_delete_product_permanent(
+    product_id: int,
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_token),
+):
+    """Hard-delete a product from Trash (must already be soft-deleted)."""
+    product = (
+        db.query(Product)
+        .options(selectinload(Product.images))
+        .filter(Product.id == product_id, Product.deleted_at != None)
+        .first()
+    )
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found in Trash")
+
+    for img in product.images:
+        if img.image_public_id:
+            try:
+                cloudinary.uploader.destroy(img.image_public_id)
+            except Exception:
+                pass
+
+    db.delete(product)
+    db.commit()
+    return {"message": "Permanently deleted"}
+
+
 @router.delete("/products/{product_id}")
 def admin_delete_product(
     product_id: int,
     db: Session = Depends(get_db),
     _: str = Depends(verify_token),
 ):
+    """Soft-delete a product — moves it to Trash (recoverable)."""
     product = (
         db.query(Product)
-        .options(selectinload(Product.images))
-        .filter(Product.id == product_id)
+        .filter(Product.id == product_id, Product.deleted_at == None)
         .first()
     )
     if not product:
@@ -229,16 +302,9 @@ def admin_delete_product(
     if active_order_count > 0:
         raise HTTPException(status_code=409, detail=f"Cannot delete: this product has {active_order_count} active order(s) in progress. It can be deleted once all orders are delivered.")
 
-    for img in product.images:
-        if img.image_public_id:
-            try:
-                cloudinary.uploader.destroy(img.image_public_id)
-            except Exception:
-                pass
-
-    db.delete(product)
+    product.deleted_at = datetime.now(timezone.utc)
     db.commit()
-    return {"message": "Deleted"}
+    return {"message": "Moved to Trash"}
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

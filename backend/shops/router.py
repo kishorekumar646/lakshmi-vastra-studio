@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, B
 from pydantic import BaseModel
 from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import Optional, List
+from datetime import datetime, timezone
 import cloudinary
 import cloudinary.uploader
 import os
@@ -217,7 +218,7 @@ def list_shop_products(
 ):
     items = (
         db.query(Product)
-        .filter(Product.shop_owner_id == owner.id)
+        .filter(Product.shop_owner_id == owner.id, Product.deleted_at == None)
         .options(joinedload(Product.category), selectinload(Product.images))
         .order_by(Product.created_at.desc())
         .all()
@@ -354,7 +355,9 @@ def delete_product_image(
 
 @router.delete("/products/{product_id}")
 def delete_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
-    product = db.query(Product).filter(Product.id == product_id, Product.shop_owner_id == owner.id).first()
+    product = db.query(Product).filter(
+        Product.id == product_id, Product.shop_owner_id == owner.id, Product.deleted_at == None
+    ).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     active_order_count = (
@@ -365,15 +368,33 @@ def delete_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_
     )
     if active_order_count > 0:
         raise HTTPException(status_code=409, detail=f"Cannot delete: this product has {active_order_count} active order(s) in progress. It can be deleted once all orders are delivered.")
-    for img in product.images:
-        if img.image_public_id:
-            try:
-                cloudinary.uploader.destroy(img.image_public_id)
-            except Exception:
-                pass
-    db.delete(product)
+    product.deleted_at = datetime.now(timezone.utc)
     db.commit()
     return {"message": "Deleted"}
+
+
+@router.get("/products/deleted")
+def list_deleted_products(owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    items = (
+        db.query(Product)
+        .filter(Product.shop_owner_id == owner.id, Product.deleted_at != None)
+        .options(joinedload(Product.category), selectinload(Product.images))
+        .order_by(Product.deleted_at.desc())
+        .all()
+    )
+    return [_product_dict(p) for p in items]
+
+
+@router.put("/products/{product_id}/restore")
+def restore_product(product_id: int, owner: ShopOwner = Depends(get_current_shop_owner), db: Session = Depends(get_db)):
+    product = db.query(Product).filter(
+        Product.id == product_id, Product.shop_owner_id == owner.id, Product.deleted_at != None
+    ).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found in Trash")
+    product.deleted_at = None
+    db.commit()
+    return {"message": "Restored"}
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

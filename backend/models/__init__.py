@@ -85,6 +85,7 @@ class Product(Base):
     has_multiple_colours = Column(Boolean, default=False)
     custom_orders = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
 
     category = relationship("Category", back_populates="products")
     shop_owner = relationship("ShopOwner", back_populates="products")

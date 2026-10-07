@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { stripPhone, formatPhone, phoneError } from "../utils/phone";
 import {
-  getProducts, getAdminProducts, createProduct, updateProduct, deleteProduct, deleteProductImage,
+  getProducts, getAdminProducts, createProduct, updateProduct, deleteProduct, deleteProductImage, getDeletedProducts, restoreProduct, permanentDeleteProduct,
   getCategories, createCategory, deleteCategory,
   getInquiries, markInquiryRead,
   getAdminReviews, deleteReview, toggleReviewVisibility,
@@ -21,7 +21,7 @@ import {
   LogOut, Plus, Trash2, Edit2, Package, Tag, MessageSquare,
   Menu, X, ImagePlus, Check, ChevronLeft, ChevronRight, Star,
   ShoppingBag, Truck, Store, Users, CheckCircle, TrendingUp, MapPin,
-  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle, Bell, Eye,
+  CreditCard, Banknote, XCircle, Clock, AlertCircle, Mail, Phone, Calendar, Search, HelpCircle, Bell, Eye, RotateCcw,
 } from "lucide-react";
 import StarRating from "../components/StarRating";
 import { usePushNotifications } from "../hooks/usePushNotifications";
@@ -60,6 +60,9 @@ export default function AdminDashboard() {
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("all");
   const [productStatusFilter, setProductStatusFilter] = useState("all");
+  const [productShopFilter, setProductShopFilter] = useState("all");
+  const [productFeaturedFilter, setProductFeaturedFilter] = useState("all");
+  const [productDateFilter, setProductDateFilter] = useState("all");
   const [adminDeleteModal, setAdminDeleteModal] = useState(null);
   const [adminNotifOpen, setAdminNotifOpen] = useState(false);
   const [productPage, setProductPage] = useState(1);
@@ -80,6 +83,9 @@ export default function AdminDashboard() {
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
   const [submitting, setSubmitting] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [deletedProducts, setDeletedProducts] = useState([]);
+  const [deletedTotal, setDeletedTotal] = useState(0);
+  const [deletedLoading, setDeletedLoading] = useState(false);
   const primaryFileRef = useRef();
   const additionalFileRef = useRef();
   const productFormRef = useRef();
@@ -187,6 +193,28 @@ export default function AdminDashboard() {
       .finally(() => setProductsLoading(false));
   };
 
+  const loadDeletedProducts = () => {
+    setDeletedLoading(true);
+    getDeletedProducts(1, 50)
+      .then((r) => {
+        setDeletedProducts(r.data.items || []);
+        setDeletedTotal(r.data.total || 0);
+      })
+      .catch(() => {})
+      .finally(() => setDeletedLoading(false));
+  };
+
+  const handleRestoreProduct = async (id, name) => {
+    try {
+      await restoreProduct(id);
+      toast.success(`"${name}" restored`);
+      loadDeletedProducts();
+      loadProducts(productPage);
+    } catch {
+      toast.error("Failed to restore product");
+    }
+  };
+
   const loadOrders = (status = "all") => {
     setOrdersLoading(true);
     getAdminOrders(1, 100, status === "all" ? "" : status)
@@ -272,6 +300,7 @@ export default function AdminDashboard() {
   // Re-fetch relevant data when switching tabs
   useEffect(() => {
     if (tab === "products") loadProducts(1);
+    else if (tab === "trash") loadDeletedProducts();
     else if (tab === "orders") loadOrders(orderStatusFilter);
     else if (tab === "delivery") loadDeliveryPersons();
     else if (tab === "shopowners") loadShopOwners();
@@ -469,13 +498,19 @@ export default function AdminDashboard() {
   const handleDelete = async () => {
     if (!adminDeleteModal) return;
     try {
-      await deleteProduct(adminDeleteModal.id);
-      toast.success("Deleted");
-      const remaining = productTotal - 1;
-      const targetPage = remaining > 0 && (productPage - 1) * PER_PAGE >= remaining
-        ? productPage - 1
-        : productPage;
-      loadProducts(targetPage);
+      if (adminDeleteModal.permanent) {
+        await permanentDeleteProduct(adminDeleteModal.id);
+        toast.success("Permanently deleted");
+        loadDeletedProducts();
+      } else {
+        await deleteProduct(adminDeleteModal.id);
+        toast.success("Moved to Trash");
+        const remaining = productTotal - 1;
+        const targetPage = remaining > 0 && (productPage - 1) * PER_PAGE >= remaining
+          ? productPage - 1
+          : productPage;
+        loadProducts(targetPage);
+      }
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Failed to delete");
     }
@@ -514,6 +549,7 @@ export default function AdminDashboard() {
   const NAV_ITEMS = [
     { key: "dashboard", label: "Dashboard", icon: <TrendingUp size={17} /> },
     { key: "products", label: "Products", icon: <Package size={17} />, badge: productTotal || null },
+    { key: "trash", label: "Trash", icon: <Trash2 size={17} />, badge: deletedTotal || null, badgeRed: true },
     { key: "categories", label: "Categories", icon: <Tag size={17} />, badge: categories.length },
     { key: "inquiries", label: "Inquiries", icon: <MessageSquare size={17} />, badge: unread || null, badgeRed: true },
     { key: "reviews", label: "Reviews", icon: <Star size={17} />, badge: adminReviews.length || null },
@@ -679,39 +715,33 @@ export default function AdminDashboard() {
             </div>
 
             {/* Filter bar */}
-            <div style={{ display: "flex", gap: "0.65rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-              <div style={{ flex: "1 1 220px", position: "relative" }}>
+            <div style={{ display: "flex", gap: "0.45rem", marginBottom: "1rem", flexWrap: "wrap", alignItems: "center" }}>
+              <div style={{ position: "relative", flex: "1 1 140px", minWidth: 120, maxWidth: 200 }}>
                 <input
                   type="text"
-                  placeholder="Search by product name…"
+                  placeholder="Search…"
                   value={productSearch}
                   onChange={(e) => setProductSearch(e.target.value)}
-                  style={{ width: "100%", padding: "0.55rem 0.85rem 0.55rem 2.2rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 8, fontSize: "0.85rem", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.07)", color: "#fff" }}
+                  style={{ width: "100%", padding: "0.42rem 0.6rem 0.42rem 1.8rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 7, fontSize: "0.8rem", outline: "none", boxSizing: "border-box", background: "rgba(255,255,255,0.07)", color: "#fff" }}
                 />
-                <Search size={15} style={{ position: "absolute", left: "0.7rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.35)" }} />
+                <Search size={12} style={{ position: "absolute", left: "0.5rem", top: "50%", transform: "translateY(-50%)", color: "rgba(255,255,255,0.35)" }} />
               </div>
-              <select
-                value={productCategoryFilter}
-                onChange={(e) => setProductCategoryFilter(e.target.value)}
-                style={{ padding: "0.55rem 0.85rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 8, fontSize: "0.85rem", background: "rgba(255,255,255,0.07)", color: "#fff", cursor: "pointer", outline: "none" }}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((c) => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-              </select>
-              <select
-                value={productStatusFilter}
-                onChange={(e) => setProductStatusFilter(e.target.value)}
-                style={{ padding: "0.55rem 0.85rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 8, fontSize: "0.85rem", background: "rgba(255,255,255,0.07)", color: "#fff", cursor: "pointer", outline: "none" }}
-              >
-                <option value="all">All Status</option>
-                <option value="visible">Visible</option>
-                <option value="hidden">Hidden</option>
-                <option value="featured">Featured</option>
-              </select>
-              {(productSearch || productCategoryFilter !== "all" || productStatusFilter !== "all") && (
+              {[
+                { value: productCategoryFilter, onChange: setProductCategoryFilter, opts: [["all","Category"], ...categories.map(c => [String(c.id), c.name])] },
+                { value: productStatusFilter,  onChange: setProductStatusFilter,  opts: [["all","Status"],["visible","Visible"],["hidden","Hidden"]] },
+                { value: productShopFilter,    onChange: setProductShopFilter,    opts: [["all","Shop"],["none","Admin"], ...shopOwners.filter(s=>s.is_approved&&s.is_active).map(s=>[String(s.id),s.shop_name])] },
+                { value: productFeaturedFilter,onChange: setProductFeaturedFilter,opts: [["all","Featured"],["yes","Yes"],["no","No"]] },
+                { value: productDateFilter,    onChange: setProductDateFilter,    opts: [["all","Date"],["today","Today"],["week","This Week"],["month","This Month"]] },
+              ].map(({ value, onChange, opts }) => (
+                <select key={opts[0][1]} value={value} onChange={(e) => onChange(e.target.value)}
+                  style={{ flex: "0 0 auto", padding: "0.42rem 0.55rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 7, fontSize: "0.8rem", background: "rgba(255,255,255,0.07)", color: "#fff", cursor: "pointer", outline: "none", maxWidth: 140 }}>
+                  {opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                </select>
+              ))}
+              {(productSearch || productCategoryFilter !== "all" || productStatusFilter !== "all" || productShopFilter !== "all" || productFeaturedFilter !== "all" || productDateFilter !== "all") && (
                 <button
-                  onClick={() => { setProductSearch(""); setProductCategoryFilter("all"); setProductStatusFilter("all"); }}
-                  style={{ padding: "0.55rem 0.9rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 8, background: "rgba(255,255,255,0.07)", cursor: "pointer", fontSize: "0.82rem", color: "rgba(255,255,255,0.6)", fontWeight: 600 }}
+                  onClick={() => { setProductSearch(""); setProductCategoryFilter("all"); setProductStatusFilter("all"); setProductShopFilter("all"); setProductFeaturedFilter("all"); setProductDateFilter("all"); }}
+                  style={{ flex: "0 0 auto", padding: "0.42rem 0.7rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 7, background: "rgba(255,255,255,0.07)", cursor: "pointer", fontSize: "0.8rem", color: "rgba(255,255,255,0.6)", fontWeight: 600, whiteSpace: "nowrap" }}
                 >
                   Clear
                 </button>
@@ -736,12 +766,28 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody>
                   {(() => {
+                    const now = new Date();
                     const filteredProducts = products.filter((p) => {
                       if (productSearch && !p.name.toLowerCase().includes(productSearch.toLowerCase())) return false;
                       if (productCategoryFilter !== "all" && String(p.category_id) !== productCategoryFilter) return false;
                       if (productStatusFilter === "visible" && !p.is_available) return false;
                       if (productStatusFilter === "hidden" && p.is_available) return false;
-                      if (productStatusFilter === "featured" && !p.is_featured) return false;
+                      if (productShopFilter === "none" && p.shop_owner_id) return false;
+                      if (productShopFilter !== "all" && productShopFilter !== "none" && String(p.shop_owner_id) !== productShopFilter) return false;
+                      if (productFeaturedFilter === "yes" && !p.is_featured) return false;
+                      if (productFeaturedFilter === "no" && p.is_featured) return false;
+                      if (productDateFilter !== "all") {
+                        const created = new Date(p.created_at);
+                        if (productDateFilter === "today") {
+                          if (created.toDateString() !== now.toDateString()) return false;
+                        } else if (productDateFilter === "week") {
+                          const weekAgo = new Date(now); weekAgo.setDate(now.getDate() - 7);
+                          if (created < weekAgo) return false;
+                        } else if (productDateFilter === "month") {
+                          const monthAgo = new Date(now); monthAgo.setMonth(now.getMonth() - 1);
+                          if (created < monthAgo) return false;
+                        }
+                      }
                       return true;
                     });
                     return filteredProducts;
@@ -757,7 +803,15 @@ export default function AdminDashboard() {
                       <td style={{ color: "rgba(255,255,255,0.5)" }}>{p.category_name}</td>
                       <td style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem" }}>
                         {p.shop_owner_name
-                          ? <span style={{ background: "rgba(59,130,246,0.15)", color: "#93C5FD", borderRadius: 100, padding: "2px 8px", fontSize: "0.72rem", fontWeight: 600 }}>{p.shop_owner_name}</span>
+                          ? <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", background: "rgba(59,130,246,0.12)", borderRadius: 100, padding: "2px 8px 2px 3px" }}>
+                              <span style={{ width: 20, height: 20, borderRadius: "50%", background: "linear-gradient(135deg,#7B1D45,#1a4080)", display: "inline-flex", alignItems: "center", justifyContent: "center", overflow: "hidden", flexShrink: 0 }}>
+                                {p.shop_owner_profile_image
+                                  ? <img src={p.shop_owner_profile_image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                  : <span style={{ color: "#fff", fontSize: "0.62rem", fontWeight: 800 }}>{p.shop_owner_name?.[0]?.toUpperCase()}</span>
+                                }
+                              </span>
+                              <span style={{ color: "#93C5FD", fontSize: "0.72rem", fontWeight: 600 }}>{p.shop_owner_name}</span>
+                            </span>
                           : <span style={{ color: "rgba(255,255,255,0.2)" }}>—</span>
                         }
                       </td>
@@ -1077,6 +1131,79 @@ export default function AdminDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ── Trash Tab ─────────────── */}
+        {tab === "trash" && (
+          <div>
+            <div className="admin-section-header">
+              <div>
+                <h2 className="admin-section-title">Deleted Products</h2>
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.82rem", color: "rgba(255,255,255,0.4)" }}>
+                  Products deleted by shop owners. Restore to make them visible again, or permanently delete.
+                </p>
+              </div>
+            </div>
+            <div className="admin-table-wrap" style={{ opacity: deletedLoading ? 0.5 : 1, transition: "opacity 0.2s" }}>
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Shop Owner</th>
+                    <th>Price</th>
+                    <th>Deleted On</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {deletedProducts.map((p) => (
+                    <tr key={p.id}>
+                      <td>
+                        {p.image_url
+                          ? <img src={p.image_url} alt="" className="admin-thumb" style={{ opacity: 0.55 }} />
+                          : <div className="admin-thumb-placeholder">No img</div>
+                        }
+                      </td>
+                      <td><span style={{ color: "rgba(255,255,255,0.55)", textDecoration: "line-through" }}>{p.name}</span></td>
+                      <td style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem" }}>{p.category_name || "—"}</td>
+                      <td style={{ fontSize: "0.8rem" }}>
+                        {p.shop_owner_name
+                          ? <span style={{ background: "rgba(59,130,246,0.15)", color: "#93C5FD", borderRadius: 100, padding: "2px 8px", fontSize: "0.72rem", fontWeight: 600 }}>{p.shop_owner_name}</span>
+                          : <span style={{ color: "rgba(255,255,255,0.2)" }}>—</span>
+                        }
+                      </td>
+                      <td style={{ fontWeight: 600, color: "rgba(212,169,74,0.6)", fontFamily: "'Playfair Display', serif" }}>
+                        ₹{p.price.toLocaleString("en-IN")}
+                      </td>
+                      <td style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                        {p.deleted_at ? new Date(p.deleted_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—"}
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "0.5rem" }}>
+                          <button
+                            onClick={() => handleRestoreProduct(p.id, p.name)}
+                            title="Restore product"
+                            style={{ display: "flex", alignItems: "center", gap: "0.3rem", background: "rgba(22,163,74,0.15)", border: "1px solid rgba(22,163,74,0.25)", borderRadius: 6, padding: "0.4rem 0.6rem", cursor: "pointer", color: "#86EFAC", fontSize: "0.78rem", fontWeight: 600 }}
+                          >
+                            <RotateCcw size={13} /> Restore
+                          </button>
+                          <button onClick={() => setAdminDeleteModal({ id: p.id, name: p.name, permanent: true })} className="admin-delete-btn" title="Permanently delete"><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {deletedLoading && deletedProducts.length === 0 && (
+                <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>Loading…</div>
+              )}
+              {!deletedLoading && deletedProducts.length === 0 && (
+                <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>No deleted products.</div>
+              )}
+            </div>
           </div>
         )}
 
@@ -2761,9 +2888,14 @@ export default function AdminDashboard() {
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ background: "rgba(14,8,22,0.97)", backdropFilter: "blur(20px)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 380, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.6)" }}>
             <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(220,38,38,0.15)", border: "1px solid rgba(220,38,38,0.25)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
-            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "rgba(255,255,255,0.9)" }}>Delete Product?</h3>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "rgba(255,255,255,0.9)" }}>
+              {adminDeleteModal.permanent ? "Permanently Delete?" : "Move to Trash?"}
+            </h3>
             <p style={{ margin: "0 0 1.5rem", fontSize: "0.88rem", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
-              "<strong>{adminDeleteModal.name}</strong>" will be permanently deleted and cannot be recovered.
+              {adminDeleteModal.permanent
+                ? <>"<strong>{adminDeleteModal.name}</strong>" will be permanently deleted and cannot be recovered.</>
+                : <>"<strong>{adminDeleteModal.name}</strong>" will be moved to Trash. It can be restored later from the Trash tab.</>
+              }
             </p>
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <button onClick={() => setAdminDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 10, background: "rgba(255,255,255,0.05)", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "rgba(255,255,255,0.6)" }}>Cancel</button>

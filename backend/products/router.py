@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import or_
 from typing import Optional, List
 import cloudinary
 import cloudinary.uploader
 import os
 from database import get_db
-from models import Product, ProductImage, Category
+from models import Product, ProductImage, Category, ShopOwner
 from admins.auth import verify_token
 
 router = APIRouter(prefix="/api/products", tags=["products"])
@@ -31,6 +32,7 @@ def product_to_dict(p: Product):
         "category_name": p.category.name if p.category else None,
         "shop_owner_id": p.shop_owner_id,
         "shop_owner_name": p.shop_owner.shop_name if p.shop_owner else None,
+        "shop_owner_profile_image": p.shop_owner.profile_image_url if p.shop_owner else None,
         "is_featured": p.is_featured,
         "is_available": p.is_available,
         "is_handloom": p.is_handloom or False,
@@ -45,6 +47,18 @@ def upload_image(file: UploadFile) -> tuple[str, str]:
     return result["secure_url"], result["public_id"]
 
 
+def _active_product_filter(query):
+    """Filter out soft-deleted products and products from deactivated shops."""
+    return (
+        query
+        .outerjoin(ShopOwner, Product.shop_owner_id == ShopOwner.id)
+        .filter(
+            Product.deleted_at == None,
+            or_(Product.shop_owner_id == None, ShopOwner.is_active == True),
+        )
+    )
+
+
 @router.get("")
 def list_products(
     category_id: Optional[int] = None,
@@ -54,7 +68,7 @@ def list_products(
     handloom: Optional[bool] = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Product).filter(Product.is_available == True)
+    query = _active_product_filter(db.query(Product)).filter(Product.is_available == True)
     if category_id:
         query = query.filter(Product.category_id == category_id)
     if featured is not None:
@@ -86,11 +100,13 @@ def list_products(
 def get_product(product_id: int, db: Session = Depends(get_db)):
     p = (
         db.query(Product)
-        .options(joinedload(Product.category), selectinload(Product.images))
-        .filter(Product.id == product_id)
+        .options(joinedload(Product.category), selectinload(Product.images), joinedload(Product.shop_owner))
+        .filter(Product.id == product_id, Product.deleted_at == None)
         .first()
     )
     if not p:
+        raise HTTPException(status_code=404, detail="Product not found")
+    if p.shop_owner and not p.shop_owner.is_active:
         raise HTTPException(status_code=404, detail="Product not found")
     return product_to_dict(p)
 

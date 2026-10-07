@@ -123,34 +123,6 @@ export default function DressShowcase() {
     looksRef.current = looks;
   }, [looks]);
 
-  // Auto-advance: scroll to the next look every 3 seconds when within the showcase range
-  useEffect(() => {
-    if (prefersReduced || looks.length === 0) return;
-
-    const interval = setInterval(() => {
-      const wrapper = wrapperRef.current;
-      if (!wrapper) return;
-
-      const rect = wrapper.getBoundingClientRect();
-      const scrolledInto = -rect.top;
-      const scrollable = wrapper.offsetHeight - window.innerHeight;
-      if (scrollable <= 0) return;
-
-      // Only advance when user is within the showcase scroll range
-      if (scrolledInto < 0 || scrolledInto > scrollable) return;
-
-      const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
-      const currentIdx = Math.min(Math.floor(progress * looks.length), looks.length - 1);
-      const nextIdx = (currentIdx + 1) % looks.length;
-
-      const wrapperDocTop = window.scrollY + rect.top;
-      const targetScrollY = wrapperDocTop + ((nextIdx + 0.1) / looks.length) * scrollable;
-      window.scrollTo({ top: targetScrollY, behavior: "smooth" });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [prefersReduced, looks]);
-
   useEffect(() => {
     if (prefersReduced) return;
 

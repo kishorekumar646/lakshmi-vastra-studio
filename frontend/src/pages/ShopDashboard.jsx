@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
   getCategories, getShopProducts, createShopProduct, updateShopProduct, deleteShopProduct,
-  deleteShopProductImage,
+  deleteShopProductImage, getShopDeletedProducts, restoreShopProduct,
   getShopOrders, getShopOrderQr, shopScanQr, shopMarkOrderReady, shopConfirmOrder, getPublicProduct,
   uploadShopAvatar, getShopMe, updateShopMe, changeShopPassword, shopAcceptReturn, shopRejectReturn, shopMarkRefundSent,
 } from "../api";
-import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, CheckCircle, Bell, Eye, ChevronRight } from "lucide-react";
+import { LogOut, Plus, Trash2, Edit2, Package, ShoppingBag, QrCode, ScanLine, X, ImagePlus, ChevronLeft, Check, Menu, Camera, UserCircle, HelpCircle, CheckCircle, Bell, Eye, ChevronRight, RotateCcw } from "lucide-react";
 import QrScanner from "../components/QrScanner";
 import { usePushNotifications } from "../hooks/usePushNotifications";
 import { usePwaInstall } from "../hooks/usePwaInstall";
@@ -72,6 +72,8 @@ export default function ShopDashboard() {
   const [productSearch, setProductSearch] = useState("");
   const [productCategoryFilter, setProductCategoryFilter] = useState("all");
   const [deleteModal, setDeleteModal] = useState(null);
+  const [deletedProducts, setDeletedProducts] = useState([]);
+  const [deletedLoading, setDeletedLoading] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
 
@@ -100,6 +102,7 @@ export default function ShopDashboard() {
   useEffect(() => {
     if (tab === "orders") loadOrders();
     if (tab === "products") loadProducts();
+    if (tab === "trash") loadDeletedProducts();
     if (tab === "account") {
       getShopMe().then(({ data }) => {
         const updated = { ...owner, ...data };
@@ -168,6 +171,25 @@ export default function ShopDashboard() {
   const loadOrders = () => {
     setOrdersLoading(true);
     getShopOrders().then((r) => setOrders(r.data)).catch(() => {}).finally(() => setOrdersLoading(false));
+  };
+
+  const loadDeletedProducts = () => {
+    setDeletedLoading(true);
+    getShopDeletedProducts()
+      .then((r) => setDeletedProducts(r.data))
+      .catch(() => {})
+      .finally(() => setDeletedLoading(false));
+  };
+
+  const handleRestoreProduct = async (id, name) => {
+    try {
+      await restoreShopProduct(id);
+      toast.success(`"${name}" restored — now visible to customers`);
+      loadDeletedProducts();
+      loadProducts();
+    } catch {
+      toast.error("Failed to restore product");
+    }
   };
 
   const logout = () => {
@@ -284,7 +306,7 @@ export default function ShopDashboard() {
     if (!deleteModal) return;
     try {
       await deleteShopProduct(deleteModal.id);
-      toast.success("Product deleted");
+      toast.success("Moved to Trash");
       loadProducts();
     } catch (err) { toast.error(err?.response?.data?.detail || "Failed to delete"); }
     setDeleteModal(null);
@@ -470,6 +492,7 @@ export default function ShopDashboard() {
   const pendingCount = orders.filter((o) => o.status === "pending" || o.status === "confirmed" || o.return_status === "pending").length;
   const SHOP_NAV = [
     { key: "products", label: "Products", icon: <Package size={17} />, badge: products.length || null },
+    { key: "trash",    label: "Trash",    icon: <Trash2 size={17} />, badge: deletedProducts.length || null, badgeRed: true },
     { key: "orders",   label: "Orders",   icon: <ShoppingBag size={17} />, badge: pendingCount || null },
     { key: "account",  label: "Account",  icon: <UserCircle size={17} /> },
   ];
@@ -1796,18 +1819,63 @@ export default function ShopDashboard() {
         </div>
       )}
 
+      {/* Trash Tab */}
+      {tab === "trash" && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <div>
+              <h2 style={{ margin: 0, fontFamily: "'Playfair Display', serif", color: "#D4A94A", fontSize: "1.2rem" }}>Trash</h2>
+              <p style={{ margin: "0.15rem 0 0", fontSize: "0.72rem", color: "rgba(255,255,255,0.45)" }}>Restore products to make them visible to customers</p>
+            </div>
+          </div>
+
+          {deletedLoading ? (
+            <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}><p>Loading…</p></div>
+          ) : deletedProducts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
+              <Trash2 size={40} style={{ opacity: 0.25, marginBottom: "0.75rem" }} />
+              <p style={{ fontWeight: 600 }}>Trash is empty</p>
+              <p style={{ fontSize: "0.8rem", marginTop: "0.25rem" }}>Deleted products will appear here</p>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: "0.75rem" }}>
+              {deletedProducts.map((p) => (
+                <div key={p.id} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: "1rem", border: "1px solid rgba(220,38,38,0.15)", display: "flex", gap: "0.85rem", alignItems: "center" }}>
+                  {p.image_url
+                    ? <img src={p.image_url} alt={p.name} style={{ width: 60, height: 60, objectFit: "cover", borderRadius: 8, flexShrink: 0, opacity: 0.7 }} />
+                    : <div style={{ width: 60, height: 60, borderRadius: 8, background: "rgba(255,255,255,0.05)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={20} style={{ opacity: 0.25 }} /></div>
+                  }
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: "0.9rem", color: "rgba(255,255,255,0.7)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                    <p style={{ margin: "0.15rem 0 0", fontSize: "0.76rem", color: "rgba(255,255,255,0.4)" }}>
+                      {p.category_name} · <span style={{ color: "#D4A94A" }}>₹{p.price.toLocaleString("en-IN")}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRestoreProduct(p.id, p.name)}
+                    style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.5rem 0.9rem", border: "1.5px solid rgba(34,197,94,0.4)", borderRadius: 8, background: "rgba(34,197,94,0.1)", color: "#4ade80", cursor: "pointer", fontSize: "0.78rem", fontWeight: 700, flexShrink: 0 }}
+                  >
+                    <RotateCcw size={13} /> Restore
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteModal && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 3000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
           <div style={{ background: "linear-gradient(135deg, #150A1F, #1A0D24)", border: "1px solid rgba(220,38,38,0.2)", borderRadius: 16, padding: "1.75rem 1.5rem", maxWidth: 360, width: "100%", textAlign: "center", boxShadow: "0 8px 40px rgba(0,0,0,0.5)" }}>
             <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(220,38,38,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.1rem", fontSize: "1.5rem" }}>🗑️</div>
-            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "rgba(255,255,255,0.9)" }}>Delete Product?</h3>
+            <h3 style={{ margin: "0 0 0.5rem", fontSize: "1.1rem", fontWeight: 800, color: "rgba(255,255,255,0.9)" }}>Move to Trash?</h3>
             <p style={{ margin: "0 0 1.5rem", fontSize: "0.88rem", color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>
-              "<strong>{deleteModal.name}</strong>" will be permanently deleted. This cannot be undone.
+              "<strong>{deleteModal.name}</strong>" will be moved to Trash. You can restore it later.
             </p>
             <div style={{ display: "flex", gap: "0.75rem" }}>
               <button onClick={() => setDeleteModal(null)} style={{ flex: 1, padding: "0.75rem", border: "1.5px solid rgba(255,255,255,0.12)", borderRadius: 10, background: "rgba(255,255,255,0.06)", cursor: "pointer", fontWeight: 600, fontSize: "0.88rem", color: "rgba(255,255,255,0.6)" }}>Cancel</button>
-              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Delete</button>
+              <button onClick={handleDelete} style={{ flex: 1, padding: "0.75rem", border: "none", borderRadius: 10, background: "rgba(220,38,38,0.8)", color: "#fff", cursor: "pointer", fontWeight: 700, fontSize: "0.88rem" }}>Move to Trash</button>
             </div>
           </div>
         </div>

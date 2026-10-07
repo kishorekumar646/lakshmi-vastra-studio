@@ -31,7 +31,6 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImg, setActiveImg] = useState(0);
-  const [userInteracted, setUserInteracted] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [qty, setQty] = useState(1);
   const [adding, setAdding] = useState(false);
@@ -138,22 +137,6 @@ export default function ProductDetail() {
       : (product.image_url ? [product.image_url] : [])
     : [];
 
-  // Auto-slide every 3s; pause when lightbox open or user manually navigated
-  useEffect(() => {
-    if (images.length <= 1 || lightboxOpen || userInteracted) return;
-    const timer = setInterval(() => {
-      setActiveImg((prev) => (prev + 1) % images.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [images.length, lightboxOpen, userInteracted]);
-
-  // Resume auto-slide 5s after user manually taps an arrow/thumbnail
-  useEffect(() => {
-    if (!userInteracted) return;
-    const t = setTimeout(() => setUserInteracted(false), 5000);
-    return () => clearTimeout(t);
-  }, [userInteracted]);
-
   if (loading) return <ProductDetailSkeleton />;
   if (!product) return (
     <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "4rem 1.5rem", background: "var(--cream)" }}>
@@ -167,7 +150,7 @@ export default function ProductDetail() {
 
   const waMsg = `Hello%2C%20I%20am%20interested%20in%20%22${encodeURIComponent(product.name)}%22%20(%E2%82%B9${product.price}).%20Please%20share%20more%20details.`;
 
-  const goToImg = (i) => { setActiveImg(i); setUserInteracted(true); };
+  const goToImg = (i) => { setActiveImg(i); };
 
   const canPrev = activeImg > 0;
   const canNext = activeImg < images.length - 1;

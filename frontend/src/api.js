@@ -31,6 +31,10 @@ export const createProduct = (data) => api.post("/api/admin/products", data);
 export const updateProduct = (id, data) => api.put(`/api/admin/products/${id}`, data);
 export const deleteProduct = (id) => api.delete(`/api/admin/products/${id}`);
 export const deleteProductImage = (productId, imageId) => api.delete(`/api/admin/products/${productId}/images/${imageId}`);
+export const getDeletedProducts = (page = 1, perPage = 20) =>
+  api.get(`/api/admin/products/deleted?page=${page}&per_page=${perPage}`);
+export const restoreProduct = (id) => api.put(`/api/admin/products/${id}/restore`);
+export const permanentDeleteProduct = (id) => api.delete(`/api/admin/products/${id}/permanent`);
 
 // ── Categories ────────────────────────────────────────────────────────────────
 export const getCategories = () => api.get("/api/categories");
@@ -140,6 +144,8 @@ export const createShopProduct = (data) => api.post("/api/shops/products", data)
 export const updateShopProduct = (id, data) => api.put(`/api/shops/products/${id}`, data);
 export const deleteShopProduct = (id) => api.delete(`/api/shops/products/${id}`);
 export const deleteShopProductImage = (productId, imageId) => api.delete(`/api/shops/products/${productId}/images/${imageId}`);
+export const getShopDeletedProducts = () => api.get("/api/shops/products/deleted");
+export const restoreShopProduct = (id) => api.put(`/api/shops/products/${id}/restore`);
 export const getShopOrders = () => api.get("/api/shops/orders");
 export const getShopOrderQr = (orderId) => api.get(`/api/shops/orders/${orderId}/qr`);
 export const shopScanQr = (qr_token) => api.post("/api/shops/orders/scan", { qr_token });
