@@ -53,6 +53,8 @@ export default function ShopDashboard() {
 
   // Products
   const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState(null);
   const [categories, setCategories] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -140,8 +142,28 @@ export default function ShopDashboard() {
     return () => clearInterval(iv);
   }, [tab]);
 
-  const loadProducts = () =>
-    getShopProducts().then((r) => setProducts(r.data)).catch(() => {});
+  const loadProducts = () => {
+    setProductsLoading(true);
+    setProductsError(null);
+    getShopProducts()
+      .then((r) => { setProducts(r.data); })
+      .catch((err) => {
+        const status = err?.response?.status;
+        const detail = err?.response?.data?.detail;
+        if (status === 401) {
+          localStorage.removeItem("shop_token");
+          localStorage.removeItem("shop_owner");
+          navigate("/shop/login");
+          return;
+        }
+        if (status === 403) {
+          setProductsError(detail || "Account not approved or inactive.");
+        } else {
+          setProductsError("Could not load products. Check your connection.");
+        }
+      })
+      .finally(() => setProductsLoading(false));
+  };
 
   const loadOrders = () => {
     setOrdersLoading(true);
@@ -931,7 +953,16 @@ export default function ShopDashboard() {
               ))}
             </div>
 
-            {products.length === 0 ? (
+            {productsLoading ? (
+              <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
+                <p>Loading products…</p>
+              </div>
+            ) : productsError ? (
+              <div style={{ textAlign: "center", padding: "3rem" }}>
+                <p style={{ color: "#FCA5A5", fontWeight: 600, marginBottom: "0.5rem" }}>{productsError}</p>
+                <button onClick={loadProducts} style={{ fontSize: "0.82rem", color: "#D4A94A", background: "none", border: "1px solid rgba(212,169,74,0.3)", borderRadius: 8, padding: "0.4rem 1rem", cursor: "pointer" }}>Retry</button>
+              </div>
+            ) : products.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem", color: "rgba(255,255,255,0.4)" }}>
                 <Package size={40} style={{ opacity: 0.3, marginBottom: "0.75rem" }} />
                 <p>No products yet. Add your first product!</p>
