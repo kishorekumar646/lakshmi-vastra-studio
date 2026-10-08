@@ -80,9 +80,44 @@ export default function Lookbook() {
           </h2>
         </div>
 
-        <div style={{ display: "flex", gap: "1rem", overflowX: "scroll", overflowY: "hidden", paddingLeft: "1.25rem", paddingRight: "1.25rem", paddingBottom: "1rem", scrollSnapType: "x mandatory", touchAction: "pan-x" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            overflowX: "auto",
+            overflowY: "hidden",
+            paddingLeft: "1.25rem",
+            paddingRight: "1.25rem",
+            paddingBottom: "1.5rem",
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
           {images.map((img, i) => (
-            <img key={i} src={img.src} alt={img.alt} style={{ height: "60vmin", minWidth: "180px", width: "auto", borderRadius: 12, flexShrink: 0, objectFit: "cover", scrollSnapAlign: "start", display: "block" }} />
+            <div
+              key={i}
+              style={{
+                flexShrink: 0,
+                scrollSnapAlign: "start",
+                width: "72vw",
+                maxWidth: 300,
+                borderRadius: 14,
+                overflow: "hidden",
+                background: "#1A0E14",
+              }}
+            >
+              <img
+                src={img.src}
+                alt={img.alt}
+                style={{
+                  width: "100%",
+                  height: "90vw",
+                  maxHeight: 340,
+                  objectFit: "cover",
+                  display: "block",
+                }}
+              />
+            </div>
           ))}
         </div>
       </section>

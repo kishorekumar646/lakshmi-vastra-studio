@@ -74,9 +74,18 @@ export default function DressShowcase() {
   const looksRef = useRef([]);
   const { addItem } = useCart();
   const prevLookRef = useRef(0);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768
+  );
   const prefersReduced =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Fetch real products, sorted newest-first (same order as NewArrivals)
   useEffect(() => {
@@ -169,12 +178,70 @@ export default function DressShowcase() {
     }
   };
 
-  if (prefersReduced) {
+  if (isMobile || prefersReduced) {
     return (
-      <section style={{ background: looks[0].bg, padding: "5rem 0" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 1.5rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4rem", alignItems: "center" }}>
-          <img src={looks[0].image} alt={looks[0].name} style={{ width: "100%", maxWidth: 380, borderRadius: 16, display: "block", margin: "0 auto" }} />
-          <ShowcaseInfo look={looks[0]} selectedSize={selectedSize} setSelectedSize={setSelectedSize} onAdd={handleAddToBag} activeLook={0} total={looks.length} />
+      <section style={{ background: "#0D0611", padding: "4.5rem 0 3rem" }} aria-label="Dress Showcase">
+        <div className="container" style={{ marginBottom: "2rem" }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "0.65rem", letterSpacing: "0.32em", textTransform: "uppercase", color: "var(--gold)", fontWeight: 700, marginBottom: "0.6rem" }}>
+            The Edit
+          </p>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.9rem, 6vw, 3rem)", fontWeight: 700, color: "#fff" }}>
+            Dress Showcase
+          </h2>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            gap: "1rem",
+            overflowX: "auto",
+            overflowY: "hidden",
+            paddingLeft: "1.25rem",
+            paddingRight: "1.25rem",
+            paddingBottom: "1.5rem",
+            scrollSnapType: "x mandatory",
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {looks.map((l) => (
+            <div
+              key={l.id}
+              style={{
+                flexShrink: 0,
+                scrollSnapAlign: "start",
+                width: "72vw",
+                maxWidth: 280,
+                borderRadius: 16,
+                overflow: "hidden",
+                background: l.bg,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              <img
+                src={l.image}
+                alt={l.name}
+                style={{ width: "100%", height: "85vw", maxHeight: 320, objectFit: "cover", display: "block" }}
+              />
+              <div style={{ padding: "1.25rem 1rem 1.5rem", flex: 1, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontSize: "0.6rem", letterSpacing: "0.2em", textTransform: "uppercase", color: "var(--gold)", opacity: 0.85 }}>
+                  {l.fabric}
+                </p>
+                <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.05rem", fontWeight: 600, color: "#fff", lineHeight: 1.2 }}>
+                  {l.name}
+                </h3>
+                <p style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.15rem", fontWeight: 700, color: "var(--gold-light)", marginTop: "0.15rem" }}>
+                  {l.price}
+                </p>
+                <button
+                  onClick={() => addItem({ id: `showcase-${l.id}`, name: l.name, price: parseInt(l.price.replace(/[^\d]/g, ""), 10), image_url: l.image, category_name: l.fabric }).then(() => toast.success(`"${l.name}" added to bag`)).catch(() => toast.error("Failed to add to bag"))}
+                  style={{ marginTop: "0.75rem", padding: "0.75rem", borderRadius: 9999, background: "rgba(212,169,74,0.15)", color: "var(--gold)", border: "1.5px solid rgba(212,169,74,0.45)", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
+                >
+                  Add to Bag
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     );

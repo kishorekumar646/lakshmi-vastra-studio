@@ -164,13 +164,14 @@ export default function HeroSection() {
             Handcrafted for the modern Indian woman — tradition woven in every thread.
           </p>
 
-          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+          <div className="hero-cta-row" style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
             <Link
               to="/shop"
               className="hero-cta-gold"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 padding: "0.95rem 2.4rem",
                 borderRadius: "9999px",
                 background: "var(--gold)",
@@ -195,10 +196,12 @@ export default function HeroSection() {
               Shop the Collection
             </Link>
             <Link
-              to="/catalog"
+              to="/lookbook"
+              className="hero-cta-ghost"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
+                justifyContent: "center",
                 padding: "0.95rem 2.4rem",
                 borderRadius: "9999px",
                 background: "transparent",
@@ -220,7 +223,7 @@ export default function HeroSection() {
                 e.currentTarget.style.background = "transparent";
               }}
             >
-              Watch the Film
+              ▶&nbsp; Watch the Film
             </Link>
           </div>
         </div>
