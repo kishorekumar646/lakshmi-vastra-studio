@@ -31,9 +31,6 @@ export default function Catalog() {
     getProducts()
       .then((r) => setProducts(r.data))
       .finally(() => setLoading(false));
-    const onVisible = () => { if (!document.hidden) getProducts().then((r) => setProducts(r.data)).catch(() => {}); };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
   }, []);
 
   const filtered = products

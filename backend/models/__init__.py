@@ -79,13 +79,13 @@ class Product(Base):
     image_public_id = Column(String(200))
     category_id = Column(Integer, ForeignKey("categories.id"))
     shop_owner_id = Column(Integer, ForeignKey("shop_owners.id"), nullable=True)
-    is_featured = Column(Boolean, default=False)
-    is_available = Column(Boolean, default=True)
+    is_featured = Column(Boolean, default=False, index=True)
+    is_available = Column(Boolean, default=True, index=True)
     is_handloom = Column(Boolean, default=False)
     has_multiple_colours = Column(Boolean, default=False)
     custom_orders = Column(Boolean, default=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
+    deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
 
     category = relationship("Category", back_populates="products")
     shop_owner = relationship("ShopOwner", back_populates="products")
@@ -102,7 +102,7 @@ class ProductImage(Base):
     __tablename__ = "product_images"
 
     id = Column(Integer, primary_key=True, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"))
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), index=True)
     image_url = Column(String(500), nullable=False)
     image_public_id = Column(String(200))
     sort_order = Column(Integer, default=0)

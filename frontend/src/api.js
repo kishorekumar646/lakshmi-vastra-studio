@@ -22,7 +22,21 @@ api.interceptors.request.use((config) => {
 });
 
 // ── Products ──────────────────────────────────────────────────────────────────
-export const getProducts = (params) => api.get("/api/products", { params });
+let _productsCache = null;
+let _productsCacheAt = 0;
+const PRODUCTS_TTL = 5 * 60 * 1000; // 5 minutes
+
+export const getProducts = (params) => {
+  if (!params && _productsCache && Date.now() - _productsCacheAt < PRODUCTS_TTL) {
+    return Promise.resolve({ data: _productsCache });
+  }
+  return api.get("/api/products", { params }).then((r) => {
+    if (!params) { _productsCache = r.data; _productsCacheAt = Date.now(); }
+    return r;
+  });
+};
+
+export const invalidateProductsCache = () => { _productsCache = null; _productsCacheAt = 0; };
 export const getAdminProducts = (page = 1, perPage = 10) =>
   api.get("/api/admin/products", { params: { page, per_page: perPage } });
 export const getProduct = (id) => api.get(`/api/products/${id}`);

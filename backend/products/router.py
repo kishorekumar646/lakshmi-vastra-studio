@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
-from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload, contains_eager
 from sqlalchemy import or_
 from typing import Optional, List
 import cloudinary
@@ -90,7 +90,11 @@ def list_products(
 
     items = (
         query
-        .options(joinedload(Product.category), selectinload(Product.images))
+        .options(
+            contains_eager(Product.shop_owner),
+            joinedload(Product.category),
+            selectinload(Product.images),
+        )
         .all()
     )
     return [product_to_dict(p) for p in items]
