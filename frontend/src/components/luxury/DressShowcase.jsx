@@ -31,6 +31,7 @@ function toShowcaseLook(product, i) {
     name: product.name,
     fabric: product.category_name || "Luxury Ethnic Wear",
     price: `₹${Number(product.price).toLocaleString("en-IN")}`,
+    rawPrice: product.price,
     bg: BG_GRADIENTS[i % BG_GRADIENTS.length],
     sizes: DEFAULT_SIZES,
     colors: DEFAULT_COLORS[i % DEFAULT_COLORS.length],
@@ -87,15 +88,13 @@ export default function DressShowcase() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Fetch real products, sorted newest-first (same order as NewArrivals)
+  // Fetch featured products for the showcase
   useEffect(() => {
-    getProducts()
+    getProducts({ featured: true })
       .then((r) => {
-        const sorted = [...(r.data || [])]
-          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-          .slice(0, 4);
-        if (sorted.length === 0) return;
-        const mapped = sorted.map(toShowcaseLook);
+        const featured = (r.data || []).slice(0, 4);
+        if (featured.length === 0) return;
+        const mapped = featured.map(toShowcaseLook);
         looksRef.current = mapped;
         setLooks(mapped);
       })
@@ -166,9 +165,9 @@ export default function DressShowcase() {
   const handleAddToBag = async () => {
     try {
       await addItem({
-        id: `showcase-${look.id}`,
+        id: look.id,
         name: look.name,
-        price: parseInt(look.price.replace(/[^\d]/g, ""), 10),
+        price: look.rawPrice,
         image_url: look.image,
         category_name: look.fabric,
       });
@@ -234,7 +233,7 @@ export default function DressShowcase() {
                   {l.price}
                 </p>
                 <button
-                  onClick={() => addItem({ id: `showcase-${l.id}`, name: l.name, price: parseInt(l.price.replace(/[^\d]/g, ""), 10), image_url: l.image, category_name: l.fabric }).then(() => toast.success(`"${l.name}" added to bag`)).catch(() => toast.error("Failed to add to bag"))}
+                  onClick={() => addItem({ id: l.id, name: l.name, price: l.rawPrice, image_url: l.image, category_name: l.fabric }).then(() => toast.success(`"${l.name}" added to bag`)).catch(() => toast.error("Failed to add to bag"))}
                   style={{ marginTop: "0.75rem", padding: "0.75rem", borderRadius: 9999, background: "rgba(212,169,74,0.15)", color: "var(--gold)", border: "1.5px solid rgba(212,169,74,0.45)", fontSize: "0.72rem", fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", cursor: "pointer" }}
                 >
                   Add to Bag

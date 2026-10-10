@@ -158,10 +158,11 @@ export default function NewArrivals() {
   useEffect(() => {
     getProducts()
       .then((r) => {
-        const sorted = [...r.data].sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
-        setProducts(sorted.slice(0, 4));
+        const latest = [...r.data]
+          .filter((p) => !p.is_featured)
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 4);
+        setProducts(latest);
       })
       .catch(() => {});
   }, []);
