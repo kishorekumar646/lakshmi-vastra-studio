@@ -1,5 +1,5 @@
 const img = (color, text, w = 500, h = 700) => {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${color};stop-opacity:1"/><stop offset="100%" style="stop-color:#1A0E14;stop-opacity:0.8"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)"/><text x="${w/2}" y="${h/2 - 16}" font-family="Georgia,serif" font-size="22" text-anchor="middle" fill="#D4A94A">${text}</text><text x="${w/2}" y="${h/2 + 18}" font-family="Georgia,serif" font-size="13" text-anchor="middle" fill="rgba(255,255,255,0.55)">Lakshmi Vastra Studio</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${color};stop-opacity:1"/><stop offset="100%" style="stop-color:#1A0E14;stop-opacity:0.8"/></linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)"/><text x="${w/2}" y="${h/2 - 16}" font-family="serif" font-size="22" text-anchor="middle" fill="#D4A94A">${text}</text><text x="${w/2}" y="${h/2 + 18}" font-family="serif" font-size="13" text-anchor="middle" fill="rgba(255,255,255,0.55)">Lakshmi Vastra Studio</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 };
 

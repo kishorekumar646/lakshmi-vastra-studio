@@ -5,7 +5,7 @@ const FALLBACK_COLORS = ["#7B1D45", "#B8892A", "#2D2D6B", "#2D6B2D", "#6B3A0A", 
 
 function makeFallbackSvg(name, i) {
   const color = FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="560"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${color};stop-opacity:1"/><stop offset="100%" style="stop-color:#1A0E14;stop-opacity:0.8"/></linearGradient></defs><rect width="380" height="560" fill="url(#g)"/><text x="190" y="274" font-family="Georgia,serif" font-size="16" text-anchor="middle" fill="#D4A94A">${name || `Look ${i + 1}`}</text><text x="190" y="300" font-family="Georgia,serif" font-size="11" text-anchor="middle" fill="rgba(255,255,255,0.5)">Lakshmi Vastra Studio</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="560"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${color};stop-opacity:1"/><stop offset="100%" style="stop-color:#1A0E14;stop-opacity:0.8"/></linearGradient></defs><rect width="380" height="560" fill="url(#g)"/><text x="190" y="274" font-family="serif" font-size="16" text-anchor="middle" fill="#D4A94A">${name || `Look ${i + 1}`}</text><text x="190" y="300" font-family="serif" font-size="11" text-anchor="middle" fill="rgba(255,255,255,0.5)">Lakshmi Vastra Studio</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 

@@ -12,7 +12,7 @@ const FALLBACK_GRADIENTS = [
 
 function makeFallbackSvg(name, i) {
   const [c1, c2] = FALLBACK_GRADIENTS[i % FALLBACK_GRADIENTS.length];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${c1};stop-opacity:1"/><stop offset="100%" style="stop-color:${c2};stop-opacity:1"/></linearGradient></defs><rect width="400" height="600" fill="url(#g)"/><text x="200" y="294" font-family="Georgia,serif" font-size="18" text-anchor="middle" fill="#D4A94A">${name}</text><text x="200" y="324" font-family="Georgia,serif" font-size="12" text-anchor="middle" fill="rgba(255,255,255,0.5)">Lakshmi Vastra Studio</text></svg>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="600"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${c1};stop-opacity:1"/><stop offset="100%" style="stop-color:${c2};stop-opacity:1"/></linearGradient></defs><rect width="400" height="600" fill="url(#g)"/><text x="200" y="294" font-family="serif" font-size="18" text-anchor="middle" fill="#D4A94A">${name}</text><text x="200" y="324" font-family="serif" font-size="12" text-anchor="middle" fill="rgba(255,255,255,0.5)">Lakshmi Vastra Studio</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
