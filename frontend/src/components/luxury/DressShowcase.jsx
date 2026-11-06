@@ -88,6 +88,78 @@ export default function DressShowcase() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
+  // Mobile horizontal scroll handler — track scrollLeft and update activeLook
+  useEffect(() => {
+    if (isMobile === false || prefersReduced) return;
+
+    const handleScroll = () => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+
+      const scrolledInto = wrapper.scrollLeft;
+      const totalScroll = wrapper.scrollWidth - wrapper.clientWidth;
+      if (totalScroll <= 0) return;
+      const progress = Math.max(0, Math.min(1, scrolledInto / totalScroll));
+      const total = looksRef.current.length;
+      if (total === 0) return;
+      const newIdx = Math.min(Math.floor(progress * (total - 1)), total - 1);
+
+      if (newIdx !== activeLook) {
+        setActiveLook(newIdx);
+      }
+    };
+
+    wrapperRef.current.addEventListener("scroll", handleScroll, { passive: true });
+    return () => wrapperRef.current.removeEventListener("scroll", handleScroll);
+  }, [isMobile, activeLook, prefersReduced]);
+
+  // After products load, sync activeLook with the actual current scroll position
+  // so the displayed image and the cart item always agree.
+  useEffect(() => {
+    if (looks.length === 0 || !wrapperRef.current) return;
+    const wrapper = wrapperRef.current;
+    // On mobile, sync based on scrollLeft; on desktop, based on scroll top
+    if (isMobile) {
+      const scrolledInto = wrapper.scrollLeft;
+      const totalScroll = wrapper.scrollWidth - wrapper.clientWidth;
+      if (totalScroll > 0) {
+        const progress = Math.max(0, Math.min(1, scrolledInto / totalScroll));
+        const syncIdx = Math.min(Math.floor(progress * looks.length), looks.length - 1);
+        prevLookRef.current = syncIdx;
+        setActiveLook(syncIdx);
+        // Immediately snap image visibilities to match scroll position (no animation)
+        imageRefs.current.forEach((el, i) => {
+          if (!el) return;
+          el.style.transition = "none";
+          el.style.opacity = i === syncIdx ? "1" : "0";
+          el.style.transform = i === syncIdx
+            ? "translate(-50%, -50%)"
+            : "translate(-50%, -50%) translateX(70px) scale(0.85) rotateY(9deg)";
+          el.style.zIndex = i === syncIdx ? "2" : "1";
+        });
+      }
+    } else {
+      const rect = wrapper.getBoundingClientRect();
+      const scrolledInto = -rect.top;
+      const scrollable = wrapper.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
+      const syncIdx = Math.min(Math.floor(progress * looks.length), looks.length - 1);
+      prevLookRef.current = syncIdx;
+      setActiveLook(syncIdx);
+      // Immediately snap image visibilities to match scroll position (no animation)
+      imageRefs.current.forEach((el, i) => {
+        if (!el) return;
+        el.style.transition = "none";
+        el.style.opacity = i === syncIdx ? "1" : "0";
+        el.style.transform = i === syncIdx
+          ? "translate(-50%, -50%)"
+          : "translate(-50%, -50%) translateX(70px) scale(0.85) rotateY(9deg)";
+        el.style.zIndex = i === syncIdx ? "2" : "1";
+      });
+    }
+  }, [looks, isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Fetch featured products for the showcase
   useEffect(() => {
     getProducts({ featured: true })
