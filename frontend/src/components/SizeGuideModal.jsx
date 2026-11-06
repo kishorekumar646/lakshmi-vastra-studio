@@ -119,6 +119,63 @@ export default function SizeGuideModal({ open, onClose }) {
             </button>
           </div>
 
+          {/* Size options with accessible radio buttons */}
+          <div style={{ marginBottom: "2rem" }}>
+            <p
+              style={{
+                fontSize: "0.88rem",
+                color: "var(--text-muted)",
+                marginBottom: "1rem",
+                fontWeight: 600,
+              }}
+            >
+              Select your size:
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "auto 1fr",
+                gap: "0.75rem 1.5rem",
+                width: "100%",
+                maxWidth: 540,
+              }}
+            >
+              {SIZE_ROWS.map((row, i) => (
+                <label
+                  key={row.size}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  <input
+                    type="radio"
+                    name="size-guide"
+                    value={row.size}
+                    style={{
+                      accentColor: "var(--primary)",
+                      width: 16,
+                      height: 16,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "'Inter', sans-serif",
+                      fontSize: "0.88rem",
+                      color: i === 0 ? "#1A0E14" : "var(--text-muted)",
+                      fontWeight: i === 0 ? 700 : 400,
+                    }}
+                  >
+                    {row.size}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+
           {/* Table */}
           <div style={{ overflowX: "auto" }}>
             <table

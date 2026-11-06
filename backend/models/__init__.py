@@ -81,9 +81,9 @@ class Product(Base):
     shop_owner_id = Column(Integer, ForeignKey("shop_owners.id"), nullable=True)
     is_featured = Column(Boolean, default=False, index=True)
     is_available = Column(Boolean, default=True, index=True)
-    is_handloom = Column(Boolean, default=False)
-    has_multiple_colours = Column(Boolean, default=False)
-    custom_orders = Column(Boolean, default=False)
+    is_handloom = Column(Boolean, default=False, index=True)
+    has_multiple_colours = Column(Boolean, default=False, index=True)
+    custom_orders = Column(Boolean, default=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)
     deleted_at = Column(DateTime(timezone=True), nullable=True, index=True)
 

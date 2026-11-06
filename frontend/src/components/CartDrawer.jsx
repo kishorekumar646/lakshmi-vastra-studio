@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { X, Minus, Plus, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useRef } from "react";
 
 export default function CartDrawer({ open, onClose }) {
-  const { items, cartTotal, removeItem, updateItem } = useCart();
+  const { items, cartTotal, removeItem, updateItem, refreshCart } = useCart();
 
   // Lock body scroll when open
   useEffect(() => {
@@ -17,6 +18,15 @@ export default function CartDrawer({ open, onClose }) {
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  // Re-read cart from localStorage when drawer opens (to sync guest cart)
+  const drawerOpenRef = useRef(open);
+  useEffect(() => {
+    if (open !== drawerOpenRef.current) {
+      refreshCart();
+      drawerOpenRef.current = open;
+    }
+  }, [open, refreshCart]);
 
   // Close on Escape
   useEffect(() => {

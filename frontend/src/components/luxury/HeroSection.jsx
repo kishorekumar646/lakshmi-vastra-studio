@@ -222,6 +222,7 @@ export default function HeroSection() {
                 e.currentTarget.style.borderColor = "rgba(255,255,255,0.45)";
                 e.currentTarget.style.background = "transparent";
               }}
+              aria-label="Watch film"
             >
               ▶&nbsp; Watch the Film
             </Link>

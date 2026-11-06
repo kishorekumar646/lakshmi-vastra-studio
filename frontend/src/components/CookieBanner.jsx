@@ -182,9 +182,9 @@ export default function CookieBanner() {
               </div>
               {/* Buttons */}
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", alignItems: "center", flexShrink: 0 }}>
-                <button onClick={acceptAll} style={S.btnPrimary}>Accept All</button>
-                <button onClick={acceptRequired} style={S.btnOutline}>Required Only</button>
-                <button onClick={() => setShowSettings(true)} style={S.btnGhost}>Cookie Settings</button>
+                <button onClick={acceptAll} style={S.btnPrimary} aria-label="Accept all cookies">Accept All</button>
+                <button onClick={acceptRequired} style={S.btnOutline} aria-label="Accept only essential cookies">Required Only</button>
+                <button onClick={() => setShowSettings(true)} style={S.btnGhost} aria-label="Open cookie settings">Cookie Settings</button>
               </div>
             </div>
           </div>

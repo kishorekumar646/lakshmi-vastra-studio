@@ -13,7 +13,7 @@ if not os.getenv("RENDER"):
     ssl._create_default_https_context = ssl._create_unverified_context
 
 from sqlalchemy import text
-from database import engine, Base
+from database import engine, Base, db_session
 from products import router as products_router
 from products import categories as categories_router
 from admins import router as admin_router

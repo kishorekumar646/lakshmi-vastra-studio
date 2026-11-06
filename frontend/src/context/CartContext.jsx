@@ -35,9 +35,17 @@ export function CartProvider({ children }) {
     }
   }, [customer]);
 
+  const refreshCart = useCallback(() => {
+    setItems(loadGuestCart());
+  }, []);
+
   useEffect(() => {
     fetchCart();
   }, [fetchCart]);
+
+  useEffect(() => {
+    refreshCart();
+  }, [refreshCart]);
 
   const addItem = async (product, quantity = 1) => {
     if (customer) {
