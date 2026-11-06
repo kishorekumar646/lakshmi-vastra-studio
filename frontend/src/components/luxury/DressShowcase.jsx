@@ -90,16 +90,17 @@ export default function DressShowcase() {
 
   // Mobile horizontal scroll handler — track scrollLeft and update activeLook
   useEffect(() => {
+    // Only run on mobile, and skip if reduced motion is preferred
+    if (typeof window === "undefined") return;
     if (isMobile === false || prefersReduced) return;
 
-    const handleScroll = () => {
-      const wrapper = wrapperRef.current;
-      if (!wrapper) return;
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
 
-      const scrolledInto = wrapper.scrollLeft;
+    const handleScroll = () => {
       const totalScroll = wrapper.scrollWidth - wrapper.clientWidth;
       if (totalScroll <= 0) return;
-      const progress = Math.max(0, Math.min(1, scrolledInto / totalScroll));
+      const progress = Math.max(0, Math.min(1, wrapper.scrollLeft / totalScroll));
       const total = looksRef.current.length;
       if (total === 0) return;
       const newIdx = Math.min(Math.floor(progress * (total - 1)), total - 1);
@@ -109,8 +110,8 @@ export default function DressShowcase() {
       }
     };
 
-    wrapperRef.current.addEventListener("scroll", handleScroll, { passive: true });
-    return () => wrapperRef.current.removeEventListener("scroll", handleScroll);
+    wrapper.addEventListener("scroll", handleScroll, { passive: true });
+    return () => wrapper.removeEventListener("scroll", handleScroll);
   }, [isMobile, activeLook, prefersReduced]);
 
   // After products load, sync activeLook with the actual current scroll position
